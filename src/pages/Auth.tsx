@@ -1,22 +1,85 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Sparkles, Mail, Lock, User, ArrowRight, Building2 } from "lucide-react";
+import { Sparkles, Mail, Lock, User, ArrowRight, Building2, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const { signIn, signUp, user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if already logged in
+  const from = (location.state as { from?: Location })?.from?.pathname || "/";
+  
+  if (user) {
+    navigate(from, { replace: true });
+    return null;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement authentication
-    console.log("Auth submitted:", { email, password, fullName });
+    setIsLoading(true);
+
+    try {
+      if (isLogin) {
+        const { error } = await signIn(email, password);
+        if (error) {
+          toast({
+            title: "Erro ao entrar",
+            description: error.message === "Invalid login credentials" 
+              ? "Email ou senha incorretos" 
+              : error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Bem-vindo!",
+            description: "Login realizado com sucesso.",
+          });
+          navigate(from, { replace: true });
+        }
+      } else {
+        if (!fullName.trim()) {
+          toast({
+            title: "Nome obrigatório",
+            description: "Por favor, informe seu nome completo.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        const { error } = await signUp(email, password, fullName);
+        if (error) {
+          toast({
+            title: "Erro ao criar conta",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Conta criada!",
+            description: "Verifique seu email para confirmar o cadastro.",
+          });
+          setIsLogin(true);
+        }
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -100,6 +163,7 @@ const Auth = () => {
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         className="pl-10"
+                        disabled={isLoading}
                       />
                     </div>
                   </div>
@@ -116,6 +180,8 @@ const Auth = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
+                      disabled={isLoading}
+                      required
                     />
                   </div>
                 </div>
@@ -141,6 +207,9 @@ const Auth = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10"
+                      disabled={isLoading}
+                      required
+                      minLength={6}
                     />
                   </div>
                 </div>
@@ -148,9 +217,16 @@ const Auth = () => {
                 <Button
                   type="submit"
                   className="w-full gap-2 bg-gradient-primary hover:opacity-90 transition-opacity"
+                  disabled={isLoading}
                 >
-                  {isLogin ? "Entrar" : "Criar conta"}
-                  <ArrowRight className="h-4 w-4" />
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      {isLogin ? "Entrar" : "Criar conta"}
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               </form>
 
@@ -167,7 +243,7 @@ const Auth = () => {
                 </div>
 
                 <div className="mt-6 grid grid-cols-2 gap-4">
-                  <Button variant="outline" className="gap-2">
+                  <Button variant="outline" className="gap-2" disabled={isLoading}>
                     <svg className="h-4 w-4" viewBox="0 0 24 24">
                       <path
                         fill="currentColor"
@@ -188,7 +264,7 @@ const Auth = () => {
                     </svg>
                     Google
                   </Button>
-                  <Button variant="outline" className="gap-2">
+                  <Button variant="outline" className="gap-2" disabled={isLoading}>
                     <Building2 className="h-4 w-4" />
                     SSO
                   </Button>
@@ -201,6 +277,7 @@ const Auth = () => {
                   type="button"
                   onClick={() => setIsLogin(!isLogin)}
                   className="font-medium text-primary hover:underline"
+                  disabled={isLoading}
                 >
                   {isLogin ? "Cadastre-se" : "Entrar"}
                 </button>
