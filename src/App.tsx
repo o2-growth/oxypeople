@@ -15,6 +15,7 @@ import Surveys from "./pages/Surveys";
 import Company from "./pages/Company";
 import Settings from "./pages/Settings";
 import Automation from "./pages/Automation";
+import Teams from "./pages/Teams";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/company" element={<ProtectedRoute><Company /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/automation" element={<ProtectedRoute><Automation /></ProtectedRoute>} />
+            <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
