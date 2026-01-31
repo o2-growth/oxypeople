@@ -1,349 +1,330 @@
 
 
-# People Hub - Implementacao Completa
+# Sistema de Automacoes e Avisos
 
-## Situacao Atual
+## Visao Geral
 
-O projeto tem apenas 4 paginas implementadas:
-- **Dashboard** (`/`) - Funcionando
-- **Feed** (`/feed`) - Funcionando 
-- **Pessoas** (`/people`) - Funcionando
-- **Auth** (`/auth`) - UI pronta (sem backend)
-
-O sidebar referencia 5 rotas que retornam 404:
-- `/recognition` - Reconhecimentos
-- `/objectives` - Objetivos
-- `/surveys` - Pesquisas
-- `/company` - Empresa/Workspace
-- `/settings` - Configuracoes
+Criar uma nova pagina "Automacao" dentro da secao Principal do sidebar, abaixo de "Pessoas". Esta pagina centralizara avisos corporativos, automacoes de aniversarios e integracoes com Slack para notificacoes automaticas.
 
 ---
 
-## Plano de Implementacao
+## Arquitetura da Solucao
 
-### Fase 1: Criar Paginas Faltantes (Frontend)
-
-#### 1.1 Pagina de Reconhecimentos (`/recognition`)
-Sistema para enviar e receber reconhecimentos entre colaboradores.
-- Cards de reconhecimentos recebidos/enviados
-- Formulario para criar novo reconhecimento
-- Leaderboard de mais reconhecidos
-- Sistema de badges/conquistas
-- Filtros por periodo e departamento
-
-#### 1.2 Pagina de Objetivos (`/objectives`)  
-Gestao de OKRs e metas individuais/equipe.
-- Lista de objetivos com progresso visual
-- Key Results vinculados a cada objetivo
-- Filtros: Meus/Equipe/Empresa
-- Timeline de updates
-- Indicadores de saude (on-track/at-risk/off-track)
-
-#### 1.3 Pagina de Pesquisas (`/surveys`)
-Pesquisas de engajamento e clima organizacional.
-- Lista de pesquisas ativas/concluidas
-- Criar nova pesquisa (para admins)
-- Responder pesquisas pendentes
-- Dashboard de resultados com graficos
-- Historico de participacao
-
-#### 1.4 Pagina Empresa/Workspace (`/company`)
-Gestao do workspace e membros.
-- Informacoes da empresa (nome, dominio, logo)
-- Lista de membros com roles (owner/admin/manager/member)
-- Convites pendentes
-- Import CSV de emails
-- Departamentos e estrutura organizacional
-
-#### 1.5 Pagina de Configuracoes (`/settings`)
-Configuracoes do usuario e preferencias.
-- Perfil do usuario (avatar, nome, bio)
-- Notificacoes (email, push)
-- Privacidade
-- Tema (claro/escuro)
-- Integrações
-
----
-
-### Fase 2: Backend - Schemas do Banco de Dados
-
-#### 2.1 Tabelas de Autenticacao e Usuarios
 ```text
-public.users
-+--------------------+-------------+
-| id (UUID, PK)      | = auth.uid  |
-| email              | TEXT        |
-| full_name          | TEXT        |
-| avatar_url         | TEXT        |
-| locale             | TEXT        |
-| last_active_at     | TIMESTAMPTZ |
-| primary_company_id | UUID (FK)   |
-| metadata           | JSONB       |
-| created_at         | TIMESTAMPTZ |
-| updated_at         | TIMESTAMPTZ |
-+--------------------+-------------+
-```
-
-#### 2.2 Tabelas de Workspace e Roles
-```text
-companies
-+--------------------+-------------+
-| id (UUID, PK)      |             |
-| name               | TEXT        |
-| domain             | TEXT UNIQUE |
-| owner_id           | UUID (FK)   |
-| plan               | TEXT        |
-| created_at/updated |             |
-+--------------------+-------------+
-
-company_memberships
-+--------------------+-------------+
-| id (UUID, PK)      |             |
-| company_id         | UUID (FK)   |
-| user_id            | UUID (FK)   |
-| role               | TEXT (enum) |
-| status             | TEXT (enum) |
-| joined_at          | TIMESTAMPTZ |
-| invited_by         | UUID (FK)   |
-+--------------------+-------------+
-
-invites
-+--------------------+-------------+
-| id (UUID, PK)      |             |
-| company_id         | UUID (FK)   |
-| email              | TEXT        |
-| token              | TEXT        |
-| expires_at         | TIMESTAMPTZ |
-+--------------------+-------------+
-```
-
-#### 2.3 Tabelas do Feed Social
-```text
-posts
-+--------------------+-------------+
-| id (UUID, PK)      |             |
-| company_id         | UUID (FK)   |
-| author_id          | UUID (FK)   |
-| content            | TEXT        |
-| visibility         | TEXT (enum) |
-| metadata           | JSONB       |
-| created_at/updated |             |
-+--------------------+-------------+
-
-comments
-+--------------------+-------------+
-| id (UUID, PK)      |             |
-| post_id            | UUID (FK)   |
-| author_id          | UUID (FK)   |
-| parent_comment_id  | UUID        |
-| content            | TEXT        |
-| created_at/updated |             |
-+--------------------+-------------+
-
-reactions
-+--------------------+-------------+
-| id (UUID, PK)      |             |
-| post_id/comment_id | UUID        |
-| user_id            | UUID (FK)   |
-| type               | TEXT        |
-| created_at         |             |
-+--------------------+-------------+
-```
-
-#### 2.4 Tabelas de Reconhecimentos
-```text
-recognitions
-+--------------------+-------------+
-| id (UUID, PK)      |             |
-| company_id         | UUID (FK)   |
-| from_user_id       | UUID (FK)   |
-| to_user_id         | UUID (FK)   |
-| message            | TEXT        |
-| badge_id           | UUID (FK)   |
-| points             | INTEGER     |
-| created_at         |             |
-+--------------------+-------------+
-
-badges
-+--------------------+-------------+
-| id (UUID, PK)      |             |
-| company_id         | UUID (FK)   |
-| name               | TEXT        |
-| description        | TEXT        |
-| icon_url           | TEXT        |
-| points             | INTEGER     |
-| active             | BOOLEAN     |
-+--------------------+-------------+
-```
-
-#### 2.5 Tabelas de Objetivos (OKRs)
-```text
-objectives
-+--------------------+-------------+
-| id (UUID, PK)      |             |
-| company_id         | UUID (FK)   |
-| owner_id           | UUID (FK)   |
-| title              | TEXT        |
-| description        | TEXT        |
-| due_date           | DATE        |
-| status             | TEXT (enum) |
-| progress           | INTEGER     |
-| parent_id          | UUID (FK)   |
-| visibility         | TEXT (enum) |
-| created_at/updated |             |
-+--------------------+-------------+
-
-key_results
-+--------------------+-------------+
-| id (UUID, PK)      |             |
-| objective_id       | UUID (FK)   |
-| title              | TEXT        |
-| target_value       | NUMERIC     |
-| current_value      | NUMERIC     |
-| unit               | TEXT        |
-| created_at/updated |             |
-+--------------------+-------------+
-```
-
-#### 2.6 Tabelas de Pesquisas
-```text
-surveys
-+--------------------+-------------+
-| id (UUID, PK)      |             |
-| company_id         | UUID (FK)   |
-| title              | TEXT        |
-| description        | TEXT        |
-| status             | TEXT (enum) |
-| start_date         | DATE        |
-| end_date           | DATE        |
-| anonymous          | BOOLEAN     |
-| created_by         | UUID (FK)   |
-| created_at/updated |             |
-+--------------------+-------------+
-
-survey_questions
-+--------------------+-------------+
-| id (UUID, PK)      |             |
-| survey_id          | UUID (FK)   |
-| question_text      | TEXT        |
-| question_type      | TEXT (enum) |
-| options            | JSONB       |
-| order_index        | INTEGER     |
-| required           | BOOLEAN     |
-+--------------------+-------------+
-
-survey_responses
-+--------------------+-------------+
-| id (UUID, PK)      |             |
-| survey_id          | UUID (FK)   |
-| question_id        | UUID (FK)   |
-| user_id            | UUID (FK)   |
-| answer             | JSONB       |
-| created_at         |             |
-+--------------------+-------------+
++-------------------+     +--------------------+     +------------------+
+|  Frontend React   | --> | Edge Function API  | --> | Slack API        |
+|  (Automacao page) |     | (send-slack-msg)   |     | (Bot messages)   |
++-------------------+     +--------------------+     +------------------+
+         |                        |
+         v                        v
++-------------------+     +--------------------+
+|  Supabase Tables  |     | Cron Job (PG)      |
+|  announcements    |     | birthday_check     |
+|  automations      |     +--------------------+
++-------------------+
 ```
 
 ---
 
-### Fase 3: Politicas RLS (Row Level Security)
+## Funcionalidades Principais
 
-Para cada tabela, serao criadas politicas que garantem:
-- Usuarios so veem dados da sua empresa
-- Admins podem gerenciar usuarios e configuracoes
-- Membros podem criar posts/reconhecimentos
-- Respostas anonimas sao protegidas
-- Convites so sao visiveis para admins e convidados
+### 1. Sistema de Avisos (Announcements)
+- Criar avisos para toda empresa ou departamentos especificos
+- Tipos: Evento, Informativo, Urgente, Celebracao
+- Agendamento de avisos para data futura
+- Opcao de fixar aviso importante no topo
+- Publicar no Feed e/ou enviar para Slack
 
----
+### 2. Automacoes de Aniversarios
+- Detectar aniversarios do dia/semana automaticamente
+- Configurar mensagem padrao personalizavel
+- Enviar automaticamente para canal Slack configurado
+- Opcao de criar post no Feed com parabens
 
-### Fase 4: Autenticacao Funcional
+### 3. Automacoes Personalizadas
+- Notificacao de novos colaboradores
+- Lembretes de datas importantes (tempo de empresa)
+- Alertas de pesquisas pendentes
+- Avisos de prazos de objetivos
 
-#### 4.1 Hook useAuth
-- Signup com email/senha
-- Login com email/senha
-- Reset de senha
-- Logout
-- Estado de loading
-
-#### 4.2 Sincronizacao de Usuario
-- Trigger para criar registro em `public.users` apos signup
-- Funcao de sync para atualizar perfil
-
-#### 4.3 Protecao de Rotas
-- Componente ProtectedRoute
-- Redirect para /auth se nao autenticado
-- Loading state durante verificacao
+### 4. Integracao Slack
+- Conectar workspace do Slack via conector
+- Selecionar canal de destino por tipo de aviso
+- Preview da mensagem antes de enviar
+- Historico de mensagens enviadas
 
 ---
 
-### Fase 5: Hooks e Queries
+## Estrutura do Banco de Dados
 
-Criar hooks React Query para cada entidade:
-- `useAuth()` - autenticacao
-- `useUser()` - perfil do usuario logado
-- `useCompany()` - empresa atual
-- `useMembers()` - membros da empresa
-- `usePosts()` - feed de posts
-- `useRecognitions()` - reconhecimentos
-- `useObjectives()` - objetivos/OKRs
-- `useSurveys()` - pesquisas
+### Tabela: announcements
+```text
++---------------------+-------------------+
+| Coluna              | Tipo              |
++---------------------+-------------------+
+| id                  | UUID PK           |
+| company_id          | UUID FK           |
+| author_id           | UUID FK           |
+| title               | TEXT              |
+| content             | TEXT              |
+| type                | ENUM              |
+|   (event, info,     |                   |
+|    urgent, celebration)                 |
+| target_audience     | TEXT[]            |
+| scheduled_at        | TIMESTAMPTZ       |
+| published_at        | TIMESTAMPTZ       |
+| is_pinned           | BOOLEAN           |
+| slack_channel_id    | TEXT              |
+| slack_sent_at       | TIMESTAMPTZ       |
+| post_to_feed        | BOOLEAN           |
+| feed_post_id        | UUID FK           |
+| created_at          | TIMESTAMPTZ       |
+| updated_at          | TIMESTAMPTZ       |
++---------------------+-------------------+
+```
+
+### Tabela: automations
+```text
++---------------------+-------------------+
+| Coluna              | Tipo              |
++---------------------+-------------------+
+| id                  | UUID PK           |
+| company_id          | UUID FK           |
+| name                | TEXT              |
+| type                | ENUM              |
+|   (birthday, anniversary,               |
+|    new_hire, reminder)                  |
+| enabled             | BOOLEAN           |
+| config              | JSONB             |
+|   - message_template                    |
+|   - slack_channel_id                    |
+|   - post_to_feed                        |
+|   - days_before (for reminders)         |
+| last_run_at         | TIMESTAMPTZ       |
+| created_at          | TIMESTAMPTZ       |
+| updated_at          | TIMESTAMPTZ       |
++---------------------+-------------------+
+```
+
+### Tabela: automation_logs
+```text
++---------------------+-------------------+
+| Coluna              | Tipo              |
++---------------------+-------------------+
+| id                  | UUID PK           |
+| automation_id       | UUID FK           |
+| company_id          | UUID FK           |
+| event_type          | TEXT              |
+| target_user_id      | UUID FK           |
+| message_sent        | TEXT              |
+| slack_response      | JSONB             |
+| status              | ENUM (success,    |
+|                     |  failed, pending) |
+| created_at          | TIMESTAMPTZ       |
++---------------------+-------------------+
+```
+
+### Adicionar a tabela users
+```text
++ birth_date           | DATE              |
+```
+
+---
+
+## Componentes Frontend
+
+### Nova Pagina: src/pages/Automation.tsx
+- Tabs: Avisos | Automacoes | Historico | Configuracoes
+- Lista de avisos com filtros por tipo/status
+- Cards de automacoes com toggle de ativacao
+- Timeline de logs de execucao
+
+### Componentes:
+```text
+src/components/automation/
++-- AnnouncementCard.tsx      # Card de aviso individual
++-- CreateAnnouncement.tsx    # Modal/Form para criar aviso
++-- AutomationCard.tsx        # Card de automacao configuravel
++-- BirthdayAutomation.tsx    # Config especifica de aniversarios
++-- SlackChannelSelector.tsx  # Dropdown de canais Slack
++-- AutomationLogs.tsx        # Timeline de execucoes
++-- AnnouncementsList.tsx     # Lista filtrada de avisos
+```
+
+---
+
+## Edge Functions
+
+### 1. send-slack-message
+Envia mensagens para canais do Slack via conector.
+
+```text
+POST /send-slack-message
+Body: {
+  channel_id: string,
+  message: string,
+  blocks?: SlackBlock[]  // Rich formatting
+}
+```
+
+### 2. process-automations
+Cron job para verificar e executar automacoes.
+
+```text
+- Verifica aniversarios do dia
+- Verifica aniversarios de empresa
+- Executa automacoes configuradas
+- Registra logs de execucao
+```
+
+### 3. list-slack-channels
+Busca canais disponiveis do Slack conectado.
+
+```text
+GET /list-slack-channels
+Response: { channels: [{ id, name }] }
+```
+
+---
+
+## Atualizacao do Sidebar
+
+Adicionar item "Automacao" na secao Principal:
+
+```text
+Principal
+  - Dashboard
+  - Feed
+  - Pessoas
+  - Automacao  <-- NOVO
+```
+
+---
+
+## Fluxo de Integracao Slack
+
+1. Usuario conecta Slack via conector (SLACK_API_KEY)
+2. Edge function lista canais disponiveis
+3. Usuario seleciona canal para cada tipo de automacao
+4. Sistema envia mensagens automaticamente via gateway
+
+---
+
+## Politicas RLS
+
+### announcements
+- SELECT: membros da empresa podem visualizar
+- INSERT: admins/managers podem criar
+- UPDATE: autor ou admins podem editar
+- DELETE: autor ou admins podem remover
+
+### automations
+- SELECT: admins da empresa
+- INSERT/UPDATE/DELETE: apenas admins
+
+### automation_logs
+- SELECT: admins da empresa
+- INSERT: apenas service_role (edge functions)
 
 ---
 
 ## Ordem de Implementacao
 
-1. **Paginas Frontend** - Criar as 5 paginas faltantes com dados mockados
-2. **Database Schema** - Criar todas as tabelas via migrations
-3. **RLS Policies** - Configurar seguranca por linha
-4. **Autenticacao** - Implementar signup/login funcionais
-5. **Hooks de Dados** - Conectar frontend ao backend
-6. **Funcionalidades** - Integrar CRUD completo em cada pagina
+1. **Database Migration**
+   - Criar tabelas announcements, automations, automation_logs
+   - Adicionar campo birth_date em users
+   - Configurar RLS policies
+
+2. **Frontend Base**
+   - Criar pagina Automation.tsx
+   - Adicionar rota no App.tsx
+   - Atualizar sidebar com novo item
+
+3. **Componentes de Avisos**
+   - AnnouncementCard com tipos visuais
+   - CreateAnnouncement com form completo
+   - AnnouncementsList com filtros
+
+4. **Componentes de Automacoes**
+   - AutomationCard com toggle
+   - BirthdayAutomation com config
+   - AutomationLogs timeline
+
+5. **Integracao Slack**
+   - Conectar via conector Slack
+   - Edge function send-slack-message
+   - Edge function list-slack-channels
+   - SlackChannelSelector component
+
+6. **Automacao de Aniversarios**
+   - Edge function process-automations
+   - Cron job scheduling (pg_cron ou externo)
+   - Logs de execucao
 
 ---
 
-## Arquivos a Serem Criados
+## Detalhes Tecnicos
 
-### Novas Paginas
-- `src/pages/Recognition.tsx`
-- `src/pages/Objectives.tsx`
-- `src/pages/Surveys.tsx`
-- `src/pages/Company.tsx`
-- `src/pages/Settings.tsx`
+### Configuracao do Slack Connector
+O projeto usara o conector Slack da Lovable que fornece:
+- SLACK_API_KEY como variavel de ambiente
+- Gateway URL: `https://gateway.lovable.dev/slack/api`
+- Headers: Authorization + X-Connection-Api-Key
 
-### Componentes de Reconhecimentos
-- `src/components/recognition/RecognitionCard.tsx`
-- `src/components/recognition/SendRecognition.tsx`
-- `src/components/recognition/BadgeCard.tsx`
-- `src/components/recognition/Leaderboard.tsx`
+### Formato de Mensagem Slack
+```text
+{
+  "channel": "C1234567890",
+  "text": "Feliz aniversario Ana!",
+  "blocks": [
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Hoje eh dia de comemoracao!*\nParabens Ana Silva pelo seu aniversario!"
+      }
+    }
+  ]
+}
+```
 
-### Componentes de Objetivos
-- `src/components/objectives/ObjectiveCard.tsx`
-- `src/components/objectives/KeyResultItem.tsx`
-- `src/components/objectives/ObjectiveProgress.tsx`
-- `src/components/objectives/CreateObjective.tsx`
+### Template de Aniversario (JSONB config)
+```text
+{
+  "message_template": "Parabens {name}! Desejamos um feliz aniversario!",
+  "slack_channel_id": "C1234567890",
+  "post_to_feed": true,
+  "include_cake_emoji": true
+}
+```
 
-### Componentes de Pesquisas
-- `src/components/surveys/SurveyCard.tsx`
-- `src/components/surveys/QuestionRenderer.tsx`
-- `src/components/surveys/SurveyResults.tsx`
+---
 
-### Componentes de Empresa
-- `src/components/company/MembersList.tsx`
-- `src/components/company/InviteModal.tsx`
-- `src/components/company/RoleSelector.tsx`
-- `src/components/company/CompanyInfo.tsx`
+## Arquivos a Criar
 
-### Componentes de Configuracoes
-- `src/components/settings/ProfileForm.tsx`
-- `src/components/settings/NotificationSettings.tsx`
-- `src/components/settings/ThemeToggle.tsx`
+### Paginas
+- `src/pages/Automation.tsx`
 
-### Hooks e Providers
-- `src/hooks/useAuth.ts`
-- `src/hooks/useUser.ts`
-- `src/contexts/AuthContext.tsx`
-- `src/components/ProtectedRoute.tsx`
+### Componentes
+- `src/components/automation/AnnouncementCard.tsx`
+- `src/components/automation/CreateAnnouncement.tsx`
+- `src/components/automation/AutomationCard.tsx`
+- `src/components/automation/BirthdayAutomation.tsx`
+- `src/components/automation/SlackChannelSelector.tsx`
+- `src/components/automation/AutomationLogs.tsx`
+- `src/components/automation/AnnouncementsList.tsx`
 
-### Rotas Atualizadas
-- `src/App.tsx` - adicionar todas as rotas
+### Edge Functions
+- `supabase/functions/send-slack-message/index.ts`
+- `supabase/functions/list-slack-channels/index.ts`
+- `supabase/functions/process-automations/index.ts`
+
+### Hooks
+- `src/hooks/useAnnouncements.ts`
+- `src/hooks/useAutomations.ts`
+- `src/hooks/useSlackChannels.ts`
+
+### Arquivos a Editar
+- `src/components/layout/AppSidebar.tsx` - adicionar item Automacao
+- `src/App.tsx` - adicionar rota /automation
 
