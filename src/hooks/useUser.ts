@@ -19,7 +19,7 @@ export interface UserProfile {
 export function useUser() {
   const { user } = useAuth();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ["user", user?.id],
     queryFn: async (): Promise<UserProfile | null> => {
       if (!user?.id) return null;
@@ -39,6 +39,13 @@ export function useUser() {
     },
     enabled: !!user?.id,
   });
+
+  return {
+    profile: query.data,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  };
 }
 
 export function useUpdateUser() {

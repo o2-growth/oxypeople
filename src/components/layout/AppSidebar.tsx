@@ -9,9 +9,9 @@ import {
   Target,
   BarChart3,
   Settings,
-  HelpCircle,
   ChevronDown,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -39,6 +39,7 @@ const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Feed", url: "/feed", icon: MessageSquare },
   { title: "Pessoas", url: "/people", icon: Users },
+  { title: "Automação", url: "/automation", icon: Zap },
 ];
 
 const engagementItems = [
