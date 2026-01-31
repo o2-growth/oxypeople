@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Sparkles,
   Zap,
+  UsersRound,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -50,6 +51,7 @@ const engagementItems = [
 
 const managementItems = [
   { title: "Empresa", url: "/company", icon: Building2 },
+  { title: "Equipes", url: "/teams", icon: UsersRound },
   { title: "Configurações", url: "/settings", icon: Settings },
 ];
 
