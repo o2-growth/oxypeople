@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,6 +33,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import {
+  TargetAudienceSelector,
+  type TargetAudience,
+} from "./TargetAudienceSelector";
+import { audienceToArray } from "@/lib/audienceUtils";
 
 const announcementSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -55,6 +61,10 @@ export function CreateAnnouncement({
   const { user } = useAuth();
   const { profile } = useUser();
   const queryClient = useQueryClient();
+
+  const [targetAudience, setTargetAudience] = useState<TargetAudience>({
+    type: "all",
+  });
 
   const form = useForm<AnnouncementForm>({
     resolver: zodResolver(announcementSchema),
@@ -82,6 +92,7 @@ export function CreateAnnouncement({
         author_id: user.id,
         company_id: profile.primary_company_id,
         published_at: new Date().toISOString(),
+        target_audience: audienceToArray(targetAudience),
       });
 
       if (error) throw error;
@@ -90,6 +101,7 @@ export function CreateAnnouncement({
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
       toast.success("Aviso criado com sucesso");
       form.reset();
+      setTargetAudience({ type: "all" });
       onOpenChange(false);
     },
     onError: (error) => {
@@ -104,7 +116,7 @@ export function CreateAnnouncement({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Aviso</DialogTitle>
         </DialogHeader>
@@ -168,6 +180,12 @@ export function CreateAnnouncement({
                   <FormMessage />
                 </FormItem>
               )}
+            />
+
+            {/* Seletor de Público-alvo */}
+            <TargetAudienceSelector
+              value={targetAudience}
+              onChange={setTargetAudience}
             />
 
             <div className="flex items-center justify-between">
