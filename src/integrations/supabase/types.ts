@@ -14,6 +14,187 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          author_id: string
+          company_id: string
+          content: string
+          created_at: string
+          feed_post_id: string | null
+          id: string
+          is_pinned: boolean
+          post_to_feed: boolean
+          published_at: string | null
+          scheduled_at: string | null
+          slack_channel_id: string | null
+          slack_sent_at: string | null
+          target_audience: string[] | null
+          title: string
+          type: Database["public"]["Enums"]["announcement_type"]
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          company_id: string
+          content: string
+          created_at?: string
+          feed_post_id?: string | null
+          id?: string
+          is_pinned?: boolean
+          post_to_feed?: boolean
+          published_at?: string | null
+          scheduled_at?: string | null
+          slack_channel_id?: string | null
+          slack_sent_at?: string | null
+          target_audience?: string[] | null
+          title: string
+          type?: Database["public"]["Enums"]["announcement_type"]
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          company_id?: string
+          content?: string
+          created_at?: string
+          feed_post_id?: string | null
+          id?: string
+          is_pinned?: boolean
+          post_to_feed?: boolean
+          published_at?: string | null
+          scheduled_at?: string | null
+          slack_channel_id?: string | null
+          slack_sent_at?: string | null
+          target_audience?: string[] | null
+          title?: string
+          type?: Database["public"]["Enums"]["announcement_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "announcements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "announcements_feed_post_id_fkey"
+            columns: ["feed_post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_logs: {
+        Row: {
+          automation_id: string
+          company_id: string
+          created_at: string
+          event_type: string
+          id: string
+          message_sent: string | null
+          slack_response: Json | null
+          status: Database["public"]["Enums"]["automation_log_status"]
+          target_user_id: string | null
+        }
+        Insert: {
+          automation_id: string
+          company_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          message_sent?: string | null
+          slack_response?: Json | null
+          status?: Database["public"]["Enums"]["automation_log_status"]
+          target_user_id?: string | null
+        }
+        Update: {
+          automation_id?: string
+          company_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          message_sent?: string | null
+          slack_response?: Json | null
+          status?: Database["public"]["Enums"]["automation_log_status"]
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_logs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_logs_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automations: {
+        Row: {
+          company_id: string
+          config: Json
+          created_at: string
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          name: string
+          type: Database["public"]["Enums"]["automation_type"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          name: string
+          type: Database["public"]["Enums"]["automation_type"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          type?: Database["public"]["Enums"]["automation_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       badges: {
         Row: {
           active: boolean
@@ -731,6 +912,7 @@ export type Database = {
       users: {
         Row: {
           avatar_url: string | null
+          birth_date: string | null
           created_at: string
           email: string
           full_name: string | null
@@ -743,6 +925,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          birth_date?: string | null
           created_at?: string
           email: string
           full_name?: string | null
@@ -755,6 +938,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          birth_date?: string | null
           created_at?: string
           email?: string
           full_name?: string | null
@@ -794,6 +978,9 @@ export type Database = {
       }
     }
     Enums: {
+      announcement_type: "event" | "info" | "urgent" | "celebration"
+      automation_log_status: "success" | "failed" | "pending"
+      automation_type: "birthday" | "anniversary" | "new_hire" | "reminder"
       membership_role: "owner" | "admin" | "manager" | "member"
       membership_status: "active" | "invited" | "pending" | "inactive"
       objective_status: "on-track" | "at-risk" | "off-track" | "completed"
@@ -932,6 +1119,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      announcement_type: ["event", "info", "urgent", "celebration"],
+      automation_log_status: ["success", "failed", "pending"],
+      automation_type: ["birthday", "anniversary", "new_hire", "reminder"],
       membership_role: ["owner", "admin", "manager", "member"],
       membership_status: ["active", "invited", "pending", "inactive"],
       objective_status: ["on-track", "at-risk", "off-track", "completed"],
