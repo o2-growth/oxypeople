@@ -1,330 +1,222 @@
 
-
-# Sistema de Automacoes e Avisos
+# Implementacao de Notificacoes Dual-Channel (Slack + Feed)
 
 ## Visao Geral
 
-Criar uma nova pagina "Automacao" dentro da secao Principal do sidebar, abaixo de "Pessoas". Esta pagina centralizara avisos corporativos, automacoes de aniversarios e integracoes com Slack para notificacoes automaticas.
+Quando uma automacao for disparada (aniversario, tempo de empresa, novo colaborador), o sistema enviara notificacoes em dois canais simultaneamente:
+1. **Slack** - Mensagem para o canal configurado da empresa
+2. **Feed da Plataforma** - Aviso criado automaticamente na tabela `announcements`
 
 ---
 
 ## Arquitetura da Solucao
 
 ```text
-+-------------------+     +--------------------+     +------------------+
-|  Frontend React   | --> | Edge Function API  | --> | Slack API        |
-|  (Automacao page) |     | (send-slack-msg)   |     | (Bot messages)   |
-+-------------------+     +--------------------+     +------------------+
-         |                        |
-         v                        v
-+-------------------+     +--------------------+
-|  Supabase Tables  |     | Cron Job (PG)      |
-|  announcements    |     | birthday_check     |
-|  automations      |     +--------------------+
-+-------------------+
++------------------+     +------------------------+     +----------------+
+| Trigger Event    | --> | Edge Function          | --> | Slack API      |
+| (birthday, etc)  |     | process-automations    |     | (send message) |
++------------------+     +------------------------+     +----------------+
+                                   |
+                                   v
+                         +------------------------+
+                         | Supabase Tables        |
+                         | - announcements (feed) |
+                         | - automation_logs      |
+                         +------------------------+
 ```
 
 ---
 
-## Funcionalidades Principais
+## Passo 1: Conectar Integracao Slack
 
-### 1. Sistema de Avisos (Announcements)
-- Criar avisos para toda empresa ou departamentos especificos
-- Tipos: Evento, Informativo, Urgente, Celebracao
-- Agendamento de avisos para data futura
-- Opcao de fixar aviso importante no topo
-- Publicar no Feed e/ou enviar para Slack
-
-### 2. Automacoes de Aniversarios
-- Detectar aniversarios do dia/semana automaticamente
-- Configurar mensagem padrao personalizavel
-- Enviar automaticamente para canal Slack configurado
-- Opcao de criar post no Feed com parabens
-
-### 3. Automacoes Personalizadas
-- Notificacao de novos colaboradores
-- Lembretes de datas importantes (tempo de empresa)
-- Alertas de pesquisas pendentes
-- Avisos de prazos de objetivos
-
-### 4. Integracao Slack
-- Conectar workspace do Slack via conector
-- Selecionar canal de destino por tipo de aviso
-- Preview da mensagem antes de enviar
-- Historico de mensagens enviadas
+Antes de implementar as Edge Functions, sera necessario conectar a integracao Slack ao projeto. Isso disponibilizara a variavel SLACK_API_KEY automaticamente.
 
 ---
 
-## Estrutura do Banco de Dados
+## Passo 2: Edge Function - send-slack-message
 
-### Tabela: announcements
-```text
-+---------------------+-------------------+
-| Coluna              | Tipo              |
-+---------------------+-------------------+
-| id                  | UUID PK           |
-| company_id          | UUID FK           |
-| author_id           | UUID FK           |
-| title               | TEXT              |
-| content             | TEXT              |
-| type                | ENUM              |
-|   (event, info,     |                   |
-|    urgent, celebration)                 |
-| target_audience     | TEXT[]            |
-| scheduled_at        | TIMESTAMPTZ       |
-| published_at        | TIMESTAMPTZ       |
-| is_pinned           | BOOLEAN           |
-| slack_channel_id    | TEXT              |
-| slack_sent_at       | TIMESTAMPTZ       |
-| post_to_feed        | BOOLEAN           |
-| feed_post_id        | UUID FK           |
-| created_at          | TIMESTAMPTZ       |
-| updated_at          | TIMESTAMPTZ       |
-+---------------------+-------------------+
-```
+Esta funcao envia mensagens para canais do Slack usando o conector Lovable.
 
-### Tabela: automations
-```text
-+---------------------+-------------------+
-| Coluna              | Tipo              |
-+---------------------+-------------------+
-| id                  | UUID PK           |
-| company_id          | UUID FK           |
-| name                | TEXT              |
-| type                | ENUM              |
-|   (birthday, anniversary,               |
-|    new_hire, reminder)                  |
-| enabled             | BOOLEAN           |
-| config              | JSONB             |
-|   - message_template                    |
-|   - slack_channel_id                    |
-|   - post_to_feed                        |
-|   - days_before (for reminders)         |
-| last_run_at         | TIMESTAMPTZ       |
-| created_at          | TIMESTAMPTZ       |
-| updated_at          | TIMESTAMPTZ       |
-+---------------------+-------------------+
-```
-
-### Tabela: automation_logs
-```text
-+---------------------+-------------------+
-| Coluna              | Tipo              |
-+---------------------+-------------------+
-| id                  | UUID PK           |
-| automation_id       | UUID FK           |
-| company_id          | UUID FK           |
-| event_type          | TEXT              |
-| target_user_id      | UUID FK           |
-| message_sent        | TEXT              |
-| slack_response      | JSONB             |
-| status              | ENUM (success,    |
-|                     |  failed, pending) |
-| created_at          | TIMESTAMPTZ       |
-+---------------------+-------------------+
-```
-
-### Adicionar a tabela users
-```text
-+ birth_date           | DATE              |
-```
-
----
-
-## Componentes Frontend
-
-### Nova Pagina: src/pages/Automation.tsx
-- Tabs: Avisos | Automacoes | Historico | Configuracoes
-- Lista de avisos com filtros por tipo/status
-- Cards de automacoes com toggle de ativacao
-- Timeline de logs de execucao
-
-### Componentes:
-```text
-src/components/automation/
-+-- AnnouncementCard.tsx      # Card de aviso individual
-+-- CreateAnnouncement.tsx    # Modal/Form para criar aviso
-+-- AutomationCard.tsx        # Card de automacao configuravel
-+-- BirthdayAutomation.tsx    # Config especifica de aniversarios
-+-- SlackChannelSelector.tsx  # Dropdown de canais Slack
-+-- AutomationLogs.tsx        # Timeline de execucoes
-+-- AnnouncementsList.tsx     # Lista filtrada de avisos
-```
-
----
-
-## Edge Functions
-
-### 1. send-slack-message
-Envia mensagens para canais do Slack via conector.
+### Arquivo: supabase/functions/send-slack-message/index.ts
 
 ```text
-POST /send-slack-message
-Body: {
-  channel_id: string,
-  message: string,
-  blocks?: SlackBlock[]  // Rich formatting
-}
+Responsabilidades:
+- Receber channel_id, message e blocks (opcional)
+- Enviar via gateway: https://gateway.lovable.dev/slack/api/chat.postMessage
+- Retornar resposta do Slack
 ```
 
-### 2. process-automations
-Cron job para verificar e executar automacoes.
-
-```text
-- Verifica aniversarios do dia
-- Verifica aniversarios de empresa
-- Executa automacoes configuradas
-- Registra logs de execucao
-```
-
-### 3. list-slack-channels
-Busca canais disponiveis do Slack conectado.
-
-```text
-GET /list-slack-channels
-Response: { channels: [{ id, name }] }
-```
-
----
-
-## Atualizacao do Sidebar
-
-Adicionar item "Automacao" na secao Principal:
-
-```text
-Principal
-  - Dashboard
-  - Feed
-  - Pessoas
-  - Automacao  <-- NOVO
-```
-
----
-
-## Fluxo de Integracao Slack
-
-1. Usuario conecta Slack via conector (SLACK_API_KEY)
-2. Edge function lista canais disponiveis
-3. Usuario seleciona canal para cada tipo de automacao
-4. Sistema envia mensagens automaticamente via gateway
-
----
-
-## Politicas RLS
-
-### announcements
-- SELECT: membros da empresa podem visualizar
-- INSERT: admins/managers podem criar
-- UPDATE: autor ou admins podem editar
-- DELETE: autor ou admins podem remover
-
-### automations
-- SELECT: admins da empresa
-- INSERT/UPDATE/DELETE: apenas admins
-
-### automation_logs
-- SELECT: admins da empresa
-- INSERT: apenas service_role (edge functions)
-
----
-
-## Ordem de Implementacao
-
-1. **Database Migration**
-   - Criar tabelas announcements, automations, automation_logs
-   - Adicionar campo birth_date em users
-   - Configurar RLS policies
-
-2. **Frontend Base**
-   - Criar pagina Automation.tsx
-   - Adicionar rota no App.tsx
-   - Atualizar sidebar com novo item
-
-3. **Componentes de Avisos**
-   - AnnouncementCard com tipos visuais
-   - CreateAnnouncement com form completo
-   - AnnouncementsList com filtros
-
-4. **Componentes de Automacoes**
-   - AutomationCard com toggle
-   - BirthdayAutomation com config
-   - AutomationLogs timeline
-
-5. **Integracao Slack**
-   - Conectar via conector Slack
-   - Edge function send-slack-message
-   - Edge function list-slack-channels
-   - SlackChannelSelector component
-
-6. **Automacao de Aniversarios**
-   - Edge function process-automations
-   - Cron job scheduling (pg_cron ou externo)
-   - Logs de execucao
-
----
-
-## Detalhes Tecnicos
-
-### Configuracao do Slack Connector
-O projeto usara o conector Slack da Lovable que fornece:
-- SLACK_API_KEY como variavel de ambiente
-- Gateway URL: `https://gateway.lovable.dev/slack/api`
-- Headers: Authorization + X-Connection-Api-Key
-
-### Formato de Mensagem Slack
+### Parametros de Entrada:
 ```text
 {
-  "channel": "C1234567890",
-  "text": "Feliz aniversario Ana!",
-  "blocks": [
-    {
-      "type": "section",
-      "text": {
-        "type": "mrkdwn",
-        "text": "*Hoje eh dia de comemoracao!*\nParabens Ana Silva pelo seu aniversario!"
-      }
-    }
-  ]
+  channel_id: string,    // ID do canal Slack (ex: "C1234567890")
+  message: string,       // Texto da mensagem
+  blocks?: SlackBlock[]  // Formatacao rica (opcional)
 }
 ```
 
-### Template de Aniversario (JSONB config)
+---
+
+## Passo 3: Edge Function - process-automations
+
+Funcao principal que processa automacoes e dispara notificacoes em ambos os canais.
+
+### Arquivo: supabase/functions/process-automations/index.ts
+
+```text
+Fluxo de Execucao:
+1. Buscar automacoes ativas do tipo especificado
+2. Verificar eventos do dia (aniversarios, etc)
+3. Para cada evento:
+   a. Montar mensagem personalizada
+   b. Enviar para Slack (se configurado)
+   c. Criar aviso na tabela announcements (feed)
+   d. Registrar log na tabela automation_logs
+```
+
+### Logica de Dual-Channel:
+```text
+Para cada usuario com evento:
+  1. IF slack_channel_id configurado:
+       -> Chamar send-slack-message
+  2. IF post_to_feed = true:
+       -> INSERT na tabela announcements
+  3. INSERT log em automation_logs
+```
+
+---
+
+## Passo 4: Edge Function - list-slack-channels
+
+Busca canais disponiveis do workspace Slack conectado.
+
+### Arquivo: supabase/functions/list-slack-channels/index.ts
+
+```text
+- GET request sem parametros
+- Usa gateway para chamar conversations.list
+- Retorna lista de canais publicos
+```
+
+---
+
+## Passo 5: Componente SlackChannelSelector
+
+Dropdown para selecionar canal Slack nas configuracoes de automacao.
+
+### Arquivo: src/components/automation/SlackChannelSelector.tsx
+
+```text
+- Chama edge function list-slack-channels
+- Exibe dropdown com canais disponiveis
+- Atualiza config da automacao com channel_id selecionado
+```
+
+---
+
+## Passo 6: Modal de Configuracao de Automacao
+
+Expandir o botao "Configurar" do AutomationCard para abrir modal com:
+
+### Campos de Configuracao:
+```text
+- Mensagem personalizada (template com variaveis {name}, {date})
+- Seletor de canal Slack (SlackChannelSelector)
+- Toggle "Publicar no Feed"
+- Preview da mensagem
+```
+
+---
+
+## Passo 7: Atualizar CreateAnnouncement
+
+Adicionar opcao de enviar aviso para Slack alem do feed.
+
+### Novos Campos:
+```text
+- Seletor de canal Slack (opcional)
+- Preview da mensagem formatada
+```
+
+---
+
+## Estrutura de Arquivos
+
+### Novos Arquivos:
+```text
+supabase/functions/send-slack-message/index.ts
+supabase/functions/list-slack-channels/index.ts
+supabase/functions/process-automations/index.ts
+src/components/automation/SlackChannelSelector.tsx
+src/components/automation/AutomationConfigModal.tsx
+```
+
+### Arquivos a Editar:
+```text
+src/components/automation/AutomationCard.tsx
+  - Adicionar modal de configuracao
+  - Salvar config com slack_channel_id e post_to_feed
+
+src/components/automation/CreateAnnouncement.tsx
+  - Adicionar seletor de canal Slack
+  - Chamar edge function ao enviar para Slack
+```
+
+---
+
+## Secao Tecnica
+
+### Formato de Config da Automacao (JSONB):
 ```text
 {
   "message_template": "Parabens {name}! Desejamos um feliz aniversario!",
   "slack_channel_id": "C1234567890",
   "post_to_feed": true,
-  "include_cake_emoji": true
+  "include_emoji": true
 }
+```
+
+### Headers para Gateway Slack:
+```text
+Authorization: Bearer <SLACK_API_KEY>
+X-Connection-Api-Key: <LOVABLE_API_KEY>
+Content-Type: application/json
+```
+
+### URL do Gateway:
+```text
+https://gateway.lovable.dev/slack/api/<method>
+```
+
+### Mensagem de Aniversario no Feed:
+```text
+INSERT INTO announcements:
+- title: "Feliz Aniversario!"
+- content: "Hoje e o aniversario de {name}. Parabens!"
+- type: "celebration"
+- author_id: system_user ou admin
+- is_pinned: false
+- post_to_feed: true
 ```
 
 ---
 
-## Arquivos a Criar
+## Ordem de Implementacao
 
-### Paginas
-- `src/pages/Automation.tsx`
+1. Conectar integracao Slack ao projeto
+2. Criar Edge Function send-slack-message
+3. Criar Edge Function list-slack-channels
+4. Criar componente SlackChannelSelector
+5. Criar Edge Function process-automations
+6. Adicionar modal de configuracao nas automacoes
+7. Atualizar CreateAnnouncement com opcao Slack
+8. Testar fluxo completo
 
-### Componentes
-- `src/components/automation/AnnouncementCard.tsx`
-- `src/components/automation/CreateAnnouncement.tsx`
-- `src/components/automation/AutomationCard.tsx`
-- `src/components/automation/BirthdayAutomation.tsx`
-- `src/components/automation/SlackChannelSelector.tsx`
-- `src/components/automation/AutomationLogs.tsx`
-- `src/components/automation/AnnouncementsList.tsx`
+---
 
-### Edge Functions
-- `supabase/functions/send-slack-message/index.ts`
-- `supabase/functions/list-slack-channels/index.ts`
-- `supabase/functions/process-automations/index.ts`
+## Consideracoes de Seguranca
 
-### Hooks
-- `src/hooks/useAnnouncements.ts`
-- `src/hooks/useAutomations.ts`
-- `src/hooks/useSlackChannels.ts`
-
-### Arquivos a Editar
-- `src/components/layout/AppSidebar.tsx` - adicionar item Automacao
-- `src/App.tsx` - adicionar rota /automation
-
+- Edge Functions usam SUPABASE_SERVICE_ROLE_KEY para inserir logs
+- Validacao de company_id em todas as operacoes
+- Canal Slack deve pertencer ao workspace conectado
+- RLS policies ja configuradas para announcements e automation_logs
