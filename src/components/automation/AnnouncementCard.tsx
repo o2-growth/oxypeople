@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Pin, Calendar, Slack, MoreVertical, Trash2, Edit } from "lucide-react";
+import { Pin, Calendar, Slack, MoreVertical, Trash2, Edit, Users, Building2, UsersRound } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getAudienceLabel } from "@/lib/audienceUtils";
 
 type AnnouncementType = "event" | "info" | "urgent" | "celebration";
 
@@ -24,6 +25,7 @@ interface Announcement {
   published_at: string | null;
   scheduled_at: string | null;
   slack_sent_at: string | null;
+  target_audience: string[] | null;
   author: {
     full_name: string;
     avatar_url: string | null;
@@ -53,6 +55,10 @@ export function AnnouncementCard({
 }: AnnouncementCardProps) {
   const config = typeConfig[announcement.type];
   const displayDate = announcement.published_at || announcement.scheduled_at;
+  const audienceLabel = getAudienceLabel(announcement.target_audience);
+  const isGeneral = !announcement.target_audience || announcement.target_audience.includes("all");
+  const isDepartment = announcement.target_audience?.some(a => a.startsWith("dept:"));
+  const isTeam = announcement.target_audience?.some(a => a.startsWith("team:"));
 
   return (
     <Card
@@ -87,6 +93,12 @@ export function AnnouncementCard({
                 {announcement.slack_sent_at && (
                   <Slack className="h-3.5 w-3.5 text-muted-foreground" />
                 )}
+                <span className="text-xs text-muted-foreground flex items-center gap-1 ml-1">
+                  {isGeneral && <Users className="h-3 w-3" />}
+                  {isDepartment && <Building2 className="h-3 w-3" />}
+                  {isTeam && <UsersRound className="h-3 w-3" />}
+                  {audienceLabel}
+                </span>
               </div>
             </div>
           </div>
