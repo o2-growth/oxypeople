@@ -1,68 +1,65 @@
 
-# Gestao de Objetivos Avancada para Admin
+# Reformulacao do Modal "Novo Objetivo"
 
 ## Visao Geral
 
-Implementar uma interface avancada de gestao de objetivos (OKRs) com filtros robustos, visualizacao por departamento, estatisticas dinamicas e exportacao de dados, baseado na referencia visual fornecida.
+Atualizar o componente `CreateObjectiveDialog` para incluir todos os campos avancados mostrados na referencia visual, com logicas funcionais e validacoes apropriadas.
 
 ---
 
-## Funcionalidades Principais
+## Novos Campos a Implementar
 
-### 1. Barra de Filtros Superior
-- **Departamentos**: Select multi-opcao para filtrar por departamento (usando `teams.department`)
-- **Responsaveis**: Select para filtrar por dono/responsavel do objetivo
-- **Periodo**: Seletor de periodo predefinido (Q1, Q2, Q3, Q4 do ano atual, ou custom)
-- **Botao "Mais Filtros"**: Abre popover com filtros adicionais:
-  - Status (Ativos, Concluidos, Todos)
-  - Porcentagem (0-25%, 25-50%, 50-75%, 75-100%)
-  - Privacidade (Todos, Empresa, Privado)
-  - Status de Check-in (Em dia, Atrasado, Todos)
-- **Botao "Filtrar"**: Aplica os filtros selecionados
-- **Limpar filtros**: Remove todos os filtros aplicados
-- **Badges de filtros ativos**: Exibe os filtros aplicados com opcao de remover individualmente
+### 1. Descricao do Objetivo (Titulo Principal)
+- **Campo atual**: `title` - ja existe
+- **Mudanca**: Renomear label para "Descricao do Objetivo" com placeholder "Ex.: aumentar receita recorrente"
 
-### 2. Acoes do Cabecalho
-- **Botao de Lista/Arvore**: Alterna entre visualizacao em grid e agrupada por departamento
-- **Botao de Organograma**: Visualizacao hierarquica
-- **Menu de Exportacao**: Dropdown com opcoes para baixar CSV/Excel
-- **Botao "Novo Objetivo"**: Abre o dialog de criacao
+### 2. Atividade (Ativo/Inativo)
+- **Novo campo**: `isActive` - boolean
+- **UI**: Radio group inline com opcoes "Ativo" e "Inativo"
+- **Logica**: Define se o objetivo esta ativo ou pausado
+- **Default**: Ativo
 
-### 3. Cards de Estatisticas Dinamicas
-Os stats devem refletir os filtros aplicados:
-- **Objetivos**: Total de objetivos filtrados
-- **Progresso**: Media de progresso em porcentagem (com icone de grafico)
-- **Encaminhado**: Porcentagem de objetivos no prazo
-- **Em Atencao**: Porcentagem de objetivos em risco ou atrasados
+### 3. Responsavel
+- **Campo atual**: Usado apenas para "individual"
+- **Mudanca**: Sempre visivel, seleciona o dono principal do objetivo
+- **UI**: Dropdown com avatar + nome (reutilizar PersonSelector)
+- **Default**: Usuario logado
 
-### 4. Visualizacao por Departamento
-Quando ativada, agrupa os objetivos:
-- Header colapsavel por departamento (ex: "Objetivos Growth")
-- Lista de objetivos do departamento
-- Cada objetivo exibe:
-  - Titulo do objetivo
-  - Badges (Check-in Atrasado, Departamento, Tipo)
-  - Avatar e nome do responsavel
-  - Barra de progresso com porcentagem
-  - Key Results expansiveis com tabs (Check-ins | Acompanhamento)
+### 4. Contribuintes (Novo)
+- **Novo campo**: `contributors` - array de user_ids
+- **UI**: Multi-select com badges removiveis
+- **Logica**: Pessoas que colaboram no objetivo mas nao sao o responsavel principal
+- **Novo componente**: `MultiPersonSelector`
 
-### 5. Detalhes Expandidos do Objetivo
-Ao expandir um objetivo:
-- Lista de Key Results com:
-  - Responsavel (avatar + nome)
-  - Titulo do KR
-  - Valor atual vs Meta
-  - Badges de categoria
-  - Barra de progresso
-- Tabs de Acompanhamento:
-  - **Check-ins**: Historico de atualizacoes
-  - **Acompanhamento**: Grafico de evolucao ao longo do tempo (usando Recharts)
+### 5. Area do Objetivo (Novo)
+- **Novo campo**: Usa `team.department` ou novo campo
+- **UI**: Select com departamentos da empresa
+- **Logica**: Categoriza o objetivo por area (Growth, Tecnologia, Comercial, etc.)
+- **Reutilizar**: `useDepartments` hook
 
-### 6. Exportacao de Dados
-- Gerar arquivo CSV/Excel com:
-  - Dados dos objetivos filtrados
-  - Key Results associados
-  - Responsaveis e progresso
+### 6. Hierarquia (Novo - ja existe no banco)
+- **Campo existente**: `parent_id` - ja existe na tabela
+- **UI**: Select com objetivos existentes para vincular como pai
+- **Logica**: Cria hierarquia de objetivos (OKR cascading)
+- **Novo hook**: Buscar objetivos disponiveis para serem pais
+
+### 7. Periodo (Novo)
+- **Novo campo**: Periodo predefinido (Q1-Q4 ou custom)
+- **UI**: Select com opcoes Q1 2026, Q2 2026, etc.
+- **Logica**: Define automaticamente `due_date` baseado no periodo selecionado
+- **Opcoes**: Q1, Q2, Q3, Q4 do ano atual e proximo
+
+### 8. Colaboradores que podem Editar (Novo)
+- **Novo campo**: `editors` - array de user_ids
+- **UI**: Multi-select com badges
+- **Logica**: Pessoas com permissao de editar o objetivo alem do responsavel
+- **Reutilizar**: `MultiPersonSelector`
+
+### 9. Etiquetas (Novo)
+- **Novo campo**: `tags` - array de strings
+- **UI**: Input com badges (Aspiracional, Comercial, etc.)
+- **Logica**: Categorias personalizaveis
+- **Valores predefinidos**: Aspiracional, Compromissada, Estrategico, Tatico, Operacional
 
 ---
 
@@ -70,126 +67,162 @@ Ao expandir um objetivo:
 
 ### Novos Arquivos:
 ```text
-src/components/objectives/ObjectivesFilters.tsx       # Barra de filtros
-src/components/objectives/ObjectivesStats.tsx         # Cards de estatisticas
-src/components/objectives/DepartmentObjectives.tsx    # Visualizacao agrupada
-src/components/objectives/ObjectiveDetailCard.tsx     # Card expandido com KRs
-src/components/objectives/KeyResultProgress.tsx       # KR com grafico
-src/components/objectives/ObjectivesExport.tsx        # Logica de exportacao
-src/hooks/useObjectivesFilters.ts                     # Estado e logica de filtros
-src/hooks/useDepartments.ts                           # Lista de departamentos
+src/components/objectives/MultiPersonSelector.tsx    # Seletor multi-pessoa com badges
+src/components/objectives/ParentObjectiveSelector.tsx # Seletor de objetivo pai
+src/components/objectives/PeriodSelector.tsx          # Seletor de periodo Q1-Q4
+src/components/objectives/TagsInput.tsx               # Input de etiquetas com badges
+src/components/objectives/DepartmentSelector.tsx      # Seletor de departamento/area
 ```
 
 ### Arquivos a Editar:
 ```text
-src/pages/Objectives.tsx                              # Integrar novos componentes
-src/components/objectives/ObjectiveCard.tsx           # Adicionar expansao detalhada
-src/hooks/useObjectives.ts                            # Suportar filtros avancados
+src/components/objectives/CreateObjectiveDialog.tsx   # Reformular com novos campos
+src/hooks/useObjectives.ts                             # Atualizar CreateObjectiveInput
 ```
+
+---
+
+## Migracao do Banco de Dados
+
+### Novos campos na tabela objectives:
+
+```text
+- is_active: boolean (default true) - Objetivo ativo/inativo
+- period: text (nullable) - "Q1-2026", "Q2-2026", etc.
+- department: text (nullable) - Area do objetivo
+- tags: text[] (nullable) - Array de etiquetas
+```
+
+### Nova tabela objective_collaborators:
+
+```text
+- id: uuid
+- objective_id: uuid (FK objectives)
+- user_id: uuid (FK users)
+- role: text ("contributor" | "editor")
+- created_at: timestamp
+```
+
+Essa tabela permitira:
+- Contribuintes: role = "contributor"
+- Editores: role = "editor"
+
+### RLS para objective_collaborators:
+- SELECT: Membros da empresa podem ver
+- INSERT/DELETE: Owner, admins, ou editores do objetivo
 
 ---
 
 ## Secao Tecnica
 
-### Interface de Filtros:
+### Schema Atualizado do Formulario:
+
 ```text
-interface ObjectivesFilters {
-  departments: string[];          // IDs de departamentos
-  responsibleIds: string[];       # IDs de usuarios responsaveis
-  period: {
-    startDate: string | null;
-    endDate: string | null;
-    preset: 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'custom' | null;
-  };
-  status: 'all' | 'active' | 'completed';
-  progressRange: [number, number] | null;
-  visibility: 'all' | 'company' | 'private';
-  checkInStatus: 'all' | 'on-time' | 'late';
+const formSchema = z.object({
+  title: z.string().min(1, "Descricao obrigatoria"),
+  isActive: z.boolean().default(true),
+  responsibleId: z.string().min(1, "Responsavel obrigatorio"),
+  contributors: z.array(z.string()).default([]),
+  department: z.string().optional(),
+  parentId: z.string().optional(),
+  period: z.string().optional(),
+  editors: z.array(z.string()).default([]),
+  tags: z.array(z.string()).default([]),
+  visibility: z.enum(["public", "company", "private"]),
+  keyResults: z.array(keyResultSchema),
+});
+```
+
+### MultiPersonSelector Props:
+
+```text
+interface MultiPersonSelectorProps {
+  value: string[];                      // IDs selecionados
+  onValueChange: (ids: string[]) => void;
+  placeholder?: string;
+  excludeIds?: string[];                // Excluir usuarios (ex: responsavel)
 }
 ```
 
-### Hook useObjectivesFilters:
-- Gerencia estado dos filtros
-- Aplica filtros na query do Supabase
-- Retorna objetivos agrupados por departamento
-- Calcula estatisticas dinamicas
+### ParentObjectiveSelector:
+- Buscar objetivos da empresa (excluindo o atual se editando)
+- Filtrar por visibilidade
+- Exibir titulo + responsavel + progresso
 
-### Query de Objetivos com Filtros:
-A query sera expandida para:
-- Filtrar por `teams.department` (via join com teams)
-- Filtrar por `owner_id` ou `assignee_id`
-- Filtrar por `due_date` dentro do periodo
-- Filtrar por `status` e `visibility`
-- Calcular % de check-in baseado em `key_results.updated_at`
+### PeriodSelector:
+- Gerar periodos dinamicamente baseado na data atual
+- Calcular due_date automaticamente:
+  - Q1: Jan 1 - Mar 31
+  - Q2: Apr 1 - Jun 30
+  - Q3: Jul 1 - Sep 30
+  - Q4: Oct 1 - Dec 31
 
-### Agrupamento por Departamento:
-```text
-{
-  "Growth": ObjectiveWithDetails[],
-  "Comercial": ObjectiveWithDetails[],
-  "Tecnologia": ObjectiveWithDetails[],
-  ...
-}
-```
-
-### Exportacao CSV:
-Usar funcao nativa do navegador para gerar CSV:
-- Formatar dados dos objetivos e KRs
-- Criar Blob e disparar download
-- Incluir cabecalhos em portugues
-
-### Grafico de Acompanhamento:
-Usar Recharts (ja instalado) para:
-- LineChart com duas linhas: Meta vs Check-in
-- Eixo X: meses
-- Eixo Y: valores do KR
-- Dados gerados a partir do historico de key_results
+### TagsInput:
+- Tags predefinidas como sugestoes
+- Permitir criar tags customizadas
+- Remover ao clicar no X
 
 ---
 
 ## Fluxo de Implementacao
 
-1. Criar hook `useObjectivesFilters` com estado e logica de filtros
-2. Criar hook `useDepartments` para listar departamentos unicos
-3. Criar componente `ObjectivesFilters` com UI de filtros
-4. Criar componente `ObjectivesStats` com cards dinamicos
-5. Criar componente `DepartmentObjectives` para visualizacao agrupada
-6. Criar componente `KeyResultProgress` com grafico de acompanhamento
-7. Criar componente `ObjectivesExport` para download CSV
-8. Atualizar `useObjectives` para suportar filtros avancados
-9. Redesenhar `Objectives.tsx` integrando novos componentes
-10. Atualizar `ObjectiveCard` para modo expandido com tabs
+1. Migracao do banco: adicionar novos campos e tabela
+2. Atualizar types do Supabase
+3. Criar componente MultiPersonSelector
+4. Criar componente ParentObjectiveSelector
+5. Criar componente PeriodSelector
+6. Criar componente DepartmentSelector
+7. Criar componente TagsInput
+8. Atualizar CreateObjectiveDialog com nova UI
+9. Atualizar useObjectives para salvar novos campos
+10. Testar fluxo completo
 
 ---
 
-## UI/UX
+## UI/UX do Modal
 
-### Cores e Badges:
-- Check-in Atrasado: Badge vermelho/rosa
-- Departamento: Badge azul
-- Tipo (Aspiracionais/Compromissadas): Badge amarelo/verde
-- Progresso: Barra com cor baseada na % (vermelho < 25%, amarelo < 50%, verde >= 50%)
+### Layout em Tabs (similar a referencia):
+- **Tab "Gerais"**: Campos principais (atual)
+- **Tab "Key Results"**: Adicionar KRs (separado para clareza)
 
-### Layout Responsivo:
-- Desktop: 3 filtros em linha + botoes a direita
-- Mobile: Filtros em coluna, botao "Mais filtros" essencial
+### Campos em Grid:
+```text
+Row 1: [Descricao do Objetivo (flex-1)] [Atividade (w-auto)]
+Row 2: [Responsavel (1/3)] [Contribuintes (1/3)] [Area (1/3)]
+Row 3: [Hierarquia (1/2)] [Periodo (1/2)]
+Row 4: [Colaboradores que podem editar (full)]
+Row 5: [Etiquetas (full)]
+```
 
-### Animacoes:
-- Transicao suave ao expandir/colapsar departamentos
-- Fade in nos graficos de acompanhamento
+### Estilo dos Badges:
+- Contribuintes/Editores: Badge azul com X para remover
+- Etiquetas: Badge outline com X para remover
+
+### Footer do Dialog:
+- Link "Saiba mais sobre Gestao de Objetivos" (opcional)
+- Botao "Salvar" primario
 
 ---
 
 ## Dependencias
 
-- **Recharts** (ja instalado): Para graficos de acompanhamento
-- **date-fns** (ja instalado): Para manipulacao de datas e periodos
-- Nao requer novas instalacoes
+- Nenhuma nova dependencia necessaria
+- Reutilizar: cmdk (Command), Badge, Avatar, Popover
+- date-fns para manipulacao de datas do periodo
 
 ---
 
-## Consideracoes de Segurança
+## Consideracoes
 
-- A exportacao usa apenas dados que o usuario ja tem acesso via RLS
-- Os filtros sao aplicados no frontend primeiro, respeitando as policies existentes
-- Nenhuma nova policy de banco necessaria
+### Migracao de dados existentes:
+- Objetivos existentes terao `is_active = true` por default
+- `period` sera calculado baseado no `due_date` se existir
+
+### Permissoes para Editores:
+- Atualizar RLS de `objectives` para permitir UPDATE por editores
+- Verificar na tabela `objective_collaborators` se user tem role "editor"
+
+### Performance:
+- MultiPersonSelector limita resultados a 20 usuarios
+- Busca com debounce de 300ms
+- Cache de queries com React Query
