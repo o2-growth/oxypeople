@@ -1,399 +1,195 @@
 
-# Sistema de Objetivos Hierarquicos com Permissoes
+# Gestao de Objetivos Avancada para Admin
 
 ## Visao Geral
 
-Implementar um sistema completo de OKRs (Objectives and Key Results) que permita:
-- **Gestores gerais** (admin/owner) criar objetivos para equipes e individuais para qualquer pessoa
-- **Gestores de equipe** (leader) criar objetivos para si mesmos e para membros de sua equipe
-- **Membros** visualizar seus proprios objetivos e objetivos da equipe/empresa
+Implementar uma interface avancada de gestao de objetivos (OKRs) com filtros robustos, visualizacao por departamento, estatisticas dinamicas e exportacao de dados, baseado na referencia visual fornecida.
 
 ---
 
-## Estrutura de Permissoes
+## Funcionalidades Principais
 
-```text
-+------------------+     +------------------+     +------------------+
-| Owner/Admin      | --> | Team Leader      | --> | Member           |
-| (Gestor Geral)   |     | (Gestor Equipe)  |     | (Colaborador)    |
-+------------------+     +------------------+     +------------------+
-        |                         |                        |
-        v                         v                        v
-- Criar para qualquer   - Criar para si       - Criar para si
-  pessoa/equipe         - Criar para sua        (pessoais)
-- Editar todos            equipe              - Visualizar da
-- Visualizar todos      - Visualizar da         equipe/empresa
-                          equipe/empresa
-```
+### 1. Barra de Filtros Superior
+- **Departamentos**: Select multi-opcao para filtrar por departamento (usando `teams.department`)
+- **Responsaveis**: Select para filtrar por dono/responsavel do objetivo
+- **Periodo**: Seletor de periodo predefinido (Q1, Q2, Q3, Q4 do ano atual, ou custom)
+- **Botao "Mais Filtros"**: Abre popover com filtros adicionais:
+  - Status (Ativos, Concluidos, Todos)
+  - Porcentagem (0-25%, 25-50%, 50-75%, 75-100%)
+  - Privacidade (Todos, Empresa, Privado)
+  - Status de Check-in (Em dia, Atrasado, Todos)
+- **Botao "Filtrar"**: Aplica os filtros selecionados
+- **Limpar filtros**: Remove todos os filtros aplicados
+- **Badges de filtros ativos**: Exibe os filtros aplicados com opcao de remover individualmente
 
----
+### 2. Acoes do Cabecalho
+- **Botao de Lista/Arvore**: Alterna entre visualizacao em grid e agrupada por departamento
+- **Botao de Organograma**: Visualizacao hierarquica
+- **Menu de Exportacao**: Dropdown com opcoes para baixar CSV/Excel
+- **Botao "Novo Objetivo"**: Abre o dialog de criacao
 
-## Passo 1: Migracao do Banco de Dados
+### 3. Cards de Estatisticas Dinamicas
+Os stats devem refletir os filtros aplicados:
+- **Objetivos**: Total de objetivos filtrados
+- **Progresso**: Media de progresso em porcentagem (com icone de grafico)
+- **Encaminhado**: Porcentagem de objetivos no prazo
+- **Em Atencao**: Porcentagem de objetivos em risco ou atrasados
 
-### Adicionar campos na tabela objectives:
+### 4. Visualizacao por Departamento
+Quando ativada, agrupa os objetivos:
+- Header colapsavel por departamento (ex: "Objetivos Growth")
+- Lista de objetivos do departamento
+- Cada objetivo exibe:
+  - Titulo do objetivo
+  - Badges (Check-in Atrasado, Departamento, Tipo)
+  - Avatar e nome do responsavel
+  - Barra de progresso com porcentagem
+  - Key Results expansiveis com tabs (Check-ins | Acompanhamento)
 
-- `team_id` (uuid, nullable) - Objetivo de equipe (quando definido)
-- `assignee_id` (uuid, nullable) - Objetivo atribuido a uma pessoa especifica
-- `created_by` (uuid, not null) - Quem criou o objetivo
+### 5. Detalhes Expandidos do Objetivo
+Ao expandir um objetivo:
+- Lista de Key Results com:
+  - Responsavel (avatar + nome)
+  - Titulo do KR
+  - Valor atual vs Meta
+  - Badges de categoria
+  - Barra de progresso
+- Tabs de Acompanhamento:
+  - **Check-ins**: Historico de atualizacoes
+  - **Acompanhamento**: Grafico de evolucao ao longo do tempo (usando Recharts)
 
-### Criar enum para tipo de objetivo:
-
-```text
-CREATE TYPE objective_type AS ENUM ('personal', 'team', 'individual');
-```
-
-- `personal`: Objetivo criado para si mesmo
-- `team`: Objetivo da equipe (todos os membros visualizam)
-- `individual`: Objetivo atribuido a uma pessoa por um gestor
-
-### Adicionar campo type:
-
-- `type` (objective_type) - Tipo do objetivo
-
-### Atualizar RLS Policies:
-
-A nova policy de SELECT permitira visualizar:
-1. Objetivos onde voce e o owner (criador)
-2. Objetivos onde voce e o assignee (atribuido)
-3. Objetivos de equipe onde voce e membro
-4. Objetivos com visibility = 'company' da sua empresa
-
-A nova policy de INSERT permitira criar:
-1. Objetivos pessoais (owner_id = auth.uid())
-2. Se admin/owner: qualquer objetivo
-3. Se leader de equipe: objetivos para membros da sua equipe
-
----
-
-## Passo 2: Hook useObjectives
-
-### Arquivo: src/hooks/useObjectives.ts
-
-```text
-Funcoes:
-- useObjectives() - Lista objetivos baseado em filtros
-- useCreateObjective() - Criar novo objetivo
-- useUpdateObjective() - Atualizar objetivo
-- useDeleteObjective() - Remover objetivo
-- useKeyResults() - Gerenciar Key Results
-- useUserPermissions() - Verificar permissoes do usuario
-```
-
-### Logica de Permissoes no Hook:
-
-```text
-canCreateForTeam(teamId):
-  - Retorna true se usuario e admin/owner da empresa
-  - Retorna true se usuario e leader da equipe
-
-canCreateForUser(userId):
-  - Retorna true se userId == usuario atual
-  - Retorna true se usuario e admin/owner
-  - Retorna true se usuario e leader da equipe do userId
-
-canEdit(objective):
-  - Retorna true se e o criador
-  - Retorna true se e admin/owner
-  - Retorna true se e leader da equipe do objetivo
-```
-
----
-
-## Passo 3: Modal de Criacao de Objetivo
-
-### Arquivo: src/components/objectives/CreateObjectiveDialog.tsx
-
-### Campos do Formulario:
-
-1. **Tipo de Objetivo** (Radio Group):
-   - Pessoal (para mim)
-   - Para Equipe
-   - Individual (para uma pessoa)
-
-2. **Campos Condicionais**:
-   - Se "Para Equipe": Seletor de equipe
-   - Se "Individual": Seletor de pessoa
-
-3. **Dados do Objetivo**:
-   - Titulo *
-   - Descricao
-   - Data limite
-   - Visibilidade (pessoal/equipe/empresa)
-
-4. **Key Results** (dinamico):
-   - Adicionar/remover KRs
-   - Titulo, Valor atual, Meta, Unidade
-
-### Logica de Exibicao:
-
-- Mostrar opcao "Para Equipe" apenas se usuario lidera alguma equipe ou e admin
-- Mostrar opcao "Individual" apenas se usuario lidera alguma equipe ou e admin
-- Filtrar lista de pessoas baseado em permissoes
-
----
-
-## Passo 4: Seletor de Pessoa
-
-### Arquivo: src/components/objectives/PersonSelector.tsx
-
-```text
-- Busca na API
-- Filtra por equipes que o usuario lidera (se nao for admin)
-- Avatar + Nome + Email + Departamento
-```
-
----
-
-## Passo 5: Seletor de Equipe
-
-### Arquivo: src/components/objectives/TeamSelector.tsx
-
-```text
-- Lista equipes que o usuario pode gerenciar
-- Admin: todas as equipes
-- Leader: apenas equipes que lidera
-```
-
----
-
-## Passo 6: Atualizar Pagina de Objetivos
-
-### Arquivo: src/pages/Objectives.tsx
-
-### Mudancas:
-
-1. Substituir dados mock por dados reais do Supabase
-2. Adicionar estado para dialog de criacao
-3. Conectar botao "Novo Objetivo" ao dialog
-4. Atualizar tabs para filtrar por:
-   - Todos (baseado em permissoes)
-   - Meus (pessoais + atribuidos a mim)
-   - Equipe (objetivos de equipes que participo)
-   - Empresa (visibility = company)
-
-### Stats Dinamicas:
-
-- Calcular total de objetivos reais
-- Agrupar por status (on-track, at-risk, off-track)
-
----
-
-## Passo 7: Atualizar ObjectiveCard
-
-### Arquivo: src/components/objectives/ObjectiveCard.tsx
-
-### Mudancas:
-
-1. Receber dados do banco (nao mais interface mock)
-2. Exibir badge de tipo (Pessoal/Equipe/Individual)
-3. Mostrar a quem foi atribuido (se individual)
-4. Mostrar equipe (se objetivo de equipe)
-5. Adicionar acoes (editar/excluir baseado em permissoes)
-6. Exibir KeyResults reais do banco
-
----
-
-## Passo 8: Edicao de Objetivo e Key Results
-
-### Arquivo: src/components/objectives/EditObjectiveDialog.tsx
-
-```text
-- Reutilizar formulario de criacao
-- Pre-preencher campos
-- Atualizar objetivo e KRs
-```
-
-### Inline Edit para Key Results:
-
-- Permitir atualizar `current_value` diretamente no card
-- Recalcular progresso do objetivo automaticamente
+### 6. Exportacao de Dados
+- Gerar arquivo CSV/Excel com:
+  - Dados dos objetivos filtrados
+  - Key Results associados
+  - Responsaveis e progresso
 
 ---
 
 ## Estrutura de Arquivos
 
 ### Novos Arquivos:
-
 ```text
-src/hooks/useObjectives.ts
-src/hooks/useUserPermissions.ts
-src/components/objectives/CreateObjectiveDialog.tsx
-src/components/objectives/EditObjectiveDialog.tsx
-src/components/objectives/PersonSelector.tsx
-src/components/objectives/TeamSelector.tsx
+src/components/objectives/ObjectivesFilters.tsx       # Barra de filtros
+src/components/objectives/ObjectivesStats.tsx         # Cards de estatisticas
+src/components/objectives/DepartmentObjectives.tsx    # Visualizacao agrupada
+src/components/objectives/ObjectiveDetailCard.tsx     # Card expandido com KRs
+src/components/objectives/KeyResultProgress.tsx       # KR com grafico
+src/components/objectives/ObjectivesExport.tsx        # Logica de exportacao
+src/hooks/useObjectivesFilters.ts                     # Estado e logica de filtros
+src/hooks/useDepartments.ts                           # Lista de departamentos
 ```
 
 ### Arquivos a Editar:
-
 ```text
-src/pages/Objectives.tsx
-src/components/objectives/ObjectiveCard.tsx
-src/components/objectives/KeyResultItem.tsx
+src/pages/Objectives.tsx                              # Integrar novos componentes
+src/components/objectives/ObjectiveCard.tsx           # Adicionar expansao detalhada
+src/hooks/useObjectives.ts                            # Suportar filtros avancados
 ```
 
 ---
 
 ## Secao Tecnica
 
-### Schema do Objetivo (apos migracao):
-
+### Interface de Filtros:
 ```text
-objectives:
-  - id: uuid
-  - company_id: uuid (FK companies)
-  - owner_id: uuid (FK users) - criador
-  - assignee_id: uuid (FK users) - atribuido (opcional)
-  - team_id: uuid (FK teams) - equipe (opcional)
-  - type: objective_type (personal/team/individual)
-  - parent_id: uuid (FK objectives) - hierarquia
-  - title: text
-  - description: text
-  - due_date: date
-  - status: objective_status
-  - progress: integer
-  - visibility: post_visibility
-  - created_at, updated_at: timestamp
+interface ObjectivesFilters {
+  departments: string[];          // IDs de departamentos
+  responsibleIds: string[];       # IDs de usuarios responsaveis
+  period: {
+    startDate: string | null;
+    endDate: string | null;
+    preset: 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'custom' | null;
+  };
+  status: 'all' | 'active' | 'completed';
+  progressRange: [number, number] | null;
+  visibility: 'all' | 'company' | 'private';
+  checkInStatus: 'all' | 'on-time' | 'late';
+}
 ```
 
-### RLS Policy para SELECT:
+### Hook useObjectivesFilters:
+- Gerencia estado dos filtros
+- Aplica filtros na query do Supabase
+- Retorna objetivos agrupados por departamento
+- Calcula estatisticas dinamicas
 
+### Query de Objetivos com Filtros:
+A query sera expandida para:
+- Filtrar por `teams.department` (via join com teams)
+- Filtrar por `owner_id` ou `assignee_id`
+- Filtrar por `due_date` dentro do periodo
+- Filtrar por `status` e `visibility`
+- Calcular % de check-in baseado em `key_results.updated_at`
+
+### Agrupamento por Departamento:
 ```text
-CREATE POLICY "View objectives"
-ON objectives FOR SELECT
-USING (
-  is_company_member(auth.uid(), company_id)
-  AND (
-    owner_id = auth.uid()
-    OR assignee_id = auth.uid()
-    OR visibility = 'company'
-    OR (
-      team_id IS NOT NULL
-      AND EXISTS (
-        SELECT 1 FROM team_members
-        WHERE team_id = objectives.team_id
-        AND user_id = auth.uid()
-      )
-    )
-  )
-);
+{
+  "Growth": ObjectiveWithDetails[],
+  "Comercial": ObjectiveWithDetails[],
+  "Tecnologia": ObjectiveWithDetails[],
+  ...
+}
 ```
 
-### RLS Policy para INSERT:
+### Exportacao CSV:
+Usar funcao nativa do navegador para gerar CSV:
+- Formatar dados dos objetivos e KRs
+- Criar Blob e disparar download
+- Incluir cabecalhos em portugues
 
-```text
-CREATE POLICY "Create objectives"
-ON objectives FOR INSERT
-WITH CHECK (
-  is_company_member(auth.uid(), company_id)
-  AND owner_id = auth.uid()
-  AND (
-    -- Pessoal: apenas para si
-    (type = 'personal' AND (assignee_id IS NULL OR assignee_id = auth.uid()))
-    -- Admin pode criar qualquer
-    OR is_company_admin(auth.uid(), company_id)
-    -- Leader pode criar para sua equipe
-    OR (
-      team_id IS NOT NULL
-      AND EXISTS (
-        SELECT 1 FROM team_members
-        WHERE team_id = objectives.team_id
-        AND user_id = auth.uid()
-        AND role = 'leader'
-      )
-    )
-    OR (
-      assignee_id IS NOT NULL
-      AND EXISTS (
-        SELECT 1 FROM team_members tm1
-        JOIN team_members tm2 ON tm1.team_id = tm2.team_id
-        WHERE tm1.user_id = auth.uid()
-        AND tm1.role = 'leader'
-        AND tm2.user_id = objectives.assignee_id
-      )
-    )
-  )
-);
-```
-
-### Funcao para verificar se e lider:
-
-```text
-CREATE FUNCTION is_team_leader(p_user_id uuid, p_team_id uuid)
-RETURNS boolean AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM team_members
-    WHERE user_id = p_user_id
-    AND team_id = p_team_id
-    AND role = 'leader'
-  )
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
-```
-
-### Funcao para recalcular progresso:
-
-```text
-CREATE FUNCTION update_objective_progress()
-RETURNS trigger AS $$
-BEGIN
-  UPDATE objectives
-  SET progress = (
-    SELECT COALESCE(
-      AVG(
-        LEAST(100, (current_value / NULLIF(target_value, 0)) * 100)
-      )::integer,
-      0
-    )
-    FROM key_results
-    WHERE objective_id = COALESCE(NEW.objective_id, OLD.objective_id)
-  )
-  WHERE id = COALESCE(NEW.objective_id, OLD.objective_id);
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-```
+### Grafico de Acompanhamento:
+Usar Recharts (ja instalado) para:
+- LineChart com duas linhas: Meta vs Check-in
+- Eixo X: meses
+- Eixo Y: valores do KR
+- Dados gerados a partir do historico de key_results
 
 ---
 
-## Ordem de Implementacao
+## Fluxo de Implementacao
 
-1. Migracao do banco de dados (novos campos + enum + funcoes)
-2. Atualizar RLS policies
-3. Criar hook useObjectives
-4. Criar hook useUserPermissions
-5. Criar componentes seletores (PersonSelector, TeamSelector)
-6. Criar CreateObjectiveDialog
-7. Atualizar pagina Objectives.tsx
-8. Atualizar ObjectiveCard com dados reais
-9. Atualizar KeyResultItem para edicao inline
-10. Testar fluxo completo
+1. Criar hook `useObjectivesFilters` com estado e logica de filtros
+2. Criar hook `useDepartments` para listar departamentos unicos
+3. Criar componente `ObjectivesFilters` com UI de filtros
+4. Criar componente `ObjectivesStats` com cards dinamicos
+5. Criar componente `DepartmentObjectives` para visualizacao agrupada
+6. Criar componente `KeyResultProgress` com grafico de acompanhamento
+7. Criar componente `ObjectivesExport` para download CSV
+8. Atualizar `useObjectives` para suportar filtros avancados
+9. Redesenhar `Objectives.tsx` integrando novos componentes
+10. Atualizar `ObjectiveCard` para modo expandido com tabs
 
 ---
 
-## Fluxo de Usuario
+## UI/UX
 
-### Gestor Geral:
+### Cores e Badges:
+- Check-in Atrasado: Badge vermelho/rosa
+- Departamento: Badge azul
+- Tipo (Aspiracionais/Compromissadas): Badge amarelo/verde
+- Progresso: Barra com cor baseada na % (vermelho < 25%, amarelo < 50%, verde >= 50%)
 
-1. Acessa /objectives
-2. Clica "Novo Objetivo"
-3. Escolhe tipo: "Para Equipe" ou "Individual"
-4. Seleciona equipe ou pessoa
-5. Preenche dados e KRs
-6. Salva
+### Layout Responsivo:
+- Desktop: 3 filtros em linha + botoes a direita
+- Mobile: Filtros em coluna, botao "Mais filtros" essencial
 
-### Gestor de Equipe:
+### Animacoes:
+- Transicao suave ao expandir/colapsar departamentos
+- Fade in nos graficos de acompanhamento
 
-1. Acessa /objectives
-2. Clica "Novo Objetivo"
-3. Ve opcoes: Pessoal, Para Equipe (sua), Individual (membros)
-4. Seleciona tipo
-5. Preenche dados
-6. Salva
+---
 
-### Membro:
+## Dependencias
 
-1. Acessa /objectives
-2. Clica "Novo Objetivo"
-3. Ve apenas opcao: Pessoal
-4. Preenche dados
-5. Salva
+- **Recharts** (ja instalado): Para graficos de acompanhamento
+- **date-fns** (ja instalado): Para manipulacao de datas e periodos
+- Nao requer novas instalacoes
 
+---
+
+## Consideracoes de Segurança
+
+- A exportacao usa apenas dados que o usuario ja tem acesso via RLS
+- Os filtros sao aplicados no frontend primeiro, respeitando as policies existentes
+- Nenhuma nova policy de banco necessaria
