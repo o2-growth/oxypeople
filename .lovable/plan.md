@@ -1,222 +1,399 @@
 
-# Implementacao de Notificacoes Dual-Channel (Slack + Feed)
+# Sistema de Objetivos Hierarquicos com Permissoes
 
 ## Visao Geral
 
-Quando uma automacao for disparada (aniversario, tempo de empresa, novo colaborador), o sistema enviara notificacoes em dois canais simultaneamente:
-1. **Slack** - Mensagem para o canal configurado da empresa
-2. **Feed da Plataforma** - Aviso criado automaticamente na tabela `announcements`
+Implementar um sistema completo de OKRs (Objectives and Key Results) que permita:
+- **Gestores gerais** (admin/owner) criar objetivos para equipes e individuais para qualquer pessoa
+- **Gestores de equipe** (leader) criar objetivos para si mesmos e para membros de sua equipe
+- **Membros** visualizar seus proprios objetivos e objetivos da equipe/empresa
 
 ---
 
-## Arquitetura da Solucao
+## Estrutura de Permissoes
 
 ```text
-+------------------+     +------------------------+     +----------------+
-| Trigger Event    | --> | Edge Function          | --> | Slack API      |
-| (birthday, etc)  |     | process-automations    |     | (send message) |
-+------------------+     +------------------------+     +----------------+
-                                   |
-                                   v
-                         +------------------------+
-                         | Supabase Tables        |
-                         | - announcements (feed) |
-                         | - automation_logs      |
-                         +------------------------+
-```
-
----
-
-## Passo 1: Conectar Integracao Slack
-
-Antes de implementar as Edge Functions, sera necessario conectar a integracao Slack ao projeto. Isso disponibilizara a variavel SLACK_API_KEY automaticamente.
-
----
-
-## Passo 2: Edge Function - send-slack-message
-
-Esta funcao envia mensagens para canais do Slack usando o conector Lovable.
-
-### Arquivo: supabase/functions/send-slack-message/index.ts
-
-```text
-Responsabilidades:
-- Receber channel_id, message e blocks (opcional)
-- Enviar via gateway: https://gateway.lovable.dev/slack/api/chat.postMessage
-- Retornar resposta do Slack
-```
-
-### Parametros de Entrada:
-```text
-{
-  channel_id: string,    // ID do canal Slack (ex: "C1234567890")
-  message: string,       // Texto da mensagem
-  blocks?: SlackBlock[]  // Formatacao rica (opcional)
-}
++------------------+     +------------------+     +------------------+
+| Owner/Admin      | --> | Team Leader      | --> | Member           |
+| (Gestor Geral)   |     | (Gestor Equipe)  |     | (Colaborador)    |
++------------------+     +------------------+     +------------------+
+        |                         |                        |
+        v                         v                        v
+- Criar para qualquer   - Criar para si       - Criar para si
+  pessoa/equipe         - Criar para sua        (pessoais)
+- Editar todos            equipe              - Visualizar da
+- Visualizar todos      - Visualizar da         equipe/empresa
+                          equipe/empresa
 ```
 
 ---
 
-## Passo 3: Edge Function - process-automations
+## Passo 1: Migracao do Banco de Dados
 
-Funcao principal que processa automacoes e dispara notificacoes em ambos os canais.
+### Adicionar campos na tabela objectives:
 
-### Arquivo: supabase/functions/process-automations/index.ts
+- `team_id` (uuid, nullable) - Objetivo de equipe (quando definido)
+- `assignee_id` (uuid, nullable) - Objetivo atribuido a uma pessoa especifica
+- `created_by` (uuid, not null) - Quem criou o objetivo
+
+### Criar enum para tipo de objetivo:
 
 ```text
-Fluxo de Execucao:
-1. Buscar automacoes ativas do tipo especificado
-2. Verificar eventos do dia (aniversarios, etc)
-3. Para cada evento:
-   a. Montar mensagem personalizada
-   b. Enviar para Slack (se configurado)
-   c. Criar aviso na tabela announcements (feed)
-   d. Registrar log na tabela automation_logs
+CREATE TYPE objective_type AS ENUM ('personal', 'team', 'individual');
 ```
 
-### Logica de Dual-Channel:
+- `personal`: Objetivo criado para si mesmo
+- `team`: Objetivo da equipe (todos os membros visualizam)
+- `individual`: Objetivo atribuido a uma pessoa por um gestor
+
+### Adicionar campo type:
+
+- `type` (objective_type) - Tipo do objetivo
+
+### Atualizar RLS Policies:
+
+A nova policy de SELECT permitira visualizar:
+1. Objetivos onde voce e o owner (criador)
+2. Objetivos onde voce e o assignee (atribuido)
+3. Objetivos de equipe onde voce e membro
+4. Objetivos com visibility = 'company' da sua empresa
+
+A nova policy de INSERT permitira criar:
+1. Objetivos pessoais (owner_id = auth.uid())
+2. Se admin/owner: qualquer objetivo
+3. Se leader de equipe: objetivos para membros da sua equipe
+
+---
+
+## Passo 2: Hook useObjectives
+
+### Arquivo: src/hooks/useObjectives.ts
+
 ```text
-Para cada usuario com evento:
-  1. IF slack_channel_id configurado:
-       -> Chamar send-slack-message
-  2. IF post_to_feed = true:
-       -> INSERT na tabela announcements
-  3. INSERT log em automation_logs
+Funcoes:
+- useObjectives() - Lista objetivos baseado em filtros
+- useCreateObjective() - Criar novo objetivo
+- useUpdateObjective() - Atualizar objetivo
+- useDeleteObjective() - Remover objetivo
+- useKeyResults() - Gerenciar Key Results
+- useUserPermissions() - Verificar permissoes do usuario
+```
+
+### Logica de Permissoes no Hook:
+
+```text
+canCreateForTeam(teamId):
+  - Retorna true se usuario e admin/owner da empresa
+  - Retorna true se usuario e leader da equipe
+
+canCreateForUser(userId):
+  - Retorna true se userId == usuario atual
+  - Retorna true se usuario e admin/owner
+  - Retorna true se usuario e leader da equipe do userId
+
+canEdit(objective):
+  - Retorna true se e o criador
+  - Retorna true se e admin/owner
+  - Retorna true se e leader da equipe do objetivo
 ```
 
 ---
 
-## Passo 4: Edge Function - list-slack-channels
+## Passo 3: Modal de Criacao de Objetivo
 
-Busca canais disponiveis do workspace Slack conectado.
+### Arquivo: src/components/objectives/CreateObjectiveDialog.tsx
 
-### Arquivo: supabase/functions/list-slack-channels/index.ts
+### Campos do Formulario:
+
+1. **Tipo de Objetivo** (Radio Group):
+   - Pessoal (para mim)
+   - Para Equipe
+   - Individual (para uma pessoa)
+
+2. **Campos Condicionais**:
+   - Se "Para Equipe": Seletor de equipe
+   - Se "Individual": Seletor de pessoa
+
+3. **Dados do Objetivo**:
+   - Titulo *
+   - Descricao
+   - Data limite
+   - Visibilidade (pessoal/equipe/empresa)
+
+4. **Key Results** (dinamico):
+   - Adicionar/remover KRs
+   - Titulo, Valor atual, Meta, Unidade
+
+### Logica de Exibicao:
+
+- Mostrar opcao "Para Equipe" apenas se usuario lidera alguma equipe ou e admin
+- Mostrar opcao "Individual" apenas se usuario lidera alguma equipe ou e admin
+- Filtrar lista de pessoas baseado em permissoes
+
+---
+
+## Passo 4: Seletor de Pessoa
+
+### Arquivo: src/components/objectives/PersonSelector.tsx
 
 ```text
-- GET request sem parametros
-- Usa gateway para chamar conversations.list
-- Retorna lista de canais publicos
+- Busca na API
+- Filtra por equipes que o usuario lidera (se nao for admin)
+- Avatar + Nome + Email + Departamento
 ```
 
 ---
 
-## Passo 5: Componente SlackChannelSelector
+## Passo 5: Seletor de Equipe
 
-Dropdown para selecionar canal Slack nas configuracoes de automacao.
-
-### Arquivo: src/components/automation/SlackChannelSelector.tsx
+### Arquivo: src/components/objectives/TeamSelector.tsx
 
 ```text
-- Chama edge function list-slack-channels
-- Exibe dropdown com canais disponiveis
-- Atualiza config da automacao com channel_id selecionado
+- Lista equipes que o usuario pode gerenciar
+- Admin: todas as equipes
+- Leader: apenas equipes que lidera
 ```
 
 ---
 
-## Passo 6: Modal de Configuracao de Automacao
+## Passo 6: Atualizar Pagina de Objetivos
 
-Expandir o botao "Configurar" do AutomationCard para abrir modal com:
+### Arquivo: src/pages/Objectives.tsx
 
-### Campos de Configuracao:
-```text
-- Mensagem personalizada (template com variaveis {name}, {date})
-- Seletor de canal Slack (SlackChannelSelector)
-- Toggle "Publicar no Feed"
-- Preview da mensagem
-```
+### Mudancas:
+
+1. Substituir dados mock por dados reais do Supabase
+2. Adicionar estado para dialog de criacao
+3. Conectar botao "Novo Objetivo" ao dialog
+4. Atualizar tabs para filtrar por:
+   - Todos (baseado em permissoes)
+   - Meus (pessoais + atribuidos a mim)
+   - Equipe (objetivos de equipes que participo)
+   - Empresa (visibility = company)
+
+### Stats Dinamicas:
+
+- Calcular total de objetivos reais
+- Agrupar por status (on-track, at-risk, off-track)
 
 ---
 
-## Passo 7: Atualizar CreateAnnouncement
+## Passo 7: Atualizar ObjectiveCard
 
-Adicionar opcao de enviar aviso para Slack alem do feed.
+### Arquivo: src/components/objectives/ObjectiveCard.tsx
 
-### Novos Campos:
+### Mudancas:
+
+1. Receber dados do banco (nao mais interface mock)
+2. Exibir badge de tipo (Pessoal/Equipe/Individual)
+3. Mostrar a quem foi atribuido (se individual)
+4. Mostrar equipe (se objetivo de equipe)
+5. Adicionar acoes (editar/excluir baseado em permissoes)
+6. Exibir KeyResults reais do banco
+
+---
+
+## Passo 8: Edicao de Objetivo e Key Results
+
+### Arquivo: src/components/objectives/EditObjectiveDialog.tsx
+
 ```text
-- Seletor de canal Slack (opcional)
-- Preview da mensagem formatada
+- Reutilizar formulario de criacao
+- Pre-preencher campos
+- Atualizar objetivo e KRs
 ```
+
+### Inline Edit para Key Results:
+
+- Permitir atualizar `current_value` diretamente no card
+- Recalcular progresso do objetivo automaticamente
 
 ---
 
 ## Estrutura de Arquivos
 
 ### Novos Arquivos:
+
 ```text
-supabase/functions/send-slack-message/index.ts
-supabase/functions/list-slack-channels/index.ts
-supabase/functions/process-automations/index.ts
-src/components/automation/SlackChannelSelector.tsx
-src/components/automation/AutomationConfigModal.tsx
+src/hooks/useObjectives.ts
+src/hooks/useUserPermissions.ts
+src/components/objectives/CreateObjectiveDialog.tsx
+src/components/objectives/EditObjectiveDialog.tsx
+src/components/objectives/PersonSelector.tsx
+src/components/objectives/TeamSelector.tsx
 ```
 
 ### Arquivos a Editar:
-```text
-src/components/automation/AutomationCard.tsx
-  - Adicionar modal de configuracao
-  - Salvar config com slack_channel_id e post_to_feed
 
-src/components/automation/CreateAnnouncement.tsx
-  - Adicionar seletor de canal Slack
-  - Chamar edge function ao enviar para Slack
+```text
+src/pages/Objectives.tsx
+src/components/objectives/ObjectiveCard.tsx
+src/components/objectives/KeyResultItem.tsx
 ```
 
 ---
 
 ## Secao Tecnica
 
-### Formato de Config da Automacao (JSONB):
+### Schema do Objetivo (apos migracao):
+
 ```text
-{
-  "message_template": "Parabens {name}! Desejamos um feliz aniversario!",
-  "slack_channel_id": "C1234567890",
-  "post_to_feed": true,
-  "include_emoji": true
-}
+objectives:
+  - id: uuid
+  - company_id: uuid (FK companies)
+  - owner_id: uuid (FK users) - criador
+  - assignee_id: uuid (FK users) - atribuido (opcional)
+  - team_id: uuid (FK teams) - equipe (opcional)
+  - type: objective_type (personal/team/individual)
+  - parent_id: uuid (FK objectives) - hierarquia
+  - title: text
+  - description: text
+  - due_date: date
+  - status: objective_status
+  - progress: integer
+  - visibility: post_visibility
+  - created_at, updated_at: timestamp
 ```
 
-### Headers para Gateway Slack:
+### RLS Policy para SELECT:
+
 ```text
-Authorization: Bearer <SLACK_API_KEY>
-X-Connection-Api-Key: <LOVABLE_API_KEY>
-Content-Type: application/json
+CREATE POLICY "View objectives"
+ON objectives FOR SELECT
+USING (
+  is_company_member(auth.uid(), company_id)
+  AND (
+    owner_id = auth.uid()
+    OR assignee_id = auth.uid()
+    OR visibility = 'company'
+    OR (
+      team_id IS NOT NULL
+      AND EXISTS (
+        SELECT 1 FROM team_members
+        WHERE team_id = objectives.team_id
+        AND user_id = auth.uid()
+      )
+    )
+  )
+);
 ```
 
-### URL do Gateway:
+### RLS Policy para INSERT:
+
 ```text
-https://gateway.lovable.dev/slack/api/<method>
+CREATE POLICY "Create objectives"
+ON objectives FOR INSERT
+WITH CHECK (
+  is_company_member(auth.uid(), company_id)
+  AND owner_id = auth.uid()
+  AND (
+    -- Pessoal: apenas para si
+    (type = 'personal' AND (assignee_id IS NULL OR assignee_id = auth.uid()))
+    -- Admin pode criar qualquer
+    OR is_company_admin(auth.uid(), company_id)
+    -- Leader pode criar para sua equipe
+    OR (
+      team_id IS NOT NULL
+      AND EXISTS (
+        SELECT 1 FROM team_members
+        WHERE team_id = objectives.team_id
+        AND user_id = auth.uid()
+        AND role = 'leader'
+      )
+    )
+    OR (
+      assignee_id IS NOT NULL
+      AND EXISTS (
+        SELECT 1 FROM team_members tm1
+        JOIN team_members tm2 ON tm1.team_id = tm2.team_id
+        WHERE tm1.user_id = auth.uid()
+        AND tm1.role = 'leader'
+        AND tm2.user_id = objectives.assignee_id
+      )
+    )
+  )
+);
 ```
 
-### Mensagem de Aniversario no Feed:
+### Funcao para verificar se e lider:
+
 ```text
-INSERT INTO announcements:
-- title: "Feliz Aniversario!"
-- content: "Hoje e o aniversario de {name}. Parabens!"
-- type: "celebration"
-- author_id: system_user ou admin
-- is_pinned: false
-- post_to_feed: true
+CREATE FUNCTION is_team_leader(p_user_id uuid, p_team_id uuid)
+RETURNS boolean AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM team_members
+    WHERE user_id = p_user_id
+    AND team_id = p_team_id
+    AND role = 'leader'
+  )
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
+```
+
+### Funcao para recalcular progresso:
+
+```text
+CREATE FUNCTION update_objective_progress()
+RETURNS trigger AS $$
+BEGIN
+  UPDATE objectives
+  SET progress = (
+    SELECT COALESCE(
+      AVG(
+        LEAST(100, (current_value / NULLIF(target_value, 0)) * 100)
+      )::integer,
+      0
+    )
+    FROM key_results
+    WHERE objective_id = COALESCE(NEW.objective_id, OLD.objective_id)
+  )
+  WHERE id = COALESCE(NEW.objective_id, OLD.objective_id);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 ```
 
 ---
 
 ## Ordem de Implementacao
 
-1. Conectar integracao Slack ao projeto
-2. Criar Edge Function send-slack-message
-3. Criar Edge Function list-slack-channels
-4. Criar componente SlackChannelSelector
-5. Criar Edge Function process-automations
-6. Adicionar modal de configuracao nas automacoes
-7. Atualizar CreateAnnouncement com opcao Slack
-8. Testar fluxo completo
+1. Migracao do banco de dados (novos campos + enum + funcoes)
+2. Atualizar RLS policies
+3. Criar hook useObjectives
+4. Criar hook useUserPermissions
+5. Criar componentes seletores (PersonSelector, TeamSelector)
+6. Criar CreateObjectiveDialog
+7. Atualizar pagina Objectives.tsx
+8. Atualizar ObjectiveCard com dados reais
+9. Atualizar KeyResultItem para edicao inline
+10. Testar fluxo completo
 
 ---
 
-## Consideracoes de Seguranca
+## Fluxo de Usuario
 
-- Edge Functions usam SUPABASE_SERVICE_ROLE_KEY para inserir logs
-- Validacao de company_id em todas as operacoes
-- Canal Slack deve pertencer ao workspace conectado
-- RLS policies ja configuradas para announcements e automation_logs
+### Gestor Geral:
+
+1. Acessa /objectives
+2. Clica "Novo Objetivo"
+3. Escolhe tipo: "Para Equipe" ou "Individual"
+4. Seleciona equipe ou pessoa
+5. Preenche dados e KRs
+6. Salva
+
+### Gestor de Equipe:
+
+1. Acessa /objectives
+2. Clica "Novo Objetivo"
+3. Ve opcoes: Pessoal, Para Equipe (sua), Individual (membros)
+4. Seleciona tipo
+5. Preenche dados
+6. Salva
+
+### Membro:
+
+1. Acessa /objectives
+2. Clica "Novo Objetivo"
+3. Ve apenas opcao: Pessoal
+4. Preenche dados
+5. Salva
+
