@@ -499,8 +499,10 @@ export type Database = {
       }
       objectives: {
         Row: {
+          assignee_id: string | null
           company_id: string
           created_at: string
+          created_by: string
           description: string | null
           due_date: string | null
           id: string
@@ -508,13 +510,17 @@ export type Database = {
           parent_id: string | null
           progress: number
           status: Database["public"]["Enums"]["objective_status"]
+          team_id: string | null
           title: string
+          type: Database["public"]["Enums"]["objective_type"]
           updated_at: string
           visibility: Database["public"]["Enums"]["post_visibility"]
         }
         Insert: {
+          assignee_id?: string | null
           company_id: string
           created_at?: string
+          created_by: string
           description?: string | null
           due_date?: string | null
           id?: string
@@ -522,13 +528,17 @@ export type Database = {
           parent_id?: string | null
           progress?: number
           status?: Database["public"]["Enums"]["objective_status"]
+          team_id?: string | null
           title: string
+          type?: Database["public"]["Enums"]["objective_type"]
           updated_at?: string
           visibility?: Database["public"]["Enums"]["post_visibility"]
         }
         Update: {
+          assignee_id?: string | null
           company_id?: string
           created_at?: string
+          created_by?: string
           description?: string | null
           due_date?: string | null
           id?: string
@@ -536,16 +546,32 @@ export type Database = {
           parent_id?: string | null
           progress?: number
           status?: Database["public"]["Enums"]["objective_status"]
+          team_id?: string | null
           title?: string
+          type?: Database["public"]["Enums"]["objective_type"]
           updated_at?: string
           visibility?: Database["public"]["Enums"]["post_visibility"]
         }
         Relationships: [
           {
+            foreignKeyName: "objectives_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "objectives_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -560,6 +586,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -1041,9 +1074,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_led_teams: { Args: { p_user_id: string }; Returns: string[] }
       get_user_role: {
         Args: { p_company_id: string; p_user_id: string }
         Returns: Database["public"]["Enums"]["membership_role"]
+      }
+      is_any_team_leader: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: boolean
       }
       is_company_admin: {
         Args: { p_company_id: string; p_user_id: string }
@@ -1051,6 +1089,10 @@ export type Database = {
       }
       is_company_member: {
         Args: { p_company_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_team_leader: {
+        Args: { p_team_id: string; p_user_id: string }
         Returns: boolean
       }
     }
@@ -1061,6 +1103,7 @@ export type Database = {
       membership_role: "owner" | "admin" | "manager" | "member"
       membership_status: "active" | "invited" | "pending" | "inactive"
       objective_status: "on-track" | "at-risk" | "off-track" | "completed"
+      objective_type: "personal" | "team" | "individual"
       post_visibility: "public" | "company" | "private"
       question_type:
         | "text"
@@ -1202,6 +1245,7 @@ export const Constants = {
       membership_role: ["owner", "admin", "manager", "member"],
       membership_status: ["active", "invited", "pending", "inactive"],
       objective_status: ["on-track", "at-risk", "off-track", "completed"],
+      objective_type: ["personal", "team", "individual"],
       post_visibility: ["public", "company", "private"],
       question_type: [
         "text",

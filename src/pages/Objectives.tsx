@@ -1,94 +1,139 @@
+import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { ObjectiveCard, Objective } from "@/components/objectives/ObjectiveCard";
+import { ObjectiveCard } from "@/components/objectives/ObjectiveCard";
+import { CreateObjectiveDialog } from "@/components/objectives/CreateObjectiveDialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Target, Users, Building2, TrendingUp } from "lucide-react";
-
-const mockObjectives: Objective[] = [
-  {
-    id: "1",
-    title: "Aumentar a satisfação do cliente",
-    description: "Melhorar o NPS em 20 pontos até o final do trimestre",
-    progress: 75,
-    status: "on-track",
-    dueDate: "31 Mar 2024",
-    owner: { name: "Ana Silva", avatar: "", initials: "AS" },
-    visibility: "team",
-    keyResults: [
-      { id: "kr1", title: "Reduzir tempo de resposta do suporte", currentValue: 2, targetValue: 4, unit: "horas" },
-      { id: "kr2", title: "Implementar chat ao vivo", currentValue: 1, targetValue: 1, unit: "" },
-      { id: "kr3", title: "Aumentar taxa de resolução no primeiro contato", currentValue: 78, targetValue: 90, unit: "%" },
-    ],
-  },
-  {
-    id: "2",
-    title: "Lançar nova versão do produto",
-    description: "Entregar MVP com as 5 funcionalidades principais",
-    progress: 45,
-    status: "at-risk",
-    dueDate: "15 Fev 2024",
-    owner: { name: "Carlos Santos", avatar: "", initials: "CS" },
-    visibility: "company",
-    keyResults: [
-      { id: "kr4", title: "Completar desenvolvimento do módulo A", currentValue: 80, targetValue: 100, unit: "%" },
-      { id: "kr5", title: "Finalizar testes de integração", currentValue: 30, targetValue: 100, unit: "%" },
-      { id: "kr6", title: "Documentação técnica", currentValue: 50, targetValue: 100, unit: "%" },
-    ],
-  },
-  {
-    id: "3",
-    title: "Desenvolver habilidades de liderança",
-    description: "Participar de treinamentos e mentorias",
-    progress: 60,
-    status: "on-track",
-    dueDate: "30 Jun 2024",
-    owner: { name: "Maria Oliveira", avatar: "", initials: "MO" },
-    visibility: "personal",
-    keyResults: [
-      { id: "kr7", title: "Completar curso de gestão", currentValue: 8, targetValue: 12, unit: "módulos" },
-      { id: "kr8", title: "Sessões de mentoria realizadas", currentValue: 4, targetValue: 6, unit: "" },
-      { id: "kr9", title: "Feedback 360° recebido", currentValue: 1, targetValue: 2, unit: "" },
-    ],
-  },
-  {
-    id: "4",
-    title: "Reduzir custos operacionais",
-    description: "Otimizar processos para economia de 15%",
-    progress: 20,
-    status: "off-track",
-    dueDate: "28 Fev 2024",
-    owner: { name: "João Pereira", avatar: "", initials: "JP" },
-    visibility: "company",
-    keyResults: [
-      { id: "kr10", title: "Automatizar processos manuais", currentValue: 2, targetValue: 8, unit: "" },
-      { id: "kr11", title: "Renegociar contratos com fornecedores", currentValue: 1, targetValue: 5, unit: "" },
-      { id: "kr12", title: "Economia mensal alcançada", currentValue: 5, targetValue: 15, unit: "%" },
-    ],
-  },
-];
-
-const stats = [
-  { label: "Total de Objetivos", value: 12, icon: Target, color: "text-primary" },
-  { label: "No Prazo", value: 7, icon: TrendingUp, color: "text-green-500" },
-  { label: "Em Risco", value: 3, icon: Target, color: "text-yellow-500" },
-  { label: "Atrasados", value: 2, icon: Target, color: "text-red-500" },
-];
+import { Skeleton } from "@/components/ui/skeleton";
+import { Plus, Target, Users, Building2, TrendingUp, User } from "lucide-react";
+import { useObjectives, useObjectiveStats } from "@/hooks/useObjectives";
 
 export default function Objectives() {
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
+
+  const {
+    data: allObjectives,
+    isLoading: isLoadingAll,
+  } = useObjectives("all");
+
+  const {
+    data: personalObjectives,
+    isLoading: isLoadingPersonal,
+  } = useObjectives("personal");
+
+  const {
+    data: teamObjectives,
+    isLoading: isLoadingTeam,
+  } = useObjectives("team");
+
+  const {
+    data: companyObjectives,
+    isLoading: isLoadingCompany,
+  } = useObjectives("company");
+
+  const { data: stats, isLoading: isLoadingStats } = useObjectiveStats();
+
+  const statsData = [
+    {
+      label: "Total de Objetivos",
+      value: stats?.total || 0,
+      icon: Target,
+      color: "text-primary",
+    },
+    {
+      label: "No Prazo",
+      value: stats?.onTrack || 0,
+      icon: TrendingUp,
+      color: "text-green-500",
+    },
+    {
+      label: "Em Risco",
+      value: stats?.atRisk || 0,
+      icon: Target,
+      color: "text-yellow-500",
+    },
+    {
+      label: "Atrasados",
+      value: stats?.offTrack || 0,
+      icon: Target,
+      color: "text-red-500",
+    },
+  ];
+
+  // Calculate overall progress
+  const overallProgress =
+    allObjectives && allObjectives.length > 0
+      ? Math.round(
+          allObjectives.reduce((sum, obj) => sum + obj.progress, 0) /
+            allObjectives.length
+        )
+      : 0;
+
+  const renderObjectivesList = (
+    objectives: typeof allObjectives,
+    isLoading: boolean
+  ) => {
+    if (isLoading) {
+      return (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2 mt-2" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-2 w-full mb-4" />
+                <Skeleton className="h-4 w-1/3" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      );
+    }
+
+    if (!objectives || objectives.length === 0) {
+      return (
+        <Card className="p-8 text-center">
+          <Target className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">Nenhum objetivo encontrado</h3>
+          <p className="text-muted-foreground mb-4">
+            Clique no botão "Novo Objetivo" para criar seu primeiro objetivo.
+          </p>
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Criar Objetivo
+          </Button>
+        </Card>
+      );
+    }
+
+    return (
+      <div className="grid gap-4 lg:grid-cols-2">
+        {objectives.map((objective) => (
+          <ObjectiveCard key={objective.id} objective={objective} />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-heading font-bold text-foreground">Objetivos</h1>
+            <h1 className="text-3xl font-heading font-bold text-foreground">
+              Objetivos
+            </h1>
             <p className="text-muted-foreground mt-1">
               Gerencie OKRs e acompanhe o progresso das metas
             </p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
             <Plus className="h-4 w-4" />
             Novo Objetivo
           </Button>
@@ -96,46 +141,64 @@ export default function Objectives() {
 
         {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <Card key={stat.label}>
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className={`p-3 rounded-lg bg-muted ${stat.color}`}>
-                  <stat.icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {statsData.map((stat) =>
+            isLoadingStats ? (
+              <Card key={stat.label}>
+                <CardContent className="flex items-center gap-4 p-4">
+                  <Skeleton className="h-12 w-12 rounded-lg" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-6 w-12" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card key={stat.label}>
+                <CardContent className="flex items-center gap-4 p-4">
+                  <div className={`p-3 rounded-lg bg-muted ${stat.color}`}>
+                    <stat.icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">
+                      {stat.value}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          )}
         </div>
 
         {/* Progress Overview */}
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Progresso Geral do Trimestre</CardTitle>
+            <CardTitle className="text-lg">Progresso Geral</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">58% concluído</span>
-                <span className="text-sm text-muted-foreground">42 dias restantes</span>
+                <span className="text-sm text-muted-foreground">
+                  {overallProgress}% concluído
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {stats?.total || 0} objetivos
+                </span>
               </div>
-              <Progress value={58} className="h-3" />
+              <Progress value={overallProgress} className="h-3" />
             </div>
           </CardContent>
         </Card>
 
         {/* Objectives List */}
-        <Tabs defaultValue="all" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList>
             <TabsTrigger value="all" className="gap-2">
               <Target className="h-4 w-4" />
               Todos
             </TabsTrigger>
             <TabsTrigger value="personal" className="gap-2">
-              <Target className="h-4 w-4" />
+              <User className="h-4 w-4" />
               Meus
             </TabsTrigger>
             <TabsTrigger value="team" className="gap-2">
@@ -149,44 +212,28 @@ export default function Objectives() {
           </TabsList>
 
           <TabsContent value="all" className="mt-6">
-            <div className="grid gap-4 lg:grid-cols-2">
-              {mockObjectives.map((objective) => (
-                <ObjectiveCard key={objective.id} objective={objective} />
-              ))}
-            </div>
+            {renderObjectivesList(allObjectives, isLoadingAll)}
           </TabsContent>
 
           <TabsContent value="personal" className="mt-6">
-            <div className="grid gap-4 lg:grid-cols-2">
-              {mockObjectives
-                .filter((o) => o.visibility === "personal")
-                .map((objective) => (
-                  <ObjectiveCard key={objective.id} objective={objective} />
-                ))}
-            </div>
+            {renderObjectivesList(personalObjectives, isLoadingPersonal)}
           </TabsContent>
 
           <TabsContent value="team" className="mt-6">
-            <div className="grid gap-4 lg:grid-cols-2">
-              {mockObjectives
-                .filter((o) => o.visibility === "team")
-                .map((objective) => (
-                  <ObjectiveCard key={objective.id} objective={objective} />
-                ))}
-            </div>
+            {renderObjectivesList(teamObjectives, isLoadingTeam)}
           </TabsContent>
 
           <TabsContent value="company" className="mt-6">
-            <div className="grid gap-4 lg:grid-cols-2">
-              {mockObjectives
-                .filter((o) => o.visibility === "company")
-                .map((objective) => (
-                  <ObjectiveCard key={objective.id} objective={objective} />
-                ))}
-            </div>
+            {renderObjectivesList(companyObjectives, isLoadingCompany)}
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Create Dialog */}
+      <CreateObjectiveDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+      />
     </AppLayout>
   );
 }
