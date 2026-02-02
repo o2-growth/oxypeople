@@ -497,19 +497,62 @@ export type Database = {
           },
         ]
       }
+      objective_collaborators: {
+        Row: {
+          created_at: string
+          id: string
+          objective_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          objective_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          objective_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objective_collaborators_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objective_collaborators_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objectives: {
         Row: {
           assignee_id: string | null
           company_id: string
           created_at: string
           created_by: string
+          department: string | null
           description: string | null
           due_date: string | null
           id: string
+          is_active: boolean
           owner_id: string
           parent_id: string | null
+          period: string | null
           progress: number
           status: Database["public"]["Enums"]["objective_status"]
+          tags: string[] | null
           team_id: string | null
           title: string
           type: Database["public"]["Enums"]["objective_type"]
@@ -521,13 +564,17 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by: string
+          department?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
+          is_active?: boolean
           owner_id: string
           parent_id?: string | null
+          period?: string | null
           progress?: number
           status?: Database["public"]["Enums"]["objective_status"]
+          tags?: string[] | null
           team_id?: string | null
           title: string
           type?: Database["public"]["Enums"]["objective_type"]
@@ -539,13 +586,17 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string
+          department?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
+          is_active?: boolean
           owner_id?: string
           parent_id?: string | null
+          period?: string | null
           progress?: number
           status?: Database["public"]["Enums"]["objective_status"]
+          tags?: string[] | null
           team_id?: string | null
           title?: string
           type?: Database["public"]["Enums"]["objective_type"]

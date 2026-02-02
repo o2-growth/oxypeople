@@ -6,7 +6,6 @@ import type { Database } from "@/integrations/supabase/types";
 
 type ObjectiveRow = Database["public"]["Tables"]["objectives"]["Row"];
 type KeyResultRow = Database["public"]["Tables"]["key_results"]["Row"];
-type ObjectiveType = Database["public"]["Enums"]["objective_status"];
 
 export interface ObjectiveWithDetails extends ObjectiveRow {
   owner: {
@@ -24,9 +23,14 @@ export interface ObjectiveWithDetails extends ObjectiveRow {
   team: {
     id: string;
     name: string;
+    department: string | null;
   } | null;
   key_results: KeyResultRow[];
   type: "personal" | "team" | "individual";
+  collaborators?: {
+    user_id: string;
+    role: string;
+  }[];
 }
 
 export interface CreateObjectiveInput {
@@ -37,6 +41,14 @@ export interface CreateObjectiveInput {
   type: "personal" | "team" | "individual";
   team_id?: string;
   assignee_id?: string;
+  owner_id?: string;
+  parent_id?: string;
+  is_active?: boolean;
+  period?: string;
+  department?: string;
+  tags?: string[];
+  contributors?: string[];
+  editors?: string[];
   key_results?: {
     title: string;
     target_value: number;
@@ -52,6 +64,10 @@ export interface UpdateObjectiveInput {
   due_date?: string;
   status?: "on-track" | "at-risk" | "off-track" | "completed";
   visibility?: "public" | "company" | "private";
+  is_active?: boolean;
+  period?: string;
+  department?: string;
+  tags?: string[];
 }
 
 export function useObjectives(filter?: "all" | "personal" | "team" | "company") {
@@ -70,7 +86,7 @@ export function useObjectives(filter?: "all" | "personal" | "team" | "company") 
           *,
           owner:users!objectives_owner_id_fkey(id, full_name, avatar_url, email),
           assignee:users!objectives_assignee_id_fkey(id, full_name, avatar_url, email),
-          team:teams(id, name),
+          team:teams(id, name, department),
           key_results(*)
         `)
         .eq("company_id", companyId)
@@ -111,8 +127,8 @@ export function useCreateObjective() {
     mutationFn: async (input: CreateObjectiveInput) => {
       if (!user?.id || !companyId) throw new Error("Not authenticated");
 
-      // Determine owner_id based on type
-      let ownerId = user.id;
+      // Determine owner_id based on type and input
+      let ownerId = input.owner_id || user.id;
       if (input.type === "individual" && input.assignee_id) {
         ownerId = input.assignee_id;
       }
@@ -131,6 +147,11 @@ export function useCreateObjective() {
           type: input.type,
           team_id: input.team_id || null,
           assignee_id: input.assignee_id || null,
+          parent_id: input.parent_id || null,
+          is_active: input.is_active ?? true,
+          period: input.period || null,
+          department: input.department || null,
+          tags: input.tags || null,
           status: "on-track",
           progress: 0,
         })
@@ -154,6 +175,40 @@ export function useCreateObjective() {
           .insert(keyResultsData);
 
         if (krError) throw krError;
+      }
+
+      // Create collaborators (contributors and editors)
+      const collaborators: { objective_id: string; user_id: string; role: string }[] = [];
+
+      if (input.contributors && input.contributors.length > 0) {
+        input.contributors.forEach((userId) => {
+          collaborators.push({
+            objective_id: objective.id,
+            user_id: userId,
+            role: "contributor",
+          });
+        });
+      }
+
+      if (input.editors && input.editors.length > 0) {
+        input.editors.forEach((userId) => {
+          collaborators.push({
+            objective_id: objective.id,
+            user_id: userId,
+            role: "editor",
+          });
+        });
+      }
+
+      if (collaborators.length > 0) {
+        const { error: collabError } = await supabase
+          .from("objective_collaborators")
+          .insert(collaborators);
+
+        if (collabError) {
+          console.error("Error creating collaborators:", collabError);
+          // Don't throw - objective was created successfully
+        }
       }
 
       return objective;
@@ -243,17 +298,19 @@ export function useObjectiveStats() {
 
       const { data, error } = await supabase
         .from("objectives")
-        .select("status")
+        .select("status, is_active")
         .eq("company_id", companyId);
 
       if (error) throw error;
 
+      const activeObjectives = (data || []).filter((o: any) => o.is_active !== false);
+
       const stats = {
-        total: data?.length || 0,
-        onTrack: data?.filter((o) => o.status === "on-track").length || 0,
-        atRisk: data?.filter((o) => o.status === "at-risk").length || 0,
-        offTrack: data?.filter((o) => o.status === "off-track").length || 0,
-        completed: data?.filter((o) => o.status === "completed").length || 0,
+        total: activeObjectives.length,
+        onTrack: activeObjectives.filter((o: any) => o.status === "on-track").length,
+        atRisk: activeObjectives.filter((o: any) => o.status === "at-risk").length,
+        offTrack: activeObjectives.filter((o: any) => o.status === "off-track").length,
+        completed: activeObjectives.filter((o: any) => o.status === "completed").length,
       };
 
       return stats;
