@@ -4,58 +4,9 @@ import { FeedPost } from "@/components/feed/FeedPost";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Users, Award } from "lucide-react";
-
-const feedPosts = [
-  {
-    author: {
-      name: "Ana Silva",
-      role: "Head de Produto",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ana",
-    },
-    content: "Super orgulhosa do nosso time! Conseguimos entregar a nova feature 2 semanas antes do prazo. O comprometimento de todos foi incrível. 🚀",
-    timestamp: new Date(Date.now() - 1000 * 60 * 30),
-    likes: 24,
-    comments: 8,
-    isRecognition: true,
-    recognitionTo: "Equipe de Produto",
-  },
-  {
-    author: {
-      name: "Carlos Oliveira",
-      role: "Desenvolvedor Sênior",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos",
-    },
-    content: "Ontem participei do workshop de liderança e foi transformador! Recomendo muito para quem quer desenvolver suas soft skills. Obrigado @RH pela organização!",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    likes: 18,
-    comments: 5,
-  },
-  {
-    author: {
-      name: "Maria Costa",
-      role: "UX Designer",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Maria",
-    },
-    content: "Finalizamos os testes de usabilidade do novo dashboard! Os resultados foram muito positivos - 95% de satisfação. Mal posso esperar para lançar para todos vocês! 🎨✨",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5),
-    likes: 32,
-    comments: 12,
-  },
-  {
-    author: {
-      name: "Pedro Santos",
-      role: "Gerente de Vendas",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Pedro",
-    },
-    content: "Batemos a meta do mês com 3 dias de antecedência! 🎯 Time comercial, vocês são demais!",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8),
-    likes: 45,
-    comments: 15,
-    isRecognition: true,
-    recognitionTo: "Time Comercial",
-  },
-];
+import { TrendingUp, Users, Award, Loader2 } from "lucide-react";
+import { usePosts } from "@/hooks/usePosts";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const trendingTopics = [
   { name: "#workshop-lideranca", posts: 23 },
@@ -71,6 +22,8 @@ const topContributors = [
 ];
 
 const Feed = () => {
+  const { data: posts, isLoading, error } = usePosts();
+
   return (
     <AppLayout>
       <div className="p-6 lg:p-8">
@@ -87,17 +40,61 @@ const Feed = () => {
               
               <CreatePost />
 
-              <div className="space-y-4">
-                {feedPosts.map((post, index) => (
-                  <div
-                    key={index}
-                    className="animate-slide-up opacity-0"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <FeedPost {...post} />
-                  </div>
-                ))}
-              </div>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i}>
+                      <CardHeader className="flex flex-row items-start gap-4 pb-2">
+                        <Skeleton className="h-11 w-11 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-24" />
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <Skeleton className="h-20 w-full" />
+                        <Skeleton className="h-8 w-full" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : error ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="text-4xl mb-4">😕</div>
+                    <h3 className="text-lg font-semibold text-foreground">
+                      Erro ao carregar posts
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Tente recarregar a página
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : posts && posts.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="text-4xl mb-4">📝</div>
+                    <h3 className="text-lg font-semibold text-foreground">
+                      Nenhum post ainda
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Seja o primeiro a compartilhar algo com a equipe!
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {posts?.map((post, index) => (
+                    <div
+                      key={post.id}
+                      className="animate-slide-up opacity-0"
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <FeedPost post={post} />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Sidebar */}
@@ -163,12 +160,12 @@ const Feed = () => {
                       <Users className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-white/80 text-sm">Colaboradores ativos</p>
-                      <p className="text-2xl font-heading font-bold">248</p>
+                      <p className="text-white/80 text-sm">Posts esta semana</p>
+                      <p className="text-2xl font-heading font-bold">{posts?.length || 0}</p>
                     </div>
                   </div>
                   <p className="text-sm text-white/70">
-                    89% de engajamento no feed esta semana
+                    Continue engajado com sua equipe!
                   </p>
                 </CardContent>
               </Card>
