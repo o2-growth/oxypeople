@@ -187,12 +187,12 @@ export function CreateDepartmentDialog({
 
           <div className="space-y-2">
             <Label>Líder do departamento</Label>
-            <Select value={leaderId} onValueChange={setLeaderId}>
+            <Select value={leaderId || "none"} onValueChange={(val) => setLeaderId(val === "none" ? "" : val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um líder (opcional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
+                <SelectItem value="none">Nenhum</SelectItem>
                 {members.map((member) => (
                   <SelectItem key={member.user_id} value={member.user_id}>
                     <div className="flex items-center gap-2">
