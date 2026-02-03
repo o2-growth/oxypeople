@@ -2,13 +2,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, X } from "lucide-react";
 import { useState, useRef } from "react";
 import { useCreatePost } from "@/hooks/usePosts";
 import { useUser } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { EmojiPicker } from "./EmojiPicker";
-import { ImageUpload } from "./ImageUpload";
+import { ImageUploadButton } from "./ImageUpload";
 
 export function CreatePost() {
   const [content, setContent] = useState("");
@@ -24,7 +24,6 @@ export function CreatePost() {
       const end = textarea.selectionEnd;
       const newContent = content.slice(0, start) + emoji + content.slice(end);
       setContent(newContent);
-      // Move cursor after emoji
       setTimeout(() => {
         textarea.focus();
         textarea.setSelectionRange(start + emoji.length, start + emoji.length);
@@ -32,6 +31,19 @@ export function CreatePost() {
     } else {
       setContent(content + emoji);
     }
+  };
+
+  const handleImageUpload = (urls: string[]) => {
+    const remaining = 4 - images.length;
+    if (remaining <= 0) {
+      toast.error("Máximo de 4 imagens por post");
+      return;
+    }
+    setImages([...images, ...urls.slice(0, remaining)]);
+  };
+
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
@@ -89,10 +101,10 @@ export function CreatePost() {
                     />
                     <button
                       type="button"
-                      onClick={() => setImages(images.filter((_, i) => i !== index))}
-                      className="absolute -top-2 -right-2 h-5 w-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                      onClick={() => removeImage(index)}
+                      className="absolute -top-2 -right-2 h-5 w-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      ✕
+                      <X className="h-3 w-3" />
                     </button>
                   </div>
                 ))}
@@ -101,10 +113,9 @@ export function CreatePost() {
             
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1">
-                <ImageUpload 
-                  images={images} 
-                  onImagesChange={setImages}
-                  maxImages={4}
+                <ImageUploadButton 
+                  onUpload={handleImageUpload}
+                  disabled={images.length >= 4}
                 />
                 <EmojiPicker onEmojiSelect={handleEmojiSelect} />
               </div>
