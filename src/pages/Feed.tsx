@@ -4,21 +4,16 @@ import { FeedPost } from "@/components/feed/FeedPost";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Users, Award, Loader2 } from "lucide-react";
+import { TrendingUp, Users, Award } from "lucide-react";
 import { usePosts } from "@/hooks/usePosts";
 import { useTopRecognized } from "@/hooks/useTopRecognized";
+import { useTrendingTopics } from "@/hooks/useTrendingTopics";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const trendingTopics = [
-  { name: "#workshop-lideranca", posts: 23 },
-  { name: "#meta-batida", posts: 18 },
-  { name: "#novo-produto", posts: 15 },
-  { name: "#aniversariantes", posts: 12 },
-];
 
 const Feed = () => {
   const { data: posts, isLoading, error } = usePosts();
   const { data: topRecognized, isLoading: loadingTopRecognized } = useTopRecognized(3);
+  const { data: trendingTopics, isLoading: loadingTrending } = useTrendingTopics(4);
 
   const getInitials = (name: string | null) => {
     if (!name) return "U";
@@ -114,15 +109,31 @@ const Feed = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {trendingTopics.map((topic) => (
-                    <div
-                      key={topic.name}
-                      className="flex items-center justify-between cursor-pointer hover:bg-secondary/50 -mx-2 px-2 py-1.5 rounded-lg transition-colors"
-                    >
-                      <span className="font-medium text-primary">{topic.name}</span>
-                      <Badge variant="secondary">{topic.posts} posts</Badge>
+                  {loadingTrending ? (
+                    <>
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="flex items-center justify-between -mx-2 px-2 py-1.5">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-5 w-16" />
+                        </div>
+                      ))}
+                    </>
+                  ) : trendingTopics && trendingTopics.length > 0 ? (
+                    trendingTopics.map((topic) => (
+                      <div
+                        key={topic.name}
+                        className="flex items-center justify-between cursor-pointer hover:bg-secondary/50 -mx-2 px-2 py-1.5 rounded-lg transition-colors"
+                      >
+                        <span className="font-medium text-primary">{topic.name}</span>
+                        <Badge variant="secondary">{topic.posts} post{topic.posts !== 1 ? "s" : ""}</Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      <p className="text-sm">Nenhuma hashtag em alta</p>
+                      <p className="text-xs mt-1">Use #hashtags nos posts para aparecer aqui!</p>
                     </div>
-                  ))}
+                  )}
                 </CardContent>
               </Card>
 
