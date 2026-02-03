@@ -17,6 +17,7 @@ import {
 import { Search, UserPlus, MoreHorizontal, Users, ClipboardList, BarChart3 } from "lucide-react";
 import { InviteModal } from "@/components/company/InviteModal";
 import { FeedbackTab } from "@/components/people/FeedbackTab";
+import { NPSTab } from "@/components/people/NPSTab";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 
 const people = [
@@ -187,10 +188,9 @@ const People = () => {
                   <ClipboardList className="h-4 w-4" />
                   Feedback 30 Dias
                 </TabsTrigger>
-                <TabsTrigger value="nps" className="gap-2" disabled>
+                <TabsTrigger value="nps" className="gap-2">
                   <BarChart3 className="h-4 w-4" />
                   NPS
-                  <Badge variant="secondary" className="ml-1 text-[10px]">Em breve</Badge>
                 </TabsTrigger>
               </>
             )}
@@ -285,15 +285,7 @@ const People = () => {
           </TabsContent>
 
           <TabsContent value="nps">
-            <Card>
-              <CardContent className="py-12 text-center">
-                <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">NPS em Breve</h3>
-                <p className="text-muted-foreground">
-                  A funcionalidade de pesquisa NPS estará disponível em breve.
-                </p>
-              </CardContent>
-            </Card>
+            <NPSTab />
           </TabsContent>
         </Tabs>
       </div>
