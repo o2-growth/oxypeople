@@ -1,296 +1,141 @@
 
-## Plano: Sistema Completo de Pesquisa e-NPS
 
-### Visao Geral
-Implementar um sistema de pesquisa e-NPS (Employee Net Promoter Score) com as seguintes capacidades:
-- Admin pode criar pesquisas NPS com segmentacao por departamento/equipe
-- Admin pode ver todos os resultados na pagina Pessoas (aba NPS)
-- Colaboradores veem apenas suas proprias respostas na pagina Pesquisas
-- Pergunta padrao: "Em uma escala de 0 a 10, o quanto voce recomendaria esta empresa como um bom lugar para trabalhar?"
+## Plano: Adicionar Seleção de Colaboradores Específicos na Pesquisa NPS
 
-### Estrutura do Formulario NPS (baseado na imagem)
+### Visão Geral
+Adicionar uma nova opção de segmentação que permite ao admin selecionar colaboradores individuais para receber a pesquisa NPS, além das opções já existentes (toda empresa, departamentos e equipes).
 
-**Campos para criacao:**
-1. Pergunta da pesquisa (editavel, padrao: pergunta eNPS classica)
-2. Selecao de departamentos (multi-select)
-3. Selecao de grupos/equipes (multi-select)
-4. Data de encerramento
-5. Comentario obrigatorio para nota abaixo de X (toggle + escala 0-10)
-6. Filtro: apenas participantes com data de admissao inferior a X dias
+### Mudanças no Banco de Dados
 
-### Mudancas no Banco de Dados
-
-#### 1. Nova Tabela: `nps_surveys`
-
-Armazena as pesquisas NPS criadas:
+**Nova coluna na tabela `nps_surveys`:**
 
 ```sql
-CREATE TABLE nps_surveys (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID NOT NULL REFERENCES companies(id),
-  created_by UUID NOT NULL REFERENCES users(id),
-  
-  -- Configuracao
-  question TEXT NOT NULL DEFAULT 'Em uma escala de 0 a 10, o quanto voce recomendaria esta empresa como um bom lugar para trabalhar?',
-  target_departments UUID[] DEFAULT '{}',
-  target_teams UUID[] DEFAULT '{}',
-  target_all BOOLEAN DEFAULT false,
-  end_date DATE NOT NULL,
-  
-  -- Regra de comentario obrigatorio
-  require_comment_below INTEGER, -- null = sem obrigatoriedade, 0-10 = nota limite
-  
-  -- Filtro de tempo de empresa
-  min_days_employed INTEGER, -- null = todos, numero = apenas quem tem X+ dias
-  
-  -- Status
-  status TEXT NOT NULL DEFAULT 'active', -- draft, active, completed
-  
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+ALTER TABLE nps_surveys 
+ADD COLUMN target_users UUID[] DEFAULT '{}';
 ```
 
-#### 2. Nova Tabela: `nps_responses`
+Esta coluna armazenará um array de UUIDs dos colaboradores específicos selecionados para participar da pesquisa.
 
-Armazena as respostas individuais:
+### Mudanças no Frontend
 
-```sql
-CREATE TABLE nps_responses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  survey_id UUID NOT NULL REFERENCES nps_surveys(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES users(id),
-  
-  -- Resposta
-  score INTEGER NOT NULL CHECK (score >= 0 AND score <= 10),
-  comment TEXT,
-  
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  
-  UNIQUE(survey_id, user_id)
-);
+#### 1. Atualizar `CreateNPSSurveyCard.tsx`
+
+Adicionar uma terceira seção de seleção na área de público-alvo:
+
+**Novo estado:**
+```typescript
+const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 ```
 
-#### 3. RLS Policies
+**Nova seção no formulário (quando `targetAll = false`):**
+- Adicionar uma terceira coluna/seção para "Colaboradores"
+- Reutilizar o componente `MultiPersonSelector` que já existe no projeto
+- Exibir com ícone `UserRound` para diferenciar visualmente
 
-```sql
--- NPS Surveys
-CREATE POLICY "Admins can manage NPS surveys"
-ON nps_surveys FOR ALL
-USING (is_company_admin(auth.uid(), company_id));
+**Layout atualizado:**
+```text
+Quando "Enviar para toda a empresa" está DESMARCADO:
 
-CREATE POLICY "Members can view active surveys"
-ON nps_surveys FOR SELECT
-USING (is_company_member(auth.uid(), company_id) AND status = 'active');
-
--- NPS Responses
-CREATE POLICY "Users can submit responses"
-ON nps_responses FOR INSERT
-WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Users can view own responses"
-ON nps_responses FOR SELECT
-USING (user_id = auth.uid());
-
-CREATE POLICY "Admins can view all responses"
-ON nps_responses FOR SELECT
-USING (EXISTS (
-  SELECT 1 FROM nps_surveys s
-  WHERE s.id = nps_responses.survey_id
-  AND is_company_admin(auth.uid(), s.company_id)
-));
++------------------------------------------------------------+
+|  Departamentos     |  Equipes      |  Colaboradores        |
+|  [Multi-select]    |  [Multi-select]|  [MultiPersonSelector]|
++------------------------------------------------------------+
 ```
 
-### Mudancas no Frontend
+#### 2. Atualizar `useNPSSurveys.ts`
 
-#### 1. Pagina Surveys - Visao Admin
+**Atualizar interfaces:**
+```typescript
+export interface NPSSurvey {
+  // ... campos existentes
+  target_users: string[];  // Novo campo
+}
 
-**Nova secao no topo:** Card de criacao NPS (conforme imagem)
+export interface CreateNPSSurveyInput {
+  // ... campos existentes
+  target_users: string[];  // Novo campo
+}
+```
 
-Componentes a criar:
-- `src/components/surveys/CreateNPSSurveyCard.tsx` - Formulario de criacao conforme imagem
-- `src/components/surveys/NPSSurveyCard.tsx` - Card individual de pesquisa NPS
-- `src/components/surveys/NPSSurveyResults.tsx` - Dialog com resultados detalhados
+**Atualizar lógica de `useActiveNPSSurveys`:**
 
-**Campos do formulario:**
-- Pergunta (textarea editavel com texto padrao)
-- Departamentos (multi-select usando componente existente)
-- Equipes/Grupos (multi-select)
-- Data de encerramento (date picker)
-- Comentario obrigatorio (checkbox + slider 0-10)
-- Filtro tempo de empresa (input de dias)
+A query de pesquisas ativas precisa considerar também se o usuário está na lista `target_users`:
 
-#### 2. Pagina Surveys - Visao Colaborador
+```typescript
+// Filtrar pesquisas onde:
+// 1. target_all = true (toda empresa), OU
+// 2. usuário pertence a um departamento em target_departments, OU
+// 3. usuário pertence a uma equipe em target_teams, OU
+// 4. usuário está em target_users (NOVO)
+```
 
-**Banner de pesquisa pendente:** Se tem NPS pendente para responder
+Como a lógica de verificar departamento/equipe é complexa e já está funcionando no frontend, a implementação mais simples é:
+- Retornar pesquisas ativas onde `target_all = true` OU `target_users` contém o user_id
+- A filtragem por departamento/equipe continua como está
 
-Componentes:
-- `src/components/surveys/NPSResponseDialog.tsx` - Modal para responder
-- Escala visual 0-10 com cores (vermelho = detrator, amarelo = neutro, verde = promotor)
-- Campo de comentario (obrigatorio se nota <= X)
+#### 3. Atualizar `handleSubmit` no `CreateNPSSurveyCard`
 
-#### 3. Pagina People - Aba NPS (Admin)
-
-Habilitar a aba NPS que esta desabilitada atualmente.
-
-Componentes:
-- `src/components/people/NPSTab.tsx` - Tab principal com dashboard
-- Metricas: Score geral, promotores/neutros/detratores
-- Lista de pesquisas com resultados
-- Grafico de evolucao do NPS
-- Detalhes por departamento
-- Exportacao CSV
-
-#### 4. Hook de Dados
-
-**`src/hooks/useNPSSurveys.ts`**
-- `useNPSSurveys()` - Lista pesquisas da empresa
-- `useActiveNPSSurvey()` - Pesquisa ativa para o usuario
-- `useCreateNPSSurvey()` - Criar nova pesquisa
-- `useSubmitNPSResponse()` - Enviar resposta
-- `useNPSResults(surveyId)` - Resultados agregados
-- `useMyNPSResponses()` - Respostas do usuario logado
+```typescript
+await createSurvey.mutateAsync({
+  // ... campos existentes
+  target_users: targetAll ? [] : selectedUsers,  // Novo campo
+});
+```
 
 ### Fluxo de Uso
 
-#### Para o Admin (criacao):
+1. Admin desmarca "Enviar para toda a empresa"
+2. Agora pode selecionar:
+   - Departamentos específicos
+   - Equipes específicas
+   - **Colaboradores individuais** (novo)
+3. Colaboradores selecionados aparecem como badges com opção de remover
+4. Ao criar a pesquisa, os IDs são salvos em `target_users`
+5. A pesquisa aparece para esses usuários específicos
 
-1. Acessa pagina Pesquisas
-2. Ve card de criacao NPS no topo
-3. Configura: pergunta, publico-alvo, data, regras
-4. Clica "Criar Pesquisa"
-5. Pesquisa fica ativa ate a data de encerramento
+### Seção Técnica
 
-#### Para o Colaborador (resposta):
+**Arquivos a modificar:**
 
-1. Acessa pagina Pesquisas
-2. Ve banner/card de pesquisa pendente
-3. Clica para responder
-4. Seleciona nota 0-10
-5. Adiciona comentario (se obrigatorio ou opcional)
-6. Envia resposta
+1. **Migração SQL** - Adicionar coluna `target_users` na tabela `nps_surveys`
 
-#### Para o Admin (resultados):
+2. **`src/hooks/useNPSSurveys.ts`**:
+   - Adicionar `target_users` às interfaces `NPSSurvey` e `CreateNPSSurveyInput`
+   - Atualizar `useActiveNPSSurveys` para incluir pesquisas onde o usuário está em `target_users`
 
-1. Acessa Pessoas > NPS
-2. Ve dashboard com score geral
-3. Detalhamento por pesquisa
-4. Pode exportar dados
+3. **`src/components/surveys/CreateNPSSurveyCard.tsx`**:
+   - Importar `MultiPersonSelector` do objectives
+   - Adicionar estado `selectedUsers`
+   - Adicionar seção de seleção de colaboradores no formulário
+   - Incluir `target_users` no submit
 
-### Interface Visual - Criacao NPS
+**Lógica de visibilidade da pesquisa:**
+
+O colaborador verá a pesquisa se qualquer uma dessas condições for verdadeira:
+- `target_all = true`
+- Seu `department_id` está em `target_departments`
+- Ele pertence a uma equipe cujo ID está em `target_teams`
+- Seu `user_id` está em `target_users` (nova condição)
+
+### Componente Visual Final
 
 ```text
 +----------------------------------------------------------+
 | E-NPS | Employee Net Promoter Score                       |
-| Avalie os principais problemas em sua equipe e empresa    |
 +----------------------------------------------------------+
 |                                                          |
-| Pergunta da pesquisa E-NPS (Para alterar clique aqui)    |
-| +------------------------------------------------------+ |
-| | Em uma escala de 0 a 10, o quanto voce recomendaria  | |
-| | esta empresa como um bom lugar para trabalhar?       | |
-| +------------------------------------------------------+ |
+| [x] Enviar para toda a empresa                           |
 |                                                          |
-| Selecione os departamentos     | Selecione os grupos     |
-| +-------------------------+    | +---------------------+ |
-| | [Multi-select]          |    | | [Multi-select]      | |
-| +-------------------------+    | +---------------------+ |
+| OU (quando desmarcado):                                  |
 |                                                          |
-| Data de Encerramento                                     |
-| +-------------------------+                              |
-| | [Date Picker]           |                              |
-| +-------------------------+                              |
+| Departamentos      | Equipes          | Colaboradores    |
+| [Eng] [RH] [MKT]  | [Dev] [QA]       | [Seletor Multi]  |
+|                   |                   | João ✕          |
+|                   |                   | Maria ✕         |
 |                                                          |
-| Comentario obrigatorio para nota abaixo de:              |
-| [x] Habilitar / [ ] Desabilitar                          |
-| O 0  O 1  O 2  O 3  O 4  O 5  O 6  O 7  O 8  O 9  O 10  |
+| Data de Encerramento: [Date Picker]                      |
 |                                                          |
-| Apenas participantes com data de admissao inferior a     |
-| +-------------------------+                              |
-| | [Input dias]            |                              |
-| +-------------------------+                              |
-|                                       [Criar Pesquisa]   |
+|                                      [Criar Pesquisa]    |
 +----------------------------------------------------------+
 ```
 
-### Interface Visual - Dashboard NPS (Pessoas)
-
-```text
-+----------------------------------------------------------+
-| NPS Score                                                 |
-+----------------------------------------------------------+
-| +--------+  +--------+  +--------+  +--------+           |
-| |  +45   |  |  62%   |  |  23%   |  |  15%   |           |
-| | Score  |  |Promotor|  |Neutros |  |Detrat. |           |
-| +--------+  +--------+  +--------+  +--------+           |
-+----------------------------------------------------------+
-| Historico de Pesquisas                    [Exportar CSV] |
-+----------------------------------------------------------+
-| | eNPS Janeiro 2024  | Score: +45 | 72/80 | Encerrada | |
-| | eNPS Dezembro 2023 | Score: +38 | 68/75 | Encerrada | |
-+----------------------------------------------------------+
-```
-
-### Secao Tecnica
-
-**Estrutura de arquivos:**
-```
-src/components/surveys/
-  ├── CreateNPSSurveyCard.tsx    # Formulario de criacao
-  ├── NPSSurveyCard.tsx          # Card de pesquisa
-  ├── NPSResponseDialog.tsx      # Modal de resposta
-  ├── NPSSurveyResults.tsx       # Resultados detalhados
-  └── NPSScoreScale.tsx          # Escala visual 0-10
-
-src/components/people/
-  └── NPSTab.tsx                 # Dashboard NPS para admin
-
-src/hooks/
-  └── useNPSSurveys.ts           # Hook de dados NPS
-```
-
-**Calculo do NPS Score:**
-```typescript
-const calculateNPS = (responses: { score: number }[]) => {
-  const promoters = responses.filter(r => r.score >= 9).length;
-  const detractors = responses.filter(r => r.score <= 6).length;
-  const total = responses.length;
-  
-  if (total === 0) return 0;
-  
-  return Math.round(((promoters - detractors) / total) * 100);
-};
-
-// Classificacao:
-// 0-6 = Detratores (vermelho)
-// 7-8 = Neutros (amarelo)
-// 9-10 = Promotores (verde)
-```
-
-**Segmentacao de publico:**
-- Se target_all = true: todos da empresa
-- Se target_departments tem IDs: apenas membros desses departamentos
-- Se target_teams tem IDs: apenas membros dessas equipes
-- Combinacao: usuarios que pertencem a qualquer departamento OU equipe selecionada
-
-**Filtro tempo de empresa:**
-```typescript
-// Filtrar usuarios com hire_date >= (hoje - min_days_employed)
-const eligibleUsers = users.filter(u => {
-  if (!survey.min_days_employed) return true;
-  const daysSinceHire = differenceInDays(new Date(), u.hire_date);
-  return daysSinceHire >= survey.min_days_employed;
-});
-```
-
-### Ordem de Implementacao
-
-1. **Migracao do banco** - criar tabelas nps_surveys e nps_responses
-2. **Hook useNPSSurveys** - CRUD e queries
-3. **CreateNPSSurveyCard** - Formulario de criacao (admin)
-4. **NPSScoreScale** - Componente visual da escala 0-10
-5. **NPSResponseDialog** - Modal para colaborador responder
-6. **NPSSurveyCard** - Cards na listagem
-7. **NPSTab** - Dashboard na pagina Pessoas
-8. **Atualizar Surveys.tsx** - Integrar componentes
-9. **Atualizar People.tsx** - Habilitar aba NPS
