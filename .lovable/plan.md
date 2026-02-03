@@ -1,34 +1,86 @@
 
 
-## Plano: Alterar Cor do Painel de Login para Teal/Verde-água
+## Plano: Integração Completa com Slack para Posts do Feed
 
 ### Visão Geral
-Alterar o gradiente do painel esquerdo da página de login de azul escuro para um gradiente vibrante em tons de teal/verde-água, mantendo a identidade visual moderna do sistema.
+Configurar a chave do Slack fornecida e implementar a funcionalidade para enviar posts do feed simultaneamente para canais do Slack.
 
-### Mudança a ser Realizada
+### Etapa 1: Armazenar a Chave do Slack
+- Adicionar a chave `xoxb-...` como secret `SLACK_BOT_TOKEN` no projeto
+- Isso disponibilizará a chave para as Edge Functions de forma segura
 
-**Arquivo:** `src/index.css`
+### Etapa 2: Criar Edge Function `send-slack-message`
 
-Alterar a variável CSS `--gradient-hero` de:
-```css
---gradient-hero: linear-gradient(135deg, hsl(222 47% 11%) 0%, hsl(220 50% 20%) 50%, hsl(200 60% 25%) 100%);
+**Arquivo:** `supabase/functions/send-slack-message/index.ts`
+
+Funcionalidades:
+- **POST** - Enviar mensagem para um canal do Slack
+  - Parâmetros: `channel_id`, `message`, `author_name`, `images[]`
+  - Usa API direta do Slack (`https://slack.com/api/chat.postMessage`)
+  
+- **GET** (`?action=list-channels`) - Listar canais disponíveis
+  - Retorna lista de canais públicos do workspace
+  - Usa `https://slack.com/api/conversations.list`
+
+### Etapa 3: Criar Hook `useSlackChannels`
+
+**Arquivo:** `src/hooks/useSlackChannels.ts`
+
+- Query para buscar canais disponíveis
+- Cache de 5 minutos para evitar chamadas excessivas
+- Tratamento de erro quando Slack não está configurado
+
+### Etapa 4: Criar Componente `SlackChannelSelector`
+
+**Arquivo:** `src/components/feed/SlackChannelSelector.tsx`
+
+Layout:
+```text
++---------------------------+
+| ☐ Enviar para Slack       |
+| +-----------------------+ |
+| | #geral              ▼ | |
+| +-----------------------+ |
++---------------------------+
 ```
 
-Para:
-```css
---gradient-hero: linear-gradient(135deg, hsl(174 72% 25%) 0%, hsl(168 65% 35%) 50%, hsl(160 70% 40%) 100%);
+Características:
+- Ícone do Slack (usando Lucide `MessageSquare` ou SVG personalizado)
+- Toggle para ativar/desativar envio
+- Dropdown com canais disponíveis
+- Estado visual quando ativado (cor de destaque)
+
+### Etapa 5: Atualizar `CreatePost`
+
+**Arquivo:** `src/components/feed/CreatePost.tsx`
+
+Mudanças:
+- Adicionar estados `slackEnabled` e `slackChannelId`
+- Adicionar `SlackChannelSelector` ao lado do `EmojiPicker`
+- Modificar `handleSubmit` para chamar edge function quando Slack ativado
+- Mostrar feedback de sucesso/erro para ambos destinos
+
+### Etapa 6: Atualizar `usePosts`
+
+**Arquivo:** `src/hooks/usePosts.ts`
+
+- Adicionar parâmetros opcionais `slackChannelId` e `slackEnabled` no `useCreatePost`
+- Após criar post, chamar edge function de envio se Slack estiver configurado
+
+### Estrutura da Mensagem no Slack
+
+```text
+📢 Novo post de [Nome do Autor]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Conteúdo do post]
+
+[Imagens anexadas, se houver]
 ```
 
-### Cores do Novo Gradiente
-- **Início:** Teal escuro profundo (174° 72% 25%)
-- **Meio:** Teal médio (168° 65% 35%)
-- **Fim:** Verde-água vibrante (160° 70% 40%)
-
-### Resultado Visual
-O painel esquerdo da tela de login ficará com um gradiente que vai do teal escuro ao verde-água, criando uma aparência mais vibrante e alinhada com a cor de destaque (accent) já usada no sistema.
-
-### Impacto
-- Apenas o painel esquerdo da página de login será afetado
-- Mantém contraste adequado com o texto branco existente
-- Alinha com o design system que já usa teal como cor de accent
+### Resultado Esperado
+- Botão do Slack visível ao lado do emoji picker
+- Ao ativar, usuário escolhe um canal
+- Ao publicar, post vai para feed E Slack simultaneamente
+- Mensagens formatadas com nome do autor e imagens
+- Feedback visual de sucesso/erro
 
