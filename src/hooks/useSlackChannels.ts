@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 interface SlackChannel {
   id: string;
@@ -11,12 +10,6 @@ export function useSlackChannels() {
   return useQuery({
     queryKey: ["slack-channels"],
     queryFn: async (): Promise<SlackChannel[]> => {
-      const { data, error } = await supabase.functions.invoke("send-slack-message", {
-        method: "GET",
-        body: null,
-      });
-
-      // Handle function invoke with query params
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-slack-message?action=list-channels`,
         {
@@ -42,6 +35,7 @@ export function useSlackChannels() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes cache
     retry: 1,
+    enabled: true,
   });
 }
 
