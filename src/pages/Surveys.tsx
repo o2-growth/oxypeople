@@ -119,13 +119,13 @@ export default function Surveys() {
         {/* Admin: Create NPS Survey Card */}
         {isAdmin && <CreateNPSSurveyCard />}
 
-        {/* Pending NPS Surveys for User */}
-        {!isAdmin && activeSurveys && activeSurveys.length > 0 && (
+        {/* Pending NPS Surveys - Show for ALL users (including admins who want to test) */}
+        {activeSurveys && activeSurveys.length > 0 && (
           <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-primary" />
-                Pesquisas Pendentes
+                Pesquisas Pendentes para Responder
               </CardTitle>
             </CardHeader>
             <CardContent>
