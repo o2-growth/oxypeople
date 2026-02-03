@@ -39,8 +39,10 @@ export function FeedPost({ post }: FeedPostProps) {
   const deletePost = useDeletePost();
 
   const isAuthor = user?.id === post.author_id;
-  const isRecognition = (post.metadata as Record<string, unknown>)?.type === "recognition";
-  const recognitionTo = (post.metadata as Record<string, unknown>)?.recognition_to as string | undefined;
+  const metadata = post.metadata as Record<string, unknown> | null;
+  const isRecognition = metadata?.type === "recognition";
+  const recognitionTo = metadata?.recognition_to as string | undefined;
+  const postImages = (metadata?.images as string[]) || [];
 
   const handleReaction = async () => {
     try {
@@ -124,6 +126,41 @@ export function FeedPost({ post }: FeedPostProps) {
             </div>
           )}
           <p className="text-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
+          
+          {/* Imagens anexadas */}
+          {postImages.length > 0 && (
+            <div className={cn(
+              "grid gap-2",
+              postImages.length === 1 && "grid-cols-1",
+              postImages.length === 2 && "grid-cols-2",
+              postImages.length >= 3 && "grid-cols-2"
+            )}>
+              {postImages.map((url, index) => (
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "relative overflow-hidden rounded-lg",
+                    postImages.length === 1 && "max-h-96",
+                    postImages.length >= 3 && index === 0 && "row-span-2"
+                  )}
+                >
+                  <img
+                    src={url}
+                    alt={`Imagem ${index + 1}`}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                    style={{ 
+                      maxHeight: postImages.length === 1 ? '24rem' : '12rem',
+                      minHeight: postImages.length > 1 ? '8rem' : undefined
+                    }}
+                  />
+                </a>
+              ))}
+            </div>
+          )}
+          
           <div className="flex items-center justify-between pt-2 border-t border-border">
             <div className="flex items-center gap-1">
               <Button

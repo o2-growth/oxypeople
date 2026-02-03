@@ -93,10 +93,12 @@ export function useCreatePost() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async ({ content, images = [] }: { content: string; images?: string[] }) => {
       if (!user?.id || !profile?.primary_company_id) {
         throw new Error("Not authenticated or no company");
       }
+
+      const metadata = images.length > 0 ? { images } : {};
 
       const { data, error } = await supabase
         .from("posts")
@@ -105,6 +107,7 @@ export function useCreatePost() {
           company_id: profile.primary_company_id,
           content,
           visibility: "company",
+          metadata,
         })
         .select()
         .single();
