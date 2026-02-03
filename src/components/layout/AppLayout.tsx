@@ -4,6 +4,7 @@ import { AppSidebar } from "./AppSidebar";
 import { Bell, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PendingFeedbackBanner } from "@/components/people/PendingFeedbackBanner";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -40,6 +41,9 @@ export function AppLayout({ children }: AppLayoutProps) {
               </Button>
             </div>
           </header>
+          
+          {/* Pending Feedback Banner */}
+          <PendingFeedbackBanner />
           
           {/* Main Content */}
           <main className="flex-1 overflow-auto">
