@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Heart, MessageCircle, Share2, MoreHorizontal, Award, Trash2, Loader2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Award, Trash2, Loader2, PartyPopper } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToggleReaction, useDeletePost, type Post } from "@/hooks/usePosts";
 import { PostComments } from "./PostComments";
+import { MentionRenderer } from "./MentionRenderer";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -43,6 +44,8 @@ export function FeedPost({ post }: FeedPostProps) {
   const isRecognition = metadata?.type === "recognition";
   const recognitionTo = metadata?.recognition_to as string | undefined;
   const postImages = (metadata?.images as string[]) || [];
+  const mentions = metadata?.mentions as { users?: string[]; departments?: string[]; everyone?: boolean } | undefined;
+  const hasMentions = mentions && (mentions.users?.length || mentions.departments?.length || mentions.everyone);
 
   const handleReaction = async () => {
     try {
@@ -76,7 +79,14 @@ export function FeedPost({ post }: FeedPostProps) {
   return (
     <>
       <Card className="feed-card overflow-hidden">
-        {isRecognition && (
+        {/* Banner de celebração quando tem menções */}
+        {hasMentions && (
+          <div className="flex items-center gap-2 bg-gradient-to-r from-accent to-primary px-4 py-2 text-primary-foreground">
+            <PartyPopper className="h-4 w-4" />
+            <span className="text-sm font-medium">Celebração</span>
+          </div>
+        )}
+        {isRecognition && !hasMentions && (
           <div className="flex items-center gap-2 bg-gradient-accent px-4 py-2 text-white">
             <Award className="h-4 w-4" />
             <span className="text-sm font-medium">Reconhecimento</span>
@@ -125,7 +135,9 @@ export function FeedPost({ post }: FeedPostProps) {
               <span>Parabéns para {recognitionTo}!</span>
             </div>
           )}
-          <p className="text-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
+          <p className="text-foreground leading-relaxed whitespace-pre-wrap">
+            <MentionRenderer content={post.content} />
+          </p>
           
           {/* Imagens anexadas */}
           {postImages.length > 0 && (

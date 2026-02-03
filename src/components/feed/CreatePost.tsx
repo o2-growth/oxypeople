@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Loader2, X } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useCreatePost } from "@/hooks/usePosts";
 import { useUser } from "@/hooks/useUser";
 import { toast } from "sonner";
@@ -11,14 +11,87 @@ import { EmojiPicker } from "./EmojiPicker";
 import { ImageUploadButton } from "./ImageUpload";
 import { SlackChannelSelector } from "./SlackChannelSelector";
 import { sendSlackMessage } from "@/hooks/useSlackChannels";
+import { MentionSelector, type MentionData } from "./MentionSelector";
+
+interface MentionInfo {
+  type: "user" | "department" | "everyone";
+  id?: string;
+  name: string;
+}
 
 export function CreatePost() {
   const [content, setContent] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [slackEnabled, setSlackEnabled] = useState(false);
+  const [mentions, setMentions] = useState<MentionInfo[]>([]);
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState("");
+  const [mentionStartIndex, setMentionStartIndex] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mentionAnchorRef = useRef<HTMLSpanElement>(null);
   const { profile } = useUser();
   const createPost = useCreatePost();
+
+  const detectMentionTrigger = useCallback((text: string, cursorPosition: number) => {
+    const beforeCursor = text.slice(0, cursorPosition);
+    const atIndex = beforeCursor.lastIndexOf("@");
+
+    if (atIndex === -1) return null;
+
+    // Check if @ is at start or preceded by whitespace
+    if (atIndex > 0 && !/\s/.test(beforeCursor[atIndex - 1])) return null;
+
+    const afterAt = beforeCursor.slice(atIndex + 1);
+    // If no space after @, user is typing mention
+    if (!afterAt.includes(" ") && !afterAt.includes("\n")) {
+      return {
+        trigger: true,
+        searchText: afterAt,
+        startIndex: atIndex,
+      };
+    }
+    return null;
+  }, []);
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = e.target.value;
+    const cursorPosition = e.target.selectionStart;
+    setContent(newContent);
+
+    const mentionTrigger = detectMentionTrigger(newContent, cursorPosition);
+    if (mentionTrigger) {
+      setMentionOpen(true);
+      setMentionSearch(mentionTrigger.searchText);
+      setMentionStartIndex(mentionTrigger.startIndex);
+    } else {
+      setMentionOpen(false);
+      setMentionSearch("");
+      setMentionStartIndex(null);
+    }
+  };
+
+  const handleMentionSelect = (mention: MentionData) => {
+    if (mentionStartIndex === null) return;
+
+    const cursorPos = textareaRef.current?.selectionStart || content.length;
+    const before = content.slice(0, mentionStartIndex);
+    const after = content.slice(cursorPos);
+    const mentionText = `@${mention.name} `;
+    const newContent = `${before}${mentionText}${after}`;
+
+    setContent(newContent);
+    setMentions([...mentions, mention]);
+    setMentionOpen(false);
+    setMentionSearch("");
+    setMentionStartIndex(null);
+
+    // Focus and set cursor after mention
+    setTimeout(() => {
+      const newCursorPos = mentionStartIndex + mentionText.length;
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+  };
 
   const handleEmojiSelect = (emoji: string) => {
     const textarea = textareaRef.current;
@@ -53,8 +126,15 @@ export function CreatePost() {
     if (!content.trim() && images.length === 0) return;
 
     try {
-      await createPost.mutateAsync({ content, images });
-      
+      // Extract mention IDs for metadata
+      const mentionMetadata = {
+        users: mentions.filter((m) => m.type === "user").map((m) => m.id!),
+        departments: mentions.filter((m) => m.type === "department").map((m) => m.id!),
+        everyone: mentions.some((m) => m.type === "everyone"),
+      };
+
+      await createPost.mutateAsync({ content, images, mentions: mentionMetadata });
+
       // Send to Slack if enabled (always to #general)
       if (slackEnabled) {
         const slackResult = await sendSlackMessage(
@@ -62,7 +142,7 @@ export function CreatePost() {
           profile?.full_name || "Usuário",
           images.length > 0 ? images : undefined
         );
-        
+
         if (slackResult.success) {
           toast.success("Post publicado no feed e no Slack!");
         } else {
@@ -72,9 +152,10 @@ export function CreatePost() {
       } else {
         toast.success("Post publicado com sucesso!");
       }
-      
+
       setContent("");
       setImages([]);
+      setMentions([]);
       setSlackEnabled(false);
     } catch (error) {
       console.error("Error creating post:", error);
@@ -102,15 +183,32 @@ export function CreatePost() {
               {getInitials(profile?.full_name)}
             </AvatarFallback>
           </Avatar>
-          <div className="flex-1 space-y-3">
-            <Textarea
-              ref={textareaRef}
-              placeholder="O que você gostaria de compartilhar?"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[80px] resize-none border-transparent bg-secondary/50 focus:border-primary/30 focus:bg-background"
-            />
-            
+          <div className="flex-1 space-y-3 relative">
+            <div className="relative">
+              <Textarea
+                ref={textareaRef}
+                placeholder="O que você gostaria de compartilhar? Use @ para mencionar colegas, departamentos ou @todos"
+                value={content}
+                onChange={handleContentChange}
+                className="min-h-[80px] resize-none border-transparent bg-secondary/50 focus:border-primary/30 focus:bg-background"
+              />
+              <span ref={mentionAnchorRef} className="absolute top-full left-0" />
+              <MentionSelector
+                open={mentionOpen}
+                searchText={mentionSearch}
+                onSelect={handleMentionSelect}
+                onClose={() => setMentionOpen(false)}
+                anchorRef={mentionAnchorRef}
+              />
+            </div>
+
+            {/* Dica de celebração */}
+            {!content && (
+              <p className="text-xs text-muted-foreground">
+                💡 Celebre com @NomeDoColega, @NomeDoDepartamento ou @todos
+              </p>
+            )}
+
             {/* Preview de imagens anexadas */}
             {images.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -132,10 +230,10 @@ export function CreatePost() {
                 ))}
               </div>
             )}
-            
+
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1">
-                <ImageUploadButton 
+                <ImageUploadButton
                   onUpload={handleImageUpload}
                   disabled={images.length >= 4}
                 />
@@ -145,8 +243,8 @@ export function CreatePost() {
                   onEnabledChange={setSlackEnabled}
                 />
               </div>
-              <Button 
-                disabled={(!content.trim() && images.length === 0) || createPost.isPending} 
+              <Button
+                disabled={(!content.trim() && images.length === 0) || createPost.isPending}
                 onClick={handleSubmit}
                 className="gap-2 bg-gradient-primary hover:opacity-90 transition-opacity"
               >

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "@/hooks/useUser";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface Post {
   id: string;
@@ -93,12 +94,38 @@ export function useCreatePost() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ content, images = [] }: { content: string; images?: string[] }) => {
+    mutationFn: async ({ 
+      content, 
+      images = [], 
+      mentions 
+    }: { 
+      content: string; 
+      images?: string[]; 
+      mentions?: {
+        users?: string[];
+        departments?: string[];
+        everyone?: boolean;
+      };
+    }) => {
       if (!user?.id || !profile?.primary_company_id) {
         throw new Error("Not authenticated or no company");
       }
 
-      const metadata = images.length > 0 ? { images } : {};
+      const metadata: Json = {};
+      
+      if (images.length > 0) {
+        metadata.images = images;
+      }
+      
+      if (mentions && (mentions.users?.length || mentions.departments?.length || mentions.everyone)) {
+        metadata.mentions = {
+          users: mentions.users || [],
+          departments: mentions.departments || [],
+          everyone: mentions.everyone || false,
+        };
+      }
+
+      const hasMetadata = Object.keys(metadata).length > 0;
 
       const { data, error } = await supabase
         .from("posts")
@@ -106,8 +133,8 @@ export function useCreatePost() {
           author_id: user.id,
           company_id: profile.primary_company_id,
           content,
-          visibility: "company",
-          metadata,
+          visibility: "company" as const,
+          metadata: hasMetadata ? metadata : null,
         })
         .select()
         .single();
