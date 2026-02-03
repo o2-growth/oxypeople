@@ -9,10 +9,14 @@ import { useUser } from "@/hooks/useUser";
 import { toast } from "sonner";
 import { EmojiPicker } from "./EmojiPicker";
 import { ImageUploadButton } from "./ImageUpload";
+import { SlackChannelSelector } from "./SlackChannelSelector";
+import { sendSlackMessage } from "@/hooks/useSlackChannels";
 
 export function CreatePost() {
   const [content, setContent] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [slackEnabled, setSlackEnabled] = useState(false);
+  const [slackChannelId, setSlackChannelId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { profile } = useUser();
   const createPost = useCreatePost();
@@ -51,9 +55,30 @@ export function CreatePost() {
 
     try {
       await createPost.mutateAsync({ content, images });
+      
+      // Send to Slack if enabled
+      if (slackEnabled && slackChannelId) {
+        const slackResult = await sendSlackMessage(
+          slackChannelId,
+          content,
+          profile?.full_name || "Usuário",
+          images.length > 0 ? images : undefined
+        );
+        
+        if (slackResult.success) {
+          toast.success("Post publicado no feed e no Slack!");
+        } else {
+          toast.warning("Post publicado no feed, mas falhou ao enviar para o Slack.");
+          console.error("Slack error:", slackResult.error);
+        }
+      } else {
+        toast.success("Post publicado com sucesso!");
+      }
+      
       setContent("");
       setImages([]);
-      toast.success("Post publicado com sucesso!");
+      setSlackEnabled(false);
+      setSlackChannelId(null);
     } catch (error) {
       console.error("Error creating post:", error);
       toast.error("Erro ao publicar post");
@@ -118,6 +143,12 @@ export function CreatePost() {
                   disabled={images.length >= 4}
                 />
                 <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+                <SlackChannelSelector
+                  enabled={slackEnabled}
+                  onEnabledChange={setSlackEnabled}
+                  channelId={slackChannelId}
+                  onChannelChange={setSlackChannelId}
+                />
               </div>
               <Button 
                 disabled={(!content.trim() && images.length === 0) || createPost.isPending} 
