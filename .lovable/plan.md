@@ -1,228 +1,284 @@
 
-# Reformulacao do Modal "Novo Objetivo"
+# Gestao de Departamentos na Pagina Empresa
 
 ## Visao Geral
 
-Atualizar o componente `CreateObjectiveDialog` para incluir todos os campos avancados mostrados na referencia visual, com logicas funcionais e validacoes apropriadas.
+Implementar um sistema completo de gestao de departamentos na pagina Empresa (`/company`), permitindo criar, editar e excluir departamentos, alem de visualizar e gerenciar a alocacao de membros e equipes por departamento.
 
 ---
 
-## Novos Campos a Implementar
+## Situacao Atual
 
-### 1. Descricao do Objetivo (Titulo Principal)
-- **Campo atual**: `title` - ja existe
-- **Mudanca**: Renomear label para "Descricao do Objetivo" com placeholder "Ex.: aumentar receita recorrente"
+- A aba "Departamentos" exibe dados estaticos/mockados
+- Departamentos sao derivados do campo `teams.department` (texto livre)
+- Membros possuem campo `department` na tabela `company_memberships`
+- Nao existe uma tabela dedicada para departamentos
 
-### 2. Atividade (Ativo/Inativo)
-- **Novo campo**: `isActive` - boolean
-- **UI**: Radio group inline com opcoes "Ativo" e "Inativo"
-- **Logica**: Define se o objetivo esta ativo ou pausado
-- **Default**: Ativo
+---
 
-### 3. Responsavel
-- **Campo atual**: Usado apenas para "individual"
-- **Mudanca**: Sempre visivel, seleciona o dono principal do objetivo
-- **UI**: Dropdown com avatar + nome (reutilizar PersonSelector)
-- **Default**: Usuario logado
+## Arquitetura Proposta
 
-### 4. Contribuintes (Novo)
-- **Novo campo**: `contributors` - array de user_ids
-- **UI**: Multi-select com badges removiveis
-- **Logica**: Pessoas que colaboram no objetivo mas nao sao o responsavel principal
-- **Novo componente**: `MultiPersonSelector`
+### Nova Tabela: `departments`
 
-### 5. Area do Objetivo (Novo)
-- **Novo campo**: Usa `team.department` ou novo campo
-- **UI**: Select com departamentos da empresa
-- **Logica**: Categoriza o objetivo por area (Growth, Tecnologia, Comercial, etc.)
-- **Reutilizar**: `useDepartments` hook
+```text
+departments
+- id: uuid (PK)
+- company_id: uuid (FK companies)
+- name: text (nome do departamento)
+- description: text (opcional)
+- color: text (cor para identificacao visual, ex: #3B82F6)
+- leader_id: uuid (FK users, lider do departamento - opcional)
+- created_at: timestamp
+- updated_at: timestamp
+```
 
-### 6. Hierarquia (Novo - ja existe no banco)
-- **Campo existente**: `parent_id` - ja existe na tabela
-- **UI**: Select com objetivos existentes para vincular como pai
-- **Logica**: Cria hierarquia de objetivos (OKR cascading)
-- **Novo hook**: Buscar objetivos disponiveis para serem pais
+### Relacionamentos Atualizados
 
-### 7. Periodo (Novo)
-- **Novo campo**: Periodo predefinido (Q1-Q4 ou custom)
-- **UI**: Select com opcoes Q1 2026, Q2 2026, etc.
-- **Logica**: Define automaticamente `due_date` baseado no periodo selecionado
-- **Opcoes**: Q1, Q2, Q3, Q4 do ano atual e proximo
+- `teams.department_id`: FK para `departments.id` (substituindo o campo texto)
+- `company_memberships.department_id`: FK para `departments.id` (opcional, alem do texto atual)
 
-### 8. Colaboradores que podem Editar (Novo)
-- **Novo campo**: `editors` - array de user_ids
-- **UI**: Multi-select com badges
-- **Logica**: Pessoas com permissao de editar o objetivo alem do responsavel
-- **Reutilizar**: `MultiPersonSelector`
+---
 
-### 9. Etiquetas (Novo)
-- **Novo campo**: `tags` - array de strings
-- **UI**: Input com badges (Aspiracional, Comercial, etc.)
-- **Logica**: Categorias personalizaveis
-- **Valores predefinidos**: Aspiracional, Compromissada, Estrategico, Tatico, Operacional
+## Funcionalidades a Implementar
+
+### 1. Botao "Novo Departamento" no Header
+- Adicionar ao lado do botao "Convidar Membros"
+- Abre modal de criacao de departamento
+
+### 2. Modal Criar/Editar Departamento
+Campos:
+- Nome do departamento (obrigatorio)
+- Descricao (opcional)
+- Cor de identificacao (seletor de cor predefinido)
+- Lider do departamento (select de membros da empresa)
+
+### 3. Aba "Departamentos" Redesenhada
+- Cards de departamento com dados reais do banco
+- Cada card exibe:
+  - Nome e cor do departamento
+  - Lider (avatar + nome)
+  - Numero de membros
+  - Numero de equipes vinculadas
+  - Menu de acoes (Editar, Gerenciar Membros, Excluir)
+
+### 4. Dialog "Gerenciar Departamento"
+- Visualizacao detalhada do departamento
+- Duas abas: "Membros" e "Equipes"
+- **Aba Membros**:
+  - Lista de membros alocados no departamento
+  - Botao "Adicionar Membro" (select de membros da empresa)
+  - Remover membro do departamento
+- **Aba Equipes**:
+  - Lista de equipes vinculadas ao departamento
+  - Indicador de quantos membros cada equipe tem
+  - Link para gerenciar equipe em /teams
+
+### 5. Visualizacao Hierarquica (Opcional)
+- Toggle para alternar entre Grid e Hierarquia
+- Visao em arvore: Empresa > Departamentos > Equipes > Membros
 
 ---
 
 ## Estrutura de Arquivos
 
 ### Novos Arquivos:
+
 ```text
-src/components/objectives/MultiPersonSelector.tsx    # Seletor multi-pessoa com badges
-src/components/objectives/ParentObjectiveSelector.tsx # Seletor de objetivo pai
-src/components/objectives/PeriodSelector.tsx          # Seletor de periodo Q1-Q4
-src/components/objectives/TagsInput.tsx               # Input de etiquetas com badges
-src/components/objectives/DepartmentSelector.tsx      # Seletor de departamento/area
+src/hooks/useDepartmentsManager.ts        # CRUD de departamentos (expandir useDepartments)
+src/components/company/CreateDepartmentDialog.tsx   # Modal criar/editar
+src/components/company/DepartmentCard.tsx           # Card de departamento
+src/components/company/ManageDepartmentDialog.tsx   # Dialog gerenciar membros/equipes
+src/components/company/DepartmentMembersList.tsx    # Lista de membros do departamento
+src/components/company/DepartmentTeamsList.tsx      # Lista de equipes do departamento
 ```
 
 ### Arquivos a Editar:
-```text
-src/components/objectives/CreateObjectiveDialog.tsx   # Reformular com novos campos
-src/hooks/useObjectives.ts                             # Atualizar CreateObjectiveInput
-```
-
----
-
-## Migracao do Banco de Dados
-
-### Novos campos na tabela objectives:
 
 ```text
-- is_active: boolean (default true) - Objetivo ativo/inativo
-- period: text (nullable) - "Q1-2026", "Q2-2026", etc.
-- department: text (nullable) - Area do objetivo
-- tags: text[] (nullable) - Array de etiquetas
+src/pages/Company.tsx                     # Integrar novos componentes
+src/hooks/useDepartments.ts               # Adicionar queries para nova tabela
 ```
-
-### Nova tabela objective_collaborators:
-
-```text
-- id: uuid
-- objective_id: uuid (FK objectives)
-- user_id: uuid (FK users)
-- role: text ("contributor" | "editor")
-- created_at: timestamp
-```
-
-Essa tabela permitira:
-- Contribuintes: role = "contributor"
-- Editores: role = "editor"
-
-### RLS para objective_collaborators:
-- SELECT: Membros da empresa podem ver
-- INSERT/DELETE: Owner, admins, ou editores do objetivo
 
 ---
 
 ## Secao Tecnica
 
-### Schema Atualizado do Formulario:
+### Migracao do Banco de Dados
 
 ```text
-const formSchema = z.object({
-  title: z.string().min(1, "Descricao obrigatoria"),
-  isActive: z.boolean().default(true),
-  responsibleId: z.string().min(1, "Responsavel obrigatorio"),
-  contributors: z.array(z.string()).default([]),
-  department: z.string().optional(),
-  parentId: z.string().optional(),
-  period: z.string().optional(),
-  editors: z.array(z.string()).default([]),
-  tags: z.array(z.string()).default([]),
-  visibility: z.enum(["public", "company", "private"]),
-  keyResults: z.array(keyResultSchema),
-});
+-- Criar tabela departments
+CREATE TABLE public.departments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  description text,
+  color text DEFAULT '#3B82F6',
+  leader_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Index para buscas por empresa
+CREATE INDEX idx_departments_company ON departments(company_id);
+
+-- Constraint de unicidade nome por empresa
+ALTER TABLE departments ADD CONSTRAINT departments_name_company_unique 
+  UNIQUE (company_id, name);
+
+-- RLS
+ALTER TABLE departments ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Members can view departments"
+  ON departments FOR SELECT
+  USING (is_company_member(auth.uid(), company_id));
+
+CREATE POLICY "Admins can manage departments"
+  ON departments FOR ALL
+  USING (is_company_admin(auth.uid(), company_id));
+
+-- Adicionar FK em teams (opcional, pode manter texto)
+ALTER TABLE teams ADD COLUMN department_id uuid REFERENCES departments(id);
+
+-- Adicionar FK em company_memberships
+ALTER TABLE company_memberships ADD COLUMN department_id uuid REFERENCES departments(id);
+
+-- Trigger para updated_at
+CREATE TRIGGER update_departments_updated_at
+  BEFORE UPDATE ON departments
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
 ```
 
-### MultiPersonSelector Props:
+### Hook useDepartmentsManager
 
 ```text
-interface MultiPersonSelectorProps {
-  value: string[];                      // IDs selecionados
-  onValueChange: (ids: string[]) => void;
-  placeholder?: string;
-  excludeIds?: string[];                // Excluir usuarios (ex: responsavel)
+interface Department {
+  id: string;
+  company_id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  leader_id: string | null;
+  leader?: { id: string; full_name: string; avatar_url: string };
+  member_count: number;
+  team_count: number;
+}
+
+- useDepartmentsWithDetails(): Query departamentos com contagem de membros/equipes
+- useCreateDepartment(): Mutation para criar
+- useUpdateDepartment(): Mutation para atualizar
+- useDeleteDepartment(): Mutation para excluir
+- useAssignMemberToDepartment(): Mutation para alocar membro
+- useRemoveMemberFromDepartment(): Mutation para remover membro
+```
+
+### DepartmentCard Props
+
+```text
+interface DepartmentCardProps {
+  department: Department;
+  onEdit: (department: Department) => void;
+  onManage: (department: Department) => void;
+  onDelete: (departmentId: string) => void;
 }
 ```
 
-### ParentObjectiveSelector:
-- Buscar objetivos da empresa (excluindo o atual se editando)
-- Filtrar por visibilidade
-- Exibir titulo + responsavel + progresso
+### ManageDepartmentDialog
 
-### PeriodSelector:
-- Gerar periodos dinamicamente baseado na data atual
-- Calcular due_date automaticamente:
-  - Q1: Jan 1 - Mar 31
-  - Q2: Apr 1 - Jun 30
-  - Q3: Jul 1 - Sep 30
-  - Q4: Oct 1 - Dec 31
-
-### TagsInput:
-- Tags predefinidas como sugestoes
-- Permitir criar tags customizadas
-- Remover ao clicar no X
+```text
+- Fetch membros do departamento via company_memberships.department_id
+- Fetch equipes via teams.department_id
+- Permitir adicionar/remover membros
+- Exibir equipes vinculadas (somente leitura, editar em /teams)
+```
 
 ---
 
 ## Fluxo de Implementacao
 
-1. Migracao do banco: adicionar novos campos e tabela
-2. Atualizar types do Supabase
-3. Criar componente MultiPersonSelector
-4. Criar componente ParentObjectiveSelector
-5. Criar componente PeriodSelector
-6. Criar componente DepartmentSelector
-7. Criar componente TagsInput
-8. Atualizar CreateObjectiveDialog com nova UI
-9. Atualizar useObjectives para salvar novos campos
-10. Testar fluxo completo
+1. Criar migracao do banco: tabela departments + FK
+2. Criar hook `useDepartmentsManager` com CRUD completo
+3. Criar componente `CreateDepartmentDialog` 
+4. Criar componente `DepartmentCard` com design similar a TeamCard
+5. Criar componente `ManageDepartmentDialog` com tabs Membros/Equipes
+6. Atualizar `Company.tsx`:
+   - Adicionar botao "Novo Departamento" no header
+   - Substituir dados mockados por dados reais na aba Departamentos
+   - Integrar dialogs de criacao e gerenciamento
+7. Atualizar modal de criacao de equipe para usar select de departamentos
 
 ---
 
-## UI/UX do Modal
+## UI/UX
 
-### Layout em Tabs (similar a referencia):
-- **Tab "Gerais"**: Campos principais (atual)
-- **Tab "Key Results"**: Adicionar KRs (separado para clareza)
+### Cards de Departamento
 
-### Campos em Grid:
 ```text
-Row 1: [Descricao do Objetivo (flex-1)] [Atividade (w-auto)]
-Row 2: [Responsavel (1/3)] [Contribuintes (1/3)] [Area (1/3)]
-Row 3: [Hierarquia (1/2)] [Periodo (1/2)]
-Row 4: [Colaboradores que podem editar (full)]
-Row 5: [Etiquetas (full)]
++------------------------------------------+
+| [Cor] [Nome do Departamento]      [...] |
+|                                          |
+| Lider: [Avatar] Nome do Lider           |
+|                                          |
+| [12 membros]  [3 equipes]               |
++------------------------------------------+
 ```
 
-### Estilo dos Badges:
-- Contribuintes/Editores: Badge azul com X para remover
-- Etiquetas: Badge outline com X para remover
+### Cores Predefinidas
 
-### Footer do Dialog:
-- Link "Saiba mais sobre Gestao de Objetivos" (opcional)
-- Botao "Salvar" primario
+```text
+const departmentColors = [
+  { name: 'Azul', value: '#3B82F6' },
+  { name: 'Verde', value: '#10B981' },
+  { name: 'Roxo', value: '#8B5CF6' },
+  { name: 'Rosa', value: '#EC4899' },
+  { name: 'Laranja', value: '#F97316' },
+  { name: 'Amarelo', value: '#EAB308' },
+  { name: 'Vermelho', value: '#EF4444' },
+  { name: 'Cinza', value: '#6B7280' },
+];
+```
+
+### Layout Responsivo
+
+- Desktop: Grid 3 colunas para cards
+- Tablet: Grid 2 colunas
+- Mobile: 1 coluna
+
+---
+
+## Consideracoes de Seguranca
+
+- RLS garante isolamento por empresa
+- Apenas admins podem criar/editar/excluir departamentos
+- Membros podem visualizar departamentos da empresa
+- Nao expor leader_id sem validacao de membership
+
+---
+
+## Migracao de Dados Existentes
+
+Para preservar departamentos ja definidos nas equipes:
+
+```text
+-- Criar departamentos a partir dos textos existentes
+INSERT INTO departments (company_id, name)
+SELECT DISTINCT company_id, department
+FROM teams
+WHERE department IS NOT NULL AND department != ''
+ON CONFLICT (company_id, name) DO NOTHING;
+
+-- Atualizar FK nas teams
+UPDATE teams t
+SET department_id = d.id
+FROM departments d
+WHERE t.company_id = d.company_id AND t.department = d.name;
+```
 
 ---
 
 ## Dependencias
 
 - Nenhuma nova dependencia necessaria
-- Reutilizar: cmdk (Command), Badge, Avatar, Popover
-- date-fns para manipulacao de datas do periodo
-
----
-
-## Consideracoes
-
-### Migracao de dados existentes:
-- Objetivos existentes terao `is_active = true` por default
-- `period` sera calculado baseado no `due_date` se existir
-
-### Permissoes para Editores:
-- Atualizar RLS de `objectives` para permitir UPDATE por editores
-- Verificar na tabela `objective_collaborators` se user tem role "editor"
-
-### Performance:
-- MultiPersonSelector limita resultados a 20 usuarios
-- Busca com debounce de 300ms
-- Cache de queries com React Query
+- Reutilizar componentes: Dialog, Tabs, Avatar, Badge, Card
+- Reutilizar hooks: useCompanyMembers, useTeams
