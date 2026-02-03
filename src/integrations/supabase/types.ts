@@ -564,6 +564,111 @@ export type Database = {
           },
         ]
       }
+      nps_responses: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          score: number
+          survey_id: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          score: number
+          survey_id: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          score?: number
+          survey_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nps_responses_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "nps_surveys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nps_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nps_surveys: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          end_date: string
+          id: string
+          min_days_employed: number | null
+          question: string
+          require_comment_below: number | null
+          status: string
+          target_all: boolean | null
+          target_departments: string[] | null
+          target_teams: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          end_date: string
+          id?: string
+          min_days_employed?: number | null
+          question?: string
+          require_comment_below?: number | null
+          status?: string
+          target_all?: boolean | null
+          target_departments?: string[] | null
+          target_teams?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          end_date?: string
+          id?: string
+          min_days_employed?: number | null
+          question?: string
+          require_comment_below?: number | null
+          status?: string
+          target_all?: boolean | null
+          target_departments?: string[] | null
+          target_teams?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nps_surveys_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nps_surveys_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objective_collaborators: {
         Row: {
           created_at: string
