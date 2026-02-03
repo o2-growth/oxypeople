@@ -47,6 +47,9 @@ export function SlackChannelSelector({
   onChannelChange,
 }: SlackChannelSelectorProps) {
   const { data: channels, isLoading, isError } = useSlackChannels();
+  
+  // Filter only channels where the bot is a member
+  const availableChannels = channels?.filter(ch => ch.is_member) || [];
 
   return (
     <Popover>
@@ -86,13 +89,13 @@ export function SlackChannelSelector({
                 <p className="text-xs text-destructive">
                   Erro ao carregar canais. Verifique a configuração do Slack.
                 </p>
-              ) : channels && channels.length > 0 ? (
+              ) : availableChannels.length > 0 ? (
                 <Select value={channelId || ""} onValueChange={onChannelChange}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecione um canal" />
                   </SelectTrigger>
                   <SelectContent>
-                    {channels.map((channel) => (
+                    {availableChannels.map((channel) => (
                       <SelectItem key={channel.id} value={channel.id}>
                         <div className="flex items-center gap-1">
                           <Hash className="h-3 w-3 text-muted-foreground" />
@@ -102,6 +105,10 @@ export function SlackChannelSelector({
                     ))}
                   </SelectContent>
                 </Select>
+              ) : channels && channels.length > 0 ? (
+                <p className="text-xs text-warning">
+                  O bot não foi adicionado a nenhum canal. Adicione o bot a um canal no Slack para enviar mensagens.
+                </p>
               ) : (
                 <p className="text-xs text-muted-foreground">
                   Nenhum canal encontrado. Verifique se o bot foi adicionado ao workspace.
