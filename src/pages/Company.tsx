@@ -2,12 +2,25 @@ import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MembersList, Member } from "@/components/company/MembersList";
 import { InviteModal } from "@/components/company/InviteModal";
+import { CreateDepartmentDialog } from "@/components/company/CreateDepartmentDialog";
+import { DepartmentCard } from "@/components/company/DepartmentCard";
+import { ManageDepartmentDialog } from "@/components/company/ManageDepartmentDialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Building2, 
   Users, 
@@ -17,8 +30,15 @@ import {
   Mail,
   Search,
   Shield,
-  Clock
+  Clock,
+  Plus,
+  Loader2
 } from "lucide-react";
+import { 
+  useDepartmentsWithDetails, 
+  useDeleteDepartment,
+  type Department 
+} from "@/hooks/useDepartmentsManager";
 
 const mockMembers: Member[] = [
   { id: "1", name: "João Silva", email: "joao@empresa.com", avatar: "", initials: "JS", role: "owner", status: "active", department: "Diretoria", joinedAt: "Jan 2023" },
@@ -39,7 +59,14 @@ const stats = [
 
 export default function Company() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [createDepartmentOpen, setCreateDepartmentOpen] = useState(false);
+  const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [managingDepartment, setManagingDepartment] = useState<Department | null>(null);
+  const [deletingDepartmentId, setDeletingDepartmentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const { data: departments = [], isLoading: isLoadingDepartments } = useDepartmentsWithDetails();
+  const deleteDepartment = useDeleteDepartment();
 
   const filteredMembers = mockMembers.filter(
     (member) =>
@@ -47,6 +74,33 @@ export default function Company() {
       member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.department.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleEditDepartment = (department: Department) => {
+    setEditingDepartment(department);
+    setCreateDepartmentOpen(true);
+  };
+
+  const handleManageDepartment = (department: Department) => {
+    setManagingDepartment(department);
+  };
+
+  const handleDeleteDepartment = async () => {
+    if (!deletingDepartmentId) return;
+    
+    try {
+      await deleteDepartment.mutateAsync(deletingDepartmentId);
+      setDeletingDepartmentId(null);
+    } catch {
+      // Error handled in hook
+    }
+  };
+
+  const handleCloseCreateDialog = (open: boolean) => {
+    setCreateDepartmentOpen(open);
+    if (!open) {
+      setEditingDepartment(null);
+    }
+  };
 
   return (
     <AppLayout>
@@ -59,10 +113,16 @@ export default function Company() {
               Gerencie seu workspace e membros da equipe
             </p>
           </div>
-          <Button className="gap-2" onClick={() => setInviteModalOpen(true)}>
-            <UserPlus className="h-4 w-4" />
-            Convidar Membros
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setCreateDepartmentOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Novo Departamento
+            </Button>
+            <Button className="gap-2" onClick={() => setInviteModalOpen(true)}>
+              <UserPlus className="h-4 w-4" />
+              Convidar Membros
+            </Button>
+          </div>
         </div>
 
         {/* Company Info Card */}
@@ -132,6 +192,11 @@ export default function Company() {
             <TabsTrigger value="departments" className="gap-2">
               <Building2 className="h-4 w-4" />
               Departamentos
+              {departments.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
+                  {departments.length}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="invites" className="gap-2">
               <Mail className="h-4 w-4" />
@@ -155,27 +220,35 @@ export default function Company() {
           </TabsContent>
 
           <TabsContent value="departments" className="mt-6">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {["Tecnologia", "RH", "Marketing", "Vendas", "Produto", "Design", "Diretoria", "Financeiro"].map((dept) => (
-                <Card key={dept} className="hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Building2 className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{dept}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {Math.floor(Math.random() * 15) + 3} membros
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            {isLoadingDepartments ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : departments.length === 0 ? (
+              <div className="text-center py-12">
+                <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">Nenhum departamento criado</h3>
+                <p className="text-muted-foreground mt-1 mb-4">
+                  Crie departamentos para organizar membros e equipes
+                </p>
+                <Button onClick={() => setCreateDepartmentOpen(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Criar Departamento
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {departments.map((dept) => (
+                  <DepartmentCard
+                    key={dept.id}
+                    department={dept}
+                    onEdit={handleEditDepartment}
+                    onManage={handleManageDepartment}
+                    onDelete={(id) => setDeletingDepartmentId(id)}
+                  />
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="invites" className="mt-6">
@@ -185,10 +258,45 @@ export default function Company() {
           </TabsContent>
         </Tabs>
 
+        {/* Modals */}
         <InviteModal 
           open={inviteModalOpen} 
           onOpenChange={setInviteModalOpen}
         />
+
+        <CreateDepartmentDialog
+          open={createDepartmentOpen}
+          onOpenChange={handleCloseCreateDialog}
+          editingDepartment={editingDepartment}
+        />
+
+        <ManageDepartmentDialog
+          open={!!managingDepartment}
+          onOpenChange={(open) => !open && setManagingDepartment(null)}
+          department={managingDepartment}
+        />
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={!!deletingDepartmentId} onOpenChange={() => setDeletingDepartmentId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir departamento?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. Os membros e equipes vinculados a este
+                departamento terão a associação removida.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteDepartment}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteDepartment.isPending ? "Excluindo..." : "Excluir"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
