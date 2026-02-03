@@ -11,6 +11,7 @@ export interface NPSSurvey {
   question: string;
   target_departments: string[];
   target_teams: string[];
+  target_users: string[];
   target_all: boolean;
   end_date: string;
   require_comment_below: number | null;
@@ -33,6 +34,7 @@ export interface CreateNPSSurveyInput {
   question: string;
   target_departments: string[];
   target_teams: string[];
+  target_users: string[];
   target_all: boolean;
   end_date: string;
   require_comment_below: number | null;
@@ -153,9 +155,27 @@ export function useActiveNPSSurveys() {
       const respondedSurveyIds = new Set(responses?.map((r) => r.survey_id) || []);
 
       // Filter out surveys user already responded to
-      const pendingSurveys = (surveys as NPSSurvey[]).filter(
-        (survey) => !respondedSurveyIds.has(survey.id)
-      );
+      // AND filter surveys where user is targeted
+      const pendingSurveys = (surveys as NPSSurvey[]).filter((survey) => {
+        // Already responded - skip
+        if (respondedSurveyIds.has(survey.id)) return false;
+
+        // Check targeting: user must be in target_users OR target_all is true
+        // (department/team filtering could be added later if needed)
+        if (survey.target_all) return true;
+        if (survey.target_users?.includes(user.id)) return true;
+
+        // For now, also show if target_users is empty but departments/teams are set
+        // (legacy behavior for department/team targeting)
+        if (
+          (!survey.target_users || survey.target_users.length === 0) &&
+          (survey.target_departments?.length > 0 || survey.target_teams?.length > 0)
+        ) {
+          return true;
+        }
+
+        return false;
+      });
 
       return pendingSurveys;
     },

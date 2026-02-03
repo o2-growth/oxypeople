@@ -14,7 +14,8 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2, BarChart3, Users, Building2 } from "lucide-react";
+import { CalendarIcon, Loader2, BarChart3, Users, Building2, UserRound } from "lucide-react";
+import { MultiPersonSelector } from "@/components/objectives/MultiPersonSelector";
 import { useCreateNPSSurvey } from "@/hooks/useNPSSurveys";
 import { useTeams } from "@/hooks/useTeams";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +37,7 @@ export function CreateNPSSurveyCard() {
   const [question, setQuestion] = useState(DEFAULT_QUESTION);
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [targetAll, setTargetAll] = useState(true);
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [requireCommentEnabled, setRequireCommentEnabled] = useState(false);
@@ -72,6 +74,7 @@ export function CreateNPSSurveyCard() {
       question,
       target_departments: targetAll ? [] : selectedDepartments,
       target_teams: targetAll ? [] : selectedTeams,
+      target_users: targetAll ? [] : selectedUsers,
       target_all: targetAll,
       end_date: format(endDate, "yyyy-MM-dd"),
       require_comment_below: requireCommentEnabled ? requireCommentBelow : null,
@@ -82,6 +85,7 @@ export function CreateNPSSurveyCard() {
     setQuestion(DEFAULT_QUESTION);
     setSelectedDepartments([]);
     setSelectedTeams([]);
+    setSelectedUsers([]);
     setTargetAll(true);
     setEndDate(undefined);
     setRequireCommentEnabled(false);
@@ -162,7 +166,7 @@ export function CreateNPSSurveyCard() {
           </div>
 
           {!targetAll && (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               {/* Departments */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-1.5 text-sm">
@@ -221,6 +225,19 @@ export function CreateNPSSurveyCard() {
                     </span>
                   )}
                 </div>
+              </div>
+
+              {/* Collaborators */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5 text-sm">
+                  <UserRound className="h-4 w-4" />
+                  Colaboradores
+                </Label>
+                <MultiPersonSelector
+                  value={selectedUsers}
+                  onValueChange={setSelectedUsers}
+                  placeholder="Selecione colaboradores"
+                />
               </div>
             </div>
           )}

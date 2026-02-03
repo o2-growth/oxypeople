@@ -620,6 +620,7 @@ export type Database = {
           target_all: boolean | null
           target_departments: string[] | null
           target_teams: string[] | null
+          target_users: string[] | null
           updated_at: string
         }
         Insert: {
@@ -635,6 +636,7 @@ export type Database = {
           target_all?: boolean | null
           target_departments?: string[] | null
           target_teams?: string[] | null
+          target_users?: string[] | null
           updated_at?: string
         }
         Update: {
@@ -650,6 +652,7 @@ export type Database = {
           target_all?: boolean | null
           target_departments?: string[] | null
           target_teams?: string[] | null
+          target_users?: string[] | null
           updated_at?: string
         }
         Relationships: [
