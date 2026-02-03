@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Image, Smile, Award, Send, Loader2 } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useCreatePost } from "@/hooks/usePosts";
 import { useUser } from "@/hooks/useUser";
@@ -55,15 +55,7 @@ export function CreatePost() {
             />
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary">
-                  <Image className="h-5 w-5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-warning">
-                  <Smile className="h-5 w-5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-accent">
-                  <Award className="h-5 w-5" />
-                </Button>
+                {/* Botões de mídia e emoji serão implementados em breve */}
               </div>
               <Button 
                 disabled={!content.trim() || createPost.isPending} 
