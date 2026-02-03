@@ -5,26 +5,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useSlackChannels } from "@/hooks/useSlackChannels";
-import { Hash, Loader2 } from "lucide-react";
+import { Hash } from "lucide-react";
 
 interface SlackChannelSelectorProps {
   enabled: boolean;
   onEnabledChange: (enabled: boolean) => void;
-  channelId: string | null;
-  onChannelChange: (channelId: string) => void;
 }
 
 // Slack icon SVG component - using forwardRef for compatibility with Radix
-const SlackIcon = React.forwardRef<SVGSVGElement, { className?: string }>(
+const SlackIcon = React.forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement>>(
   ({ className, ...props }, ref) => (
     <svg
       ref={ref}
@@ -43,14 +33,7 @@ SlackIcon.displayName = "SlackIcon";
 export function SlackChannelSelector({
   enabled,
   onEnabledChange,
-  channelId,
-  onChannelChange,
 }: SlackChannelSelectorProps) {
-  const { data: channels, isLoading, isError } = useSlackChannels();
-  
-  // Filter only channels where the bot is a member
-  const availableChannels = channels?.filter(ch => ch.is_member) || [];
-
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -64,58 +47,21 @@ export function SlackChannelSelector({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72" align="start">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <SlackIcon className="h-4 w-4 text-[#4A154B]" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <SlackIcon className="h-4 w-4 text-[#4A154B]" />
+            <div className="flex flex-col">
               <span className="text-sm font-medium">Enviar para Slack</span>
+              <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                <Hash className="h-3 w-3" />
+                general
+              </span>
             </div>
-            <Switch
-              checked={enabled}
-              onCheckedChange={onEnabledChange}
-            />
           </div>
-
-          {enabled && (
-            <div className="space-y-2">
-              <label className="text-xs text-muted-foreground">
-                Selecione o canal
-              </label>
-              {isLoading ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                </div>
-              ) : isError ? (
-                <p className="text-xs text-destructive">
-                  Erro ao carregar canais. Verifique a configuração do Slack.
-                </p>
-              ) : availableChannels.length > 0 ? (
-                <Select value={channelId || ""} onValueChange={onChannelChange}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione um canal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableChannels.map((channel) => (
-                      <SelectItem key={channel.id} value={channel.id}>
-                        <div className="flex items-center gap-1">
-                          <Hash className="h-3 w-3 text-muted-foreground" />
-                          {channel.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : channels && channels.length > 0 ? (
-                <p className="text-xs text-warning">
-                  O bot não foi adicionado a nenhum canal. Adicione o bot a um canal no Slack para enviar mensagens.
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Nenhum canal encontrado. Verifique se o bot foi adicionado ao workspace.
-                </p>
-              )}
-            </div>
-          )}
+          <Switch
+            checked={enabled}
+            onCheckedChange={onEnabledChange}
+          />
         </div>
       </PopoverContent>
     </Popover>

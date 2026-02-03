@@ -57,11 +57,14 @@ serve(async (req) => {
 
     // POST - Send message
     if (req.method === 'POST') {
-      const { channel_id, message, author_name, images } = await req.json();
+      const { channel_id, channel_name, message, author_name, images } = await req.json();
 
-      if (!channel_id || !message) {
+      // Support both channel_id and channel_name (channel_name will be prefixed with #)
+      const channel = channel_id || (channel_name ? `#${channel_name}` : null);
+
+      if (!channel || !message) {
         return new Response(
-          JSON.stringify({ success: false, error: 'channel_id and message are required' }),
+          JSON.stringify({ success: false, error: 'channel_id or channel_name, and message are required' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -100,7 +103,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          channel: channel_id,
+          channel,
           blocks,
           text: `📢 Novo post de ${author_name || 'Usuário'}: ${message}`,
         }),
