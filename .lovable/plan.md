@@ -1,86 +1,86 @@
 
-
-## Plano: Integração Completa com Slack para Posts do Feed
+## Plano: Simplificar Integração Slack para Usar Apenas #general
 
 ### Visão Geral
-Configurar a chave do Slack fornecida e implementar a funcionalidade para enviar posts do feed simultaneamente para canais do Slack.
+Remover a busca dinâmica de canais e fixar o envio para o canal `#general`, simplificando a interface e evitando chamadas desnecessárias à API do Slack.
 
-### Etapa 1: Armazenar a Chave do Slack
-- Adicionar a chave `xoxb-...` como secret `SLACK_BOT_TOKEN` no projeto
-- Isso disponibilizará a chave para as Edge Functions de forma segura
+### Mudanças a Realizar
 
-### Etapa 2: Criar Edge Function `send-slack-message`
-
-**Arquivo:** `supabase/functions/send-slack-message/index.ts`
-
-Funcionalidades:
-- **POST** - Enviar mensagem para um canal do Slack
-  - Parâmetros: `channel_id`, `message`, `author_name`, `images[]`
-  - Usa API direta do Slack (`https://slack.com/api/chat.postMessage`)
-  
-- **GET** (`?action=list-channels`) - Listar canais disponíveis
-  - Retorna lista de canais públicos do workspace
-  - Usa `https://slack.com/api/conversations.list`
-
-### Etapa 3: Criar Hook `useSlackChannels`
-
-**Arquivo:** `src/hooks/useSlackChannels.ts`
-
-- Query para buscar canais disponíveis
-- Cache de 5 minutos para evitar chamadas excessivas
-- Tratamento de erro quando Slack não está configurado
-
-### Etapa 4: Criar Componente `SlackChannelSelector`
+#### 1. Simplificar o Componente `SlackChannelSelector`
 
 **Arquivo:** `src/components/feed/SlackChannelSelector.tsx`
 
-Layout:
-```text
-+---------------------------+
-| ☐ Enviar para Slack       |
-| +-----------------------+ |
-| | #geral              ▼ | |
-| +-----------------------+ |
-+---------------------------+
+Mudanças:
+- Remover a busca de canais via `useSlackChannels`
+- Remover o dropdown de seleção de canais
+- Mostrar apenas o toggle com indicação fixa do canal `#general`
+- Quando ativado, passar automaticamente o nome do canal "general"
+
+Interface simplificada:
+```
++----------------------------------+
+| [Slack Icon] Enviar para Slack  [Toggle] |
+| #general                                   |
++----------------------------------+
 ```
 
-Características:
-- Ícone do Slack (usando Lucide `MessageSquare` ou SVG personalizado)
-- Toggle para ativar/desativar envio
-- Dropdown com canais disponíveis
-- Estado visual quando ativado (cor de destaque)
-
-### Etapa 5: Atualizar `CreatePost`
+#### 2. Atualizar `CreatePost`
 
 **Arquivo:** `src/components/feed/CreatePost.tsx`
 
 Mudanças:
-- Adicionar estados `slackEnabled` e `slackChannelId`
-- Adicionar `SlackChannelSelector` ao lado do `EmojiPicker`
-- Modificar `handleSubmit` para chamar edge function quando Slack ativado
-- Mostrar feedback de sucesso/erro para ambos destinos
+- Remover o estado `slackChannelId` (não precisa mais)
+- Quando Slack estiver ativado, usar "general" como canal fixo
+- Simplificar a prop passada para o `SlackChannelSelector`
 
-### Etapa 6: Atualizar `usePosts`
+#### 3. Atualizar Edge Function para aceitar nome do canal
 
-**Arquivo:** `src/hooks/usePosts.ts`
+**Arquivo:** `supabase/functions/send-slack-message/index.ts`
 
-- Adicionar parâmetros opcionais `slackChannelId` e `slackEnabled` no `useCreatePost`
-- Após criar post, chamar edge function de envio se Slack estiver configurado
-
-### Estrutura da Mensagem no Slack
-
-```text
-📢 Novo post de [Nome do Autor]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[Conteúdo do post]
-
-[Imagens anexadas, se houver]
-```
+Mudanças:
+- Aceitar tanto `channel_id` quanto `channel_name` no POST
+- Se receber `channel_name: "general"`, enviar para `#general`
+- A API do Slack aceita tanto o ID do canal quanto o nome (com #)
 
 ### Resultado Esperado
-- Botão do Slack visível ao lado do emoji picker
-- Ao ativar, usuário escolhe um canal
-- Ao publicar, post vai para feed E Slack simultaneamente
-- Mensagens formatadas com nome do autor e imagens
-- Feedback visual de sucesso/erro
+- Interface mais simples: apenas um toggle "Enviar para Slack #general"
+- Sem dropdown de canais
+- Menos chamadas à API do Slack
+- Funcionalidade garantida pois o canal `#general` sempre existe
 
+### Seção Técnica
+
+**SlackChannelSelector simplificado:**
+```tsx
+export function SlackChannelSelector({ enabled, onEnabledChange }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" ...>
+          <SlackIcon />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <SlackIcon />
+            <div>
+              <span>Enviar para Slack</span>
+              <span className="text-xs text-muted-foreground">#general</span>
+            </div>
+          </div>
+          <Switch checked={enabled} onCheckedChange={onEnabledChange} />
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+```
+
+**Edge Function - aceitar canal por nome:**
+```typescript
+const { channel_id, channel_name, message, author_name, images } = await req.json();
+
+// Usar channel_id se fornecido, senão usar #channel_name
+const channel = channel_id || (channel_name ? `#${channel_name}` : null);
+```
