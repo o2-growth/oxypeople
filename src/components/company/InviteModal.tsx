@@ -19,23 +19,51 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Upload, UserPlus } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Mail, Upload, UserPlus, Calendar } from "lucide-react";
 
 interface InviteModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onInvite?: (emails: string[], role: string) => void;
+  onInvite?: (emails: string[], role: string, newHireData?: {
+    isNewHire: boolean;
+    hireDate?: Date;
+    employmentType?: string;
+  }) => void;
 }
 
 export function InviteModal({ open, onOpenChange, onInvite }: InviteModalProps) {
   const [email, setEmail] = useState("");
   const [bulkEmails, setBulkEmails] = useState("");
   const [role, setRole] = useState("member");
+  
+  // New hire fields
+  const [isNewHire, setIsNewHire] = useState(false);
+  const [hireDate, setHireDate] = useState("");
+  const [employmentType, setEmploymentType] = useState<string>("");
+
+  const resetForm = () => {
+    setEmail("");
+    setBulkEmails("");
+    setRole("member");
+    setIsNewHire(false);
+    setHireDate("");
+    setEmploymentType("");
+  };
+
+  const getNewHireData = () => {
+    if (!isNewHire) return undefined;
+    return {
+      isNewHire: true,
+      hireDate: hireDate ? new Date(hireDate) : new Date(),
+      employmentType: employmentType || "colaborador",
+    };
+  };
 
   const handleSingleInvite = () => {
     if (email) {
-      onInvite?.([email], role);
-      setEmail("");
+      onInvite?.([email], role, getNewHireData());
+      resetForm();
       onOpenChange(false);
     }
   };
@@ -47,8 +75,8 @@ export function InviteModal({ open, onOpenChange, onInvite }: InviteModalProps) 
       .filter((e) => e && e.includes("@"));
     
     if (emails.length > 0) {
-      onInvite?.(emails, role);
-      setBulkEmails("");
+      onInvite?.(emails, role, getNewHireData());
+      resetForm();
       onOpenChange(false);
     }
   };
@@ -104,6 +132,51 @@ export function InviteModal({ open, onOpenChange, onInvite }: InviteModalProps) 
               </Select>
             </div>
 
+            {/* New Hire Section */}
+            <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="is-new-hire"
+                  checked={isNewHire}
+                  onCheckedChange={(checked) => setIsNewHire(!!checked)}
+                />
+                <Label htmlFor="is-new-hire" className="font-medium cursor-pointer">
+                  Novo colaborador (receberá feedback de 30 dias)
+                </Label>
+              </div>
+
+              {isNewHire && (
+                <div className="space-y-3 ml-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="hire-date" className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Data de início
+                    </Label>
+                    <Input
+                      id="hire-date"
+                      type="date"
+                      value={hireDate}
+                      onChange={(e) => setHireDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="employment-type">Tipo de vínculo</Label>
+                    <Select value={employmentType} onValueChange={setEmploymentType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="colaborador">Colaborador</SelectItem>
+                        <SelectItem value="prestador">Prestador de Serviço</SelectItem>
+                        <SelectItem value="estagiario">Estagiário</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
@@ -141,6 +214,51 @@ export function InviteModal({ open, onOpenChange, onInvite }: InviteModalProps) 
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* New Hire Section for Bulk */}
+            <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="is-new-hire-bulk"
+                  checked={isNewHire}
+                  onCheckedChange={(checked) => setIsNewHire(!!checked)}
+                />
+                <Label htmlFor="is-new-hire-bulk" className="font-medium cursor-pointer">
+                  Novos colaboradores (receberão feedback de 30 dias)
+                </Label>
+              </div>
+
+              {isNewHire && (
+                <div className="space-y-3 ml-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="hire-date-bulk" className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Data de início
+                    </Label>
+                    <Input
+                      id="hire-date-bulk"
+                      type="date"
+                      value={hireDate}
+                      onChange={(e) => setHireDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="employment-type-bulk">Tipo de vínculo</Label>
+                    <Select value={employmentType} onValueChange={setEmploymentType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="colaborador">Colaborador</SelectItem>
+                        <SelectItem value="prestador">Prestador de Serviço</SelectItem>
+                        <SelectItem value="estagiario">Estagiário</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
             </div>
 
             <DialogFooter>

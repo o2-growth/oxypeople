@@ -350,8 +350,11 @@ export type Database = {
           created_at: string
           department: string | null
           department_id: string | null
+          employment_type: string | null
+          hire_date: string | null
           id: string
           invited_by: string | null
+          is_new_hire: boolean | null
           joined_at: string | null
           position: string | null
           status: Database["public"]["Enums"]["membership_status"]
@@ -363,8 +366,11 @@ export type Database = {
           created_at?: string
           department?: string | null
           department_id?: string | null
+          employment_type?: string | null
+          hire_date?: string | null
           id?: string
           invited_by?: string | null
+          is_new_hire?: boolean | null
           joined_at?: string | null
           position?: string | null
           status?: Database["public"]["Enums"]["membership_status"]
@@ -376,8 +382,11 @@ export type Database = {
           created_at?: string
           department?: string | null
           department_id?: string | null
+          employment_type?: string | null
+          hire_date?: string | null
           id?: string
           invited_by?: string | null
+          is_new_hire?: boolean | null
           joined_at?: string | null
           position?: string | null
           status?: Database["public"]["Enums"]["membership_status"]
@@ -702,6 +711,128 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_feedbacks: {
+        Row: {
+          additional_comments: string | null
+          clarity_level: string | null
+          company_id: string
+          completed_at: string | null
+          complicated_tools: string | null
+          created_at: string
+          difficulties: string | null
+          due_date: string
+          forwarded_at: string | null
+          forwarded_by: string | null
+          forwarded_to: string[] | null
+          has_all_access: boolean | null
+          id: string
+          improvement_suggestions: string | null
+          integration_level: string | null
+          manager_id: string | null
+          missing_access: string | null
+          onboarding_rating: number | null
+          overall_feeling: string | null
+          overall_rating: number | null
+          pending_questions: string | null
+          positive_surprise: string | null
+          status: string
+          tools_ease_rating: number | null
+          training_rating: number | null
+          updated_at: string
+          user_id: string
+          what_worked_well: string | null
+        }
+        Insert: {
+          additional_comments?: string | null
+          clarity_level?: string | null
+          company_id: string
+          completed_at?: string | null
+          complicated_tools?: string | null
+          created_at?: string
+          difficulties?: string | null
+          due_date: string
+          forwarded_at?: string | null
+          forwarded_by?: string | null
+          forwarded_to?: string[] | null
+          has_all_access?: boolean | null
+          id?: string
+          improvement_suggestions?: string | null
+          integration_level?: string | null
+          manager_id?: string | null
+          missing_access?: string | null
+          onboarding_rating?: number | null
+          overall_feeling?: string | null
+          overall_rating?: number | null
+          pending_questions?: string | null
+          positive_surprise?: string | null
+          status?: string
+          tools_ease_rating?: number | null
+          training_rating?: number | null
+          updated_at?: string
+          user_id: string
+          what_worked_well?: string | null
+        }
+        Update: {
+          additional_comments?: string | null
+          clarity_level?: string | null
+          company_id?: string
+          completed_at?: string | null
+          complicated_tools?: string | null
+          created_at?: string
+          difficulties?: string | null
+          due_date?: string
+          forwarded_at?: string | null
+          forwarded_by?: string | null
+          forwarded_to?: string[] | null
+          has_all_access?: boolean | null
+          id?: string
+          improvement_suggestions?: string | null
+          integration_level?: string | null
+          manager_id?: string | null
+          missing_access?: string | null
+          onboarding_rating?: number | null
+          overall_feeling?: string | null
+          overall_rating?: number | null
+          pending_questions?: string | null
+          positive_surprise?: string | null
+          status?: string
+          tools_ease_rating?: number | null
+          training_rating?: number | null
+          updated_at?: string
+          user_id?: string
+          what_worked_well?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_feedbacks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_feedbacks_forwarded_by_fkey"
+            columns: ["forwarded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_feedbacks_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_feedbacks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]

@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -12,7 +14,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, UserPlus, MoreHorizontal, Mail, Phone } from "lucide-react";
+import { Search, UserPlus, MoreHorizontal, Users, ClipboardList, BarChart3 } from "lucide-react";
+import { InviteModal } from "@/components/company/InviteModal";
+import { FeedbackTab } from "@/components/people/FeedbackTab";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 
 const people = [
   {
@@ -80,6 +85,19 @@ const departmentColors: Record<string, string> = {
 };
 
 const People = () => {
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("collaborators");
+  const { isAdmin } = useUserPermissions();
+
+  const handleInvite = (emails: string[], role: string, newHireData?: {
+    isNewHire: boolean;
+    hireDate?: Date;
+    employmentType?: string;
+  }) => {
+    console.log("Inviting:", { emails, role, newHireData });
+    // TODO: Implement actual invite logic with backend
+  };
+
   return (
     <AppLayout>
       <div className="p-6 lg:p-8 space-y-6">
@@ -91,7 +109,10 @@ const People = () => {
               Gerencie os colaboradores da sua empresa
             </p>
           </div>
-          <Button className="gap-2 bg-gradient-primary hover:opacity-90 transition-opacity">
+          <Button 
+            className="gap-2 bg-gradient-primary hover:opacity-90 transition-opacity"
+            onClick={() => setInviteModalOpen(true)}
+          >
             <UserPlus className="h-4 w-4" />
             Convidar Pessoa
           </Button>
@@ -153,88 +174,135 @@ const People = () => {
           </Card>
         </div>
 
-        {/* Search and Filters */}
-        <Card>
-          <CardHeader className="pb-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="text-lg font-heading">Colaboradores</CardTitle>
-              <div className="relative w-full sm:w-80">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome, email ou cargo..."
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>Colaborador</TableHead>
-                    <TableHead>Cargo</TableHead>
-                    <TableHead>Departamento</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {people.map((person) => (
-                    <TableRow key={person.id} className="hover:bg-muted/30">
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={person.avatar} alt={person.name} />
-                            <AvatarFallback>
-                              {person.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{person.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {person.email}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{person.role}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={departmentColors[person.department] || ""}
-                        >
-                          {person.department}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            person.status === "active"
-                              ? "bg-success/10 text-success border-success/20"
-                              : "bg-warning/10 text-warning border-warning/20"
-                          }
-                        >
-                          {person.status === "active" ? "Ativo" : "Ausente"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="collaborators" className="gap-2">
+              <Users className="h-4 w-4" />
+              Colaboradores
+            </TabsTrigger>
+            {isAdmin && (
+              <>
+                <TabsTrigger value="feedback" className="gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  Feedback 30 Dias
+                </TabsTrigger>
+                <TabsTrigger value="nps" className="gap-2" disabled>
+                  <BarChart3 className="h-4 w-4" />
+                  NPS
+                  <Badge variant="secondary" className="ml-1 text-[10px]">Em breve</Badge>
+                </TabsTrigger>
+              </>
+            )}
+          </TabsList>
+
+          <TabsContent value="collaborators">
+            {/* Search and Filters */}
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <CardTitle className="text-lg font-heading">Colaboradores</CardTitle>
+                  <div className="relative w-full sm:w-80">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por nome, email ou cargo..."
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead>Colaborador</TableHead>
+                        <TableHead>Cargo</TableHead>
+                        <TableHead>Departamento</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {people.map((person) => (
+                        <TableRow key={person.id} className="hover:bg-muted/30">
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={person.avatar} alt={person.name} />
+                                <AvatarFallback>
+                                  {person.name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium">{person.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {person.email}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{person.role}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={departmentColors[person.department] || ""}
+                            >
+                              {person.department}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={
+                                person.status === "active"
+                                  ? "bg-success/10 text-success border-success/20"
+                                  : "bg-warning/10 text-warning border-warning/20"
+                              }
+                            >
+                              {person.status === "active" ? "Ativo" : "Ausente"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="feedback">
+            <FeedbackTab />
+          </TabsContent>
+
+          <TabsContent value="nps">
+            <Card>
+              <CardContent className="py-12 text-center">
+                <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">NPS em Breve</h3>
+                <p className="text-muted-foreground">
+                  A funcionalidade de pesquisa NPS estará disponível em breve.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
+
+      <InviteModal
+        open={inviteModalOpen}
+        onOpenChange={setInviteModalOpen}
+        onInvite={handleInvite}
+      />
     </AppLayout>
   );
 };
