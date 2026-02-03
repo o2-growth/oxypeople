@@ -1,100 +1,97 @@
 
 
-## Plano: Adicionar Opção de Envio para Slack nos Posts do Feed
+## Plan: Add Slack Send Option to Feed Posts
 
-### Contexto
-Você quer adicionar uma opção ao lado do emoji picker para que, ao publicar um post no feed, ele também seja enviado para um canal do Slack. Isso complementa a funcionalidade já existente nos Avisos (Announcements) e alinha com a regra de negócio de notificações em canal duplo.
+### Overview
+Add a Slack channel selector next to the emoji picker in the post creation form. When enabled, posts will be published to both the feed AND the selected Slack channel simultaneously.
 
-### Visão Geral da Solução
-Adicionar um botão toggle/configurador ao lado do emoji que permite selecionar um canal do Slack para enviar a mensagem simultaneamente. Quando ativado, o post será publicado no feed E enviado para o canal escolhido.
+### Step 1: Connect Slack to the Project
+Before implementing the feature, we need to establish a Slack connection:
+- This will provide the `SLACK_API_KEY` required for the integration
+- You'll be prompted to authorize the Slack workspace
+- **This is a prerequisite - the feature won't work without it**
 
-### Etapas de Implementação
+### Step 2: Create Edge Function `send-slack-message`
+**File:** `supabase/functions/send-slack-message/index.ts`
 
-#### 1. Configurar Conexão Slack
-- Primeiro, será necessário conectar o Slack ao projeto usando o conector Lovable
-- Isso disponibilizará a `SLACK_API_KEY` como variável de ambiente
-- Sem esta conexão, a funcionalidade não poderá funcionar
+The function will support two operations:
+- **GET** `?action=list-channels` - Returns available public Slack channels
+- **POST** - Sends a message to the specified channel
 
-#### 2. Criar Edge Function para Enviar Mensagens ao Slack
-- Criar `supabase/functions/send-slack-message/index.ts`
-- Usar o gateway Lovable (`https://gateway.lovable.dev/slack/api/`) para enviar mensagens
-- Suportar envio de texto e imagens (quando houver anexos no post)
-- Buscar lista de canais disponíveis para seleção
+Uses the Lovable gateway (`https://gateway.lovable.dev/slack/api/`) with proper authentication headers.
 
-#### 3. Criar Hook para Buscar Canais do Slack
-- Novo hook `src/hooks/useSlackChannels.ts`
-- Chamar a edge function para listar canais públicos disponíveis
-- Cachear resultado para não fazer muitas chamadas
+### Step 3: Create Slack Channels Hook
+**File:** `src/hooks/useSlackChannels.ts`
 
-#### 4. Criar Componente Seletor de Canal Slack
-- Novo componente `src/components/feed/SlackChannelSelector.tsx`
-- Popover com ícone do Slack ao lado do emoji picker
-- Toggle para ativar/desativar envio para Slack
-- Dropdown para selecionar o canal de destino
-- Mostrar estado visual quando Slack está ativado
+- Fetches available Slack channels via the edge function
+- Caches results using React Query (5-minute stale time)
+- Handles loading and error states
 
-#### 5. Atualizar CreatePost
-- Adicionar estado para `slackEnabled` e `slackChannelId`
-- Integrar o `SlackChannelSelector` na barra de ações
-- Modificar `handleSubmit` para chamar edge function quando Slack estiver ativado
+### Step 4: Create Slack Channel Selector Component
+**File:** `src/components/feed/SlackChannelSelector.tsx`
 
-#### 6. Atualizar usePosts Hook
-- Adicionar parâmetros opcionais `slackChannelId` no `useCreatePost`
-- Após criar o post, chamar a edge function de envio se Slack estiver configurado
+A popover component containing:
+- Toggle switch to enable/disable Slack posting
+- Channel dropdown to select destination
+- Slack icon that changes appearance when active
 
-### Layout Visual Proposto
+### Step 5: Update CreatePost Component
+**File:** `src/components/feed/CreatePost.tsx`
+
+- Add state for `slackEnabled` and `slackChannelId`
+- Place SlackChannelSelector between EmojiPicker and Publish button
+- Modify submit handler to send to Slack when enabled
+
+### Step 6: Update usePosts Hook
+**File:** `src/hooks/usePosts.ts`
+
+- Add optional `slackChannelId` parameter to `useCreatePost`
+- Call the edge function after successful post creation if Slack is configured
+
+### Visual Layout
 
 ```text
 +------------------------------------------------------------------+
-|  [Avatar]  O que você gostaria de compartilhar?                  |
+|  [Avatar]  What would you like to share?                         |
 |            +--------------------------------------------------+  |
 |            |                                                  |  |
 |            +--------------------------------------------------+  |
 |                                                                  |
-|  [📷] [😊] [⚡Slack]                              [Publicar]     |
+|  [Image] [Emoji] [Slack]                          [Publish]      |
 +------------------------------------------------------------------+
 
-Ao clicar em [⚡Slack]:
+When clicking [Slack]:
 +---------------------------+
-| ☐ Enviar para Slack       |
+| [ ] Send to Slack         |
 | +-----------------------+ |
-| | #geral              ▼ | |
+| | #general            v | |
 | +-----------------------+ |
 +---------------------------+
 ```
 
-### Detalhes Técnicos
+### Technical Details
 
-**Edge Function `send-slack-message`:**
+**Edge Function API:**
+- `GET ?action=list-channels` returns `{ channels: [{ id, name }] }`
+- `POST` with body `{ channel_id, message, author_name, images? }` sends message
+
+**Component Props:**
 ```text
-POST /send-slack-message
-Body: {
-  channel_id: string,
-  message: string,
-  author_name: string,
-  images?: string[]
-}
-
-GET /send-slack-message?action=list-channels
-Response: { channels: [{ id, name }] }
+SlackChannelSelector:
+  - enabled: boolean
+  - channelId: string | null
+  - onEnabledChange: (enabled: boolean) => void
+  - onChannelChange: (channelId: string) => void
+  - disabled?: boolean
 ```
 
-**SlackChannelSelector Props:**
-```text
-- enabled: boolean
-- channelId: string | null
-- onEnabledChange: (enabled: boolean) => void
-- onChannelChange: (channelId: string) => void
-- disabled?: boolean
-```
+### Important Prerequisite
+To start implementation, I'll first need to connect the Slack integration to your project. This will display a prompt where you can authorize your Slack workspace.
 
-### Pré-requisito Importante
-Antes de implementar, será necessário conectar o Slack ao projeto. O sistema irá solicitar que você selecione ou crie uma conexão Slack.
-
-### Resultado Esperado
-- Botão com ícone do Slack ao lado do emoji picker
-- Ao ativar, usuário pode escolher um canal
-- Ao publicar, o post vai para o feed E para o Slack
-- Mensagem no Slack inclui nome do autor, texto e imagens (se houver)
-- Feedback visual de sucesso/erro para ambos os destinos
+### Expected Results
+- Slack icon button next to emoji picker
+- Popover with toggle and channel selector
+- Posts can be sent to both feed and Slack simultaneously
+- Message in Slack includes author name, content, and images (if any)
+- Success/error feedback for both destinations
 
