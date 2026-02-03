@@ -119,15 +119,25 @@ export function useActiveNPSSurveys() {
     queryFn: async () => {
       if (!companyId || !user?.id) return [];
 
-      // Get active surveys
+      // Get today's date in ISO format for comparison
+      const today = new Date().toISOString().split("T")[0];
+
+      // Get active surveys - using RLS, members can only see active surveys
       const { data: surveys, error: surveysError } = await supabase
         .from("nps_surveys")
         .select("*")
         .eq("company_id", companyId)
         .eq("status", "active")
-        .gte("end_date", new Date().toISOString().split("T")[0]);
+        .gte("end_date", today);
 
-      if (surveysError) throw surveysError;
+      if (surveysError) {
+        console.error("Error fetching active NPS surveys:", surveysError);
+        throw surveysError;
+      }
+
+      if (!surveys || surveys.length === 0) {
+        return [];
+      }
 
       // Get user's existing responses
       const { data: responses, error: responsesError } = await supabase
@@ -135,14 +145,19 @@ export function useActiveNPSSurveys() {
         .select("survey_id")
         .eq("user_id", user.id);
 
-      if (responsesError) throw responsesError;
+      if (responsesError) {
+        console.error("Error fetching NPS responses:", responsesError);
+        throw responsesError;
+      }
 
       const respondedSurveyIds = new Set(responses?.map((r) => r.survey_id) || []);
 
       // Filter out surveys user already responded to
-      return (surveys as NPSSurvey[]).filter(
+      const pendingSurveys = (surveys as NPSSurvey[]).filter(
         (survey) => !respondedSurveyIds.has(survey.id)
       );
+
+      return pendingSurveys;
     },
     enabled: !!companyId && !!user?.id,
   });
