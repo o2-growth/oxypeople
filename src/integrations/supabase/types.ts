@@ -349,6 +349,7 @@ export type Database = {
           company_id: string
           created_at: string
           department: string | null
+          department_id: string | null
           id: string
           invited_by: string | null
           joined_at: string | null
@@ -361,6 +362,7 @@ export type Database = {
           company_id: string
           created_at?: string
           department?: string | null
+          department_id?: string | null
           id?: string
           invited_by?: string | null
           joined_at?: string | null
@@ -373,6 +375,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           department?: string | null
+          department_id?: string | null
           id?: string
           invited_by?: string | null
           joined_at?: string | null
@@ -390,6 +393,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "company_memberships_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "company_memberships_invited_by_fkey"
             columns: ["invited_by"]
             isOneToOne: false
@@ -399,6 +409,54 @@ export type Database = {
           {
             foreignKeyName: "company_memberships_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      departments: {
+        Row: {
+          color: string | null
+          company_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          leader_id: string | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          company_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          leader_id?: string | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          company_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          leader_id?: string | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_leader_id_fkey"
+            columns: ["leader_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -998,6 +1056,7 @@ export type Database = {
           company_id: string
           created_at: string
           department: string | null
+          department_id: string | null
           description: string | null
           id: string
           name: string
@@ -1007,6 +1066,7 @@ export type Database = {
           company_id: string
           created_at?: string
           department?: string | null
+          department_id?: string | null
           description?: string | null
           id?: string
           name: string
@@ -1016,6 +1076,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           department?: string | null
+          department_id?: string | null
           description?: string | null
           id?: string
           name?: string
@@ -1027,6 +1088,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
         ]
