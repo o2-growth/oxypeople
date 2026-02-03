@@ -16,7 +16,6 @@ export function CreatePost() {
   const [content, setContent] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [slackEnabled, setSlackEnabled] = useState(false);
-  const [slackChannelId, setSlackChannelId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { profile } = useUser();
   const createPost = useCreatePost();
@@ -56,10 +55,9 @@ export function CreatePost() {
     try {
       await createPost.mutateAsync({ content, images });
       
-      // Send to Slack if enabled
-      if (slackEnabled && slackChannelId) {
+      // Send to Slack if enabled (always to #general)
+      if (slackEnabled) {
         const slackResult = await sendSlackMessage(
-          slackChannelId,
           content,
           profile?.full_name || "Usuário",
           images.length > 0 ? images : undefined
@@ -78,7 +76,6 @@ export function CreatePost() {
       setContent("");
       setImages([]);
       setSlackEnabled(false);
-      setSlackChannelId(null);
     } catch (error) {
       console.error("Error creating post:", error);
       toast.error("Erro ao publicar post");
@@ -146,8 +143,6 @@ export function CreatePost() {
                 <SlackChannelSelector
                   enabled={slackEnabled}
                   onEnabledChange={setSlackEnabled}
-                  channelId={slackChannelId}
-                  onChannelChange={setSlackChannelId}
                 />
               </div>
               <Button 
