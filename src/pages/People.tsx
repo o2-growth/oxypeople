@@ -4,7 +4,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -22,7 +21,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Search,
   UserPlus,
   MoreHorizontal,
   Users,
@@ -38,6 +36,8 @@ import { InviteModal } from "@/components/company/InviteModal";
 import { FeedbackTab } from "@/components/people/FeedbackTab";
 import { NPSTab } from "@/components/people/NPSTab";
 import { OrganizationChart } from "@/components/people/OrganizationChart";
+import { CollaboratorCard } from "@/components/people/CollaboratorCard";
+import { CollaboratorsFilters } from "@/components/people/CollaboratorsFilters";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import {
   usePeopleList,
@@ -45,6 +45,18 @@ import {
   useInviteMember,
   useUpdateMemberStatus,
 } from "@/hooks/usePeopleList";
+import { useDepartmentOptions, useUserBirthdays } from "@/hooks/usePeopleWithBirthdays";
+import {
+  isWithinInterval,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  addMonths,
+  parseISO,
+  getMonth,
+  getDate,
+} from "date-fns";
 
 const statusLabels: Record<string, string> = {
   active: "Ativo",
@@ -70,27 +82,128 @@ const roleLabels: Record<string, string> = {
 const People = () => {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("collaborators");
+  
+  // Filter states
   const [searchQuery, setSearchQuery] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [birthdayFilter, setBirthdayFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
   const { isAdmin } = useUserPermissions();
   const { data: people, isLoading: isLoadingPeople } = usePeopleList();
   const { data: stats, isLoading: isLoadingStats } = usePeopleStats();
+  const { data: departments = [] } = useDepartmentOptions();
   const inviteMember = useInviteMember();
   const updateStatus = useUpdateMemberStatus();
 
+  // Get user IDs to fetch birthdays
+  const userIds = useMemo(() => {
+    return people?.map((p) => p.user_id) || [];
+  }, [people]);
+
+  const { data: birthdaysMap = new Map() } = useUserBirthdays(userIds);
+
+  const hasActiveFilters = useMemo(() => {
+    return (
+      searchQuery.trim() !== "" ||
+      departmentFilter !== "all" ||
+      statusFilter !== "all" ||
+      birthdayFilter !== "all"
+    );
+  }, [searchQuery, departmentFilter, statusFilter, birthdayFilter]);
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setDepartmentFilter("all");
+    setStatusFilter("all");
+    setBirthdayFilter("all");
+  };
+
   const filteredPeople = useMemo(() => {
     if (!people) return [];
-    if (!searchQuery.trim()) return people;
 
-    const query = searchQuery.toLowerCase();
-    return people.filter(
-      (person) =>
-        person.user?.full_name?.toLowerCase().includes(query) ||
-        person.user?.email?.toLowerCase().includes(query) ||
-        person.position?.toLowerCase().includes(query) ||
-        person.department_info?.name?.toLowerCase().includes(query)
-    );
-  }, [people, searchQuery]);
+    return people.filter((person) => {
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch =
+          person.user?.full_name?.toLowerCase().includes(query) ||
+          person.user?.email?.toLowerCase().includes(query) ||
+          person.position?.toLowerCase().includes(query) ||
+          person.department_info?.name?.toLowerCase().includes(query);
+        if (!matchesSearch) return false;
+      }
+
+      // Department filter
+      if (departmentFilter !== "all") {
+        if (person.department_id !== departmentFilter) return false;
+      }
+
+      // Status filter
+      if (statusFilter !== "all") {
+        if (person.status !== statusFilter) return false;
+      }
+
+      // Birthday filter
+      if (birthdayFilter !== "all") {
+        const birthDate = birthdaysMap.get(person.user_id);
+        if (!birthDate) return false;
+
+        const now = new Date();
+        const birthday = parseISO(birthDate);
+        const birthdayMonth = getMonth(birthday);
+        const birthdayDay = getDate(birthday);
+
+        // Create a date for this year's birthday
+        const thisYearBirthday = new Date(
+          now.getFullYear(),
+          birthdayMonth,
+          birthdayDay
+        );
+
+        if (birthdayFilter === "this_month") {
+          const monthStart = startOfMonth(now);
+          const monthEnd = endOfMonth(now);
+          if (
+            !isWithinInterval(thisYearBirthday, {
+              start: monthStart,
+              end: monthEnd,
+            })
+          )
+            return false;
+        } else if (birthdayFilter === "next_month") {
+          const nextMonthStart = startOfMonth(addMonths(now, 1));
+          const nextMonthEnd = endOfMonth(addMonths(now, 1));
+          // Adjust birthday to next month year if needed
+          const nextYearBirthday = new Date(
+            nextMonthStart.getFullYear(),
+            birthdayMonth,
+            birthdayDay
+          );
+          if (
+            !isWithinInterval(nextYearBirthday, {
+              start: nextMonthStart,
+              end: nextMonthEnd,
+            })
+          )
+            return false;
+        } else if (birthdayFilter === "this_week") {
+          const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+          const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+          if (
+            !isWithinInterval(thisYearBirthday, {
+              start: weekStart,
+              end: weekEnd,
+            })
+          )
+            return false;
+        }
+      }
+
+      return true;
+    });
+  }, [people, searchQuery, departmentFilter, statusFilter, birthdayFilter, birthdaysMap]);
 
   const handleInvite = (
     emails: string[],
@@ -240,23 +353,26 @@ const People = () => {
           </TabsList>
 
           <TabsContent value="collaborators">
-            {/* Search and Filters */}
             <Card>
               <CardHeader className="pb-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <CardTitle className="text-lg font-heading">
-                    Colaboradores
-                  </CardTitle>
-                  <div className="relative w-full sm:w-80">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar por nome, email ou cargo..."
-                      className="pl-10"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                </div>
+                <CardTitle className="text-lg font-heading mb-4">
+                  Colaboradores
+                </CardTitle>
+                <CollaboratorsFilters
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  departmentFilter={departmentFilter}
+                  onDepartmentChange={setDepartmentFilter}
+                  statusFilter={statusFilter}
+                  onStatusChange={setStatusFilter}
+                  birthdayFilter={birthdayFilter}
+                  onBirthdayChange={setBirthdayFilter}
+                  departments={departments}
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                  onClearFilters={clearFilters}
+                  hasActiveFilters={hasActiveFilters}
+                />
               </CardHeader>
               <CardContent>
                 {isLoadingPeople ? (
@@ -267,17 +383,31 @@ const People = () => {
                   <div className="text-center py-12">
                     <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <h3 className="text-lg font-medium mb-2">
-                      {searchQuery
+                      {hasActiveFilters
                         ? "Nenhum resultado encontrado"
                         : "Nenhum colaborador"}
                     </h3>
                     <p className="text-muted-foreground">
-                      {searchQuery
-                        ? "Tente buscar por outro termo"
+                      {hasActiveFilters
+                        ? "Tente ajustar os filtros"
                         : "Convide membros para começar"}
                     </p>
                   </div>
+                ) : viewMode === "cards" ? (
+                  // Card View
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {filteredPeople.map((person) => (
+                      <CollaboratorCard
+                        key={person.id}
+                        member={person}
+                        birthDate={birthdaysMap.get(person.user_id)}
+                        isAdmin={isAdmin}
+                        onToggleStatus={handleToggleStatus}
+                      />
+                    ))}
+                  </div>
                 ) : (
+                  // Table View
                   <div className="rounded-lg border overflow-hidden">
                     <Table>
                       <TableHeader>
@@ -434,11 +564,11 @@ const People = () => {
           </TabsContent>
 
           <TabsContent value="feedback">
-            <FeedbackTab />
+            {isAdmin && <FeedbackTab />}
           </TabsContent>
 
           <TabsContent value="nps">
-            <NPSTab />
+            {isAdmin && <NPSTab />}
           </TabsContent>
         </Tabs>
       </div>
