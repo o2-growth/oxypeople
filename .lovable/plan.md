@@ -1,141 +1,253 @@
 
+## Plano: Adicionar Organograma da Empresa na Página Pessoas
 
-## Plano: Adicionar Seleção de Colaboradores Específicos na Pesquisa NPS
+### Visao Geral
+Implementar uma visualizacao de organograma interativo na pagina Pessoas que mostra a hierarquia completa da empresa. O organograma sera expandivel em cascata, permitindo clicar em cada lider de departamento ou equipe para ver seus membros.
 
-### Visão Geral
-Adicionar uma nova opção de segmentação que permite ao admin selecionar colaboradores individuais para receber a pesquisa NPS, além das opções já existentes (toda empresa, departamentos e equipes).
+### Estrutura Hierarquica
 
-### Mudanças no Banco de Dados
-
-**Nova coluna na tabela `nps_surveys`:**
-
-```sql
-ALTER TABLE nps_surveys 
-ADD COLUMN target_users UUID[] DEFAULT '{}';
-```
-
-Esta coluna armazenará um array de UUIDs dos colaboradores específicos selecionados para participar da pesquisa.
-
-### Mudanças no Frontend
-
-#### 1. Atualizar `CreateNPSSurveyCard.tsx`
-
-Adicionar uma terceira seção de seleção na área de público-alvo:
-
-**Novo estado:**
-```typescript
-const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-```
-
-**Nova seção no formulário (quando `targetAll = false`):**
-- Adicionar uma terceira coluna/seção para "Colaboradores"
-- Reutilizar o componente `MultiPersonSelector` que já existe no projeto
-- Exibir com ícone `UserRound` para diferenciar visualmente
-
-**Layout atualizado:**
 ```text
-Quando "Enviar para toda a empresa" está DESMARCADO:
-
-+------------------------------------------------------------+
-|  Departamentos     |  Equipes      |  Colaboradores        |
-|  [Multi-select]    |  [Multi-select]|  [MultiPersonSelector]|
-+------------------------------------------------------------+
+Empresa (Owner/CEO)
+    |
+    +-- Departamento 1 (Lider do Departamento)
+    |       |
+    |       +-- Equipe 1.1 (Lider da Equipe)
+    |       |       +-- Membro A
+    |       |       +-- Membro B
+    |       |
+    |       +-- Equipe 1.2 (Lider da Equipe)
+    |               +-- Membro C
+    |
+    +-- Departamento 2 (Lider do Departamento)
+            |
+            +-- Equipe 2.1 (Lider da Equipe)
+                    +-- Membro D
 ```
 
-#### 2. Atualizar `useNPSSurveys.ts`
+### Mudancas no Frontend
 
-**Atualizar interfaces:**
+#### 1. Novo Componente: `OrgChartNode.tsx`
+
+Componente recursivo que renderiza cada no do organograma:
+
 ```typescript
-export interface NPSSurvey {
-  // ... campos existentes
-  target_users: string[];  // Novo campo
+interface OrgChartNodeProps {
+  name: string;
+  role: string;
+  avatarUrl?: string;
+  color?: string;
+  children?: React.ReactNode;
+  hasChildren?: boolean;
+  isExpanded?: boolean;
+  onToggle?: () => void;
+  level: number;
+}
+```
+
+**Caracteristicas:**
+- Avatar do colaborador/lider
+- Nome e cargo/funcao
+- Icone de expandir/colapsar (ChevronDown/ChevronRight)
+- Linhas conectoras visuais (CSS)
+- Animacao suave ao expandir/colapsar
+- Cores diferenciadas por nivel hierarquico
+
+#### 2. Novo Componente: `OrganizationChart.tsx`
+
+Componente principal que gerencia todo o organograma:
+
+**Estados:**
+- `expandedNodes: Set<string>` - IDs dos nos expandidos
+- `viewMode: 'vertical' | 'horizontal'` - Layout do organograma
+
+**Funcoes:**
+- `toggleNode(nodeId: string)` - Expande/colapsa um no
+- `expandAll()` - Expande todos os nos
+- `collapseAll()` - Colapsa todos os nos
+- `buildHierarchy()` - Constroi a arvore de dados
+
+**Layout:**
+- Botoes para expandir/colapsar tudo
+- Botao para alternar entre layout vertical/horizontal
+- Area scrollavel para organogramas grandes
+
+#### 3. Novo Hook: `useOrganizationHierarchy.ts`
+
+Hook que busca e organiza os dados para o organograma:
+
+```typescript
+interface HierarchyNode {
+  id: string;
+  type: 'company' | 'department' | 'team' | 'member';
+  name: string;
+  role: string;
+  avatarUrl?: string;
+  color?: string;
+  children: HierarchyNode[];
 }
 
-export interface CreateNPSSurveyInput {
-  // ... campos existentes
-  target_users: string[];  // Novo campo
+function useOrganizationHierarchy() {
+  // Retorna a arvore hierarquica completa
 }
 ```
 
-**Atualizar lógica de `useActiveNPSSurveys`:**
+**Logica de construcao:**
+1. Buscar owner/admin da empresa (topo da hierarquia)
+2. Buscar departamentos com seus lideres
+3. Para cada departamento, buscar equipes vinculadas
+4. Para cada equipe, buscar membros com suas funcoes (leader/member)
+5. Agrupar membros sem departamento/equipe
 
-A query de pesquisas ativas precisa considerar também se o usuário está na lista `target_users`:
+#### 4. Atualizar `People.tsx`
 
-```typescript
-// Filtrar pesquisas onde:
-// 1. target_all = true (toda empresa), OU
-// 2. usuário pertence a um departamento em target_departments, OU
-// 3. usuário pertence a uma equipe em target_teams, OU
-// 4. usuário está em target_users (NOVO)
-```
-
-Como a lógica de verificar departamento/equipe é complexa e já está funcionando no frontend, a implementação mais simples é:
-- Retornar pesquisas ativas onde `target_all = true` OU `target_users` contém o user_id
-- A filtragem por departamento/equipe continua como está
-
-#### 3. Atualizar `handleSubmit` no `CreateNPSSurveyCard`
+Adicionar nova tab "Organograma":
 
 ```typescript
-await createSurvey.mutateAsync({
-  // ... campos existentes
-  target_users: targetAll ? [] : selectedUsers,  // Novo campo
-});
+<TabsList>
+  <TabsTrigger value="collaborators">Colaboradores</TabsTrigger>
+  <TabsTrigger value="orgchart">Organograma</TabsTrigger>  {/* NOVO */}
+  {isAdmin && (
+    <>
+      <TabsTrigger value="feedback">Feedback 30 Dias</TabsTrigger>
+      <TabsTrigger value="nps">NPS</TabsTrigger>
+    </>
+  )}
+</TabsList>
+
+<TabsContent value="orgchart">
+  <OrganizationChart />
+</TabsContent>
 ```
 
-### Fluxo de Uso
+### Design Visual do Organograma
 
-1. Admin desmarca "Enviar para toda a empresa"
-2. Agora pode selecionar:
-   - Departamentos específicos
-   - Equipes específicas
-   - **Colaboradores individuais** (novo)
-3. Colaboradores selecionados aparecem como badges com opção de remover
-4. Ao criar a pesquisa, os IDs são salvos em `target_users`
-5. A pesquisa aparece para esses usuários específicos
+```text
++------------------------------------------------------------------+
+|  [Expandir Tudo] [Colapsar Tudo]  [Vertical | Horizontal]        |
++------------------------------------------------------------------+
+|                                                                   |
+|                    +------------------+                           |
+|                    | [Avatar]         |                           |
+|                    | Andrey Lopes     |                           |
+|                    | Owner            |                           |
+|                    +--------+---------+                           |
+|                             |                                     |
+|              +--------------+---------------+                     |
+|              |                              |                     |
+|     +--------+--------+            +--------+--------+            |
+|     | [Avatar]        |            | [Avatar]        |            |
+|     | Engenharia [v]  |            | Marketing  [v]  |            |
+|     | Joao Silva      |            | Maria Santos    |            |
+|     +--------+--------+            +--------+--------+            |
+|              |                              |                     |
+|       +------+------+                +------+------+              |
+|       |             |                |             |              |
+|   +---+---+     +---+---+        +---+---+     +---+---+          |
+|   |Backend|     |Frontend|       | Social|     |Content|          |
+|   +---+---+     +---+---+        +---+---+     +---+---+          |
+|       |             |                |             |              |
+|   [Members]     [Members]        [Members]     [Members]          |
+|                                                                   |
++------------------------------------------------------------------+
+```
 
-### Seção Técnica
+### CSS/Tailwind para Linhas Conectoras
+
+O componente usara pseudo-elementos CSS para criar as linhas:
+
+```css
+/* Linha vertical conectando ao pai */
+.org-node::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  height: 20px;
+  border-left: 2px solid var(--border);
+}
+
+/* Linha horizontal conectando irmaos */
+.org-children::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  border-top: 2px solid var(--border);
+}
+```
+
+### Estados de Interacao
+
+1. **Hover**: Destaque no card do no
+2. **Clique no icone de expandir**: Mostra/esconde filhos com animacao
+3. **Clique no card**: Abre modal com detalhes do colaborador (futuro)
+
+### Secao Tecnica
+
+**Arquivos a criar:**
+
+1. `src/hooks/useOrganizationHierarchy.ts` - Hook para buscar e estruturar dados
+2. `src/components/people/OrgChartNode.tsx` - Componente de no individual
+3. `src/components/people/OrganizationChart.tsx` - Componente principal do organograma
 
 **Arquivos a modificar:**
 
-1. **Migração SQL** - Adicionar coluna `target_users` na tabela `nps_surveys`
+1. `src/pages/People.tsx` - Adicionar tab Organograma
 
-2. **`src/hooks/useNPSSurveys.ts`**:
-   - Adicionar `target_users` às interfaces `NPSSurvey` e `CreateNPSSurveyInput`
-   - Atualizar `useActiveNPSSurveys` para incluir pesquisas onde o usuário está em `target_users`
+**Dependencias:**
+- Usa componentes existentes: Avatar, Card, Button, Collapsible
+- Nao requer bibliotecas externas
+- CSS puro para linhas conectoras
 
-3. **`src/components/surveys/CreateNPSSurveyCard.tsx`**:
-   - Importar `MultiPersonSelector` do objectives
-   - Adicionar estado `selectedUsers`
-   - Adicionar seção de seleção de colaboradores no formulário
-   - Incluir `target_users` no submit
+**Queries necessarias:**
 
-**Lógica de visibilidade da pesquisa:**
+```sql
+-- Buscar hierarquia completa
+-- 1. Owner da empresa
+SELECT u.*, ur.role FROM users u 
+JOIN user_roles ur ON ur.user_id = u.id 
+WHERE ur.company_id = ? AND ur.role = 'owner';
 
-O colaborador verá a pesquisa se qualquer uma dessas condições for verdadeira:
-- `target_all = true`
-- Seu `department_id` está em `target_departments`
-- Ele pertence a uma equipe cujo ID está em `target_teams`
-- Seu `user_id` está em `target_users` (nova condição)
+-- 2. Departamentos com lideres
+SELECT d.*, u.full_name, u.avatar_url 
+FROM departments d 
+LEFT JOIN users u ON u.id = d.leader_id
+WHERE d.company_id = ?;
 
-### Componente Visual Final
+-- 3. Equipes por departamento com lideres
+SELECT t.*, tm.user_id as leader_id, u.full_name, u.avatar_url
+FROM teams t
+LEFT JOIN team_members tm ON tm.team_id = t.id AND tm.role = 'leader'
+LEFT JOIN users u ON u.id = tm.user_id
+WHERE t.company_id = ?;
 
-```text
-+----------------------------------------------------------+
-| E-NPS | Employee Net Promoter Score                       |
-+----------------------------------------------------------+
-|                                                          |
-| [x] Enviar para toda a empresa                           |
-|                                                          |
-| OU (quando desmarcado):                                  |
-|                                                          |
-| Departamentos      | Equipes          | Colaboradores    |
-| [Eng] [RH] [MKT]  | [Dev] [QA]       | [Seletor Multi]  |
-|                   |                   | João ✕          |
-|                   |                   | Maria ✕         |
-|                                                          |
-| Data de Encerramento: [Date Picker]                      |
-|                                                          |
-|                                      [Criar Pesquisa]    |
-+----------------------------------------------------------+
+-- 4. Membros por equipe
+SELECT tm.*, u.full_name, u.avatar_url, u.email
+FROM team_members tm
+JOIN users u ON u.id = tm.user_id
+WHERE tm.team_id = ?;
+
+-- 5. Membros sem equipe (por departamento)
+SELECT cm.*, u.full_name, u.avatar_url
+FROM company_memberships cm
+JOIN users u ON u.id = cm.user_id
+WHERE cm.company_id = ? AND cm.department_id = ?
+AND cm.user_id NOT IN (SELECT user_id FROM team_members);
 ```
+
+**Performance:**
+- Lazy loading: Filhos sao carregados apenas quando o no e expandido
+- Cache com React Query
+- Virtualizacao para empresas muito grandes (futuro)
+
+### Fluxo de Uso
+
+1. Usuario acessa a pagina Pessoas
+2. Clica na tab "Organograma"
+3. Ve o owner/CEO no topo
+4. Clica em um departamento para expandir e ver as equipes
+5. Clica em uma equipe para ver os membros
+6. Pode usar "Expandir Tudo" para ver a estrutura completa
+7. Pode usar "Colapsar Tudo" para resetar a visualizacao
 
