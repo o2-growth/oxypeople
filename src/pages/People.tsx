@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -14,89 +14,100 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, UserPlus, MoreHorizontal, Users, ClipboardList, BarChart3 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Search,
+  UserPlus,
+  MoreHorizontal,
+  Users,
+  ClipboardList,
+  BarChart3,
+  Loader2,
+  UserX,
+  UserCheck,
+  Mail,
+} from "lucide-react";
 import { InviteModal } from "@/components/company/InviteModal";
 import { FeedbackTab } from "@/components/people/FeedbackTab";
 import { NPSTab } from "@/components/people/NPSTab";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import {
+  usePeopleList,
+  usePeopleStats,
+  useInviteMember,
+  useUpdateMemberStatus,
+} from "@/hooks/usePeopleList";
 
-const people = [
-  {
-    id: 1,
-    name: "Ana Silva",
-    email: "ana.silva@empresa.com",
-    role: "Head de Produto",
-    department: "Produto",
-    status: "active",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ana",
-  },
-  {
-    id: 2,
-    name: "Carlos Oliveira",
-    email: "carlos.oliveira@empresa.com",
-    role: "Desenvolvedor Sênior",
-    department: "Tecnologia",
-    status: "active",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos",
-  },
-  {
-    id: 3,
-    name: "Maria Costa",
-    email: "maria.costa@empresa.com",
-    role: "UX Designer",
-    department: "Design",
-    status: "active",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Maria",
-  },
-  {
-    id: 4,
-    name: "Pedro Santos",
-    email: "pedro.santos@empresa.com",
-    role: "Gerente de Vendas",
-    department: "Comercial",
-    status: "active",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Pedro",
-  },
-  {
-    id: 5,
-    name: "Beatriz Ferreira",
-    email: "beatriz.ferreira@empresa.com",
-    role: "Analista de RH",
-    department: "Pessoas",
-    status: "away",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Beatriz",
-  },
-  {
-    id: 6,
-    name: "João Lima",
-    email: "joao.lima@empresa.com",
-    role: "Desenvolvedor Pleno",
-    department: "Tecnologia",
-    status: "active",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Joao",
-  },
-];
+const statusLabels: Record<string, string> = {
+  active: "Ativo",
+  invited: "Convidado",
+  pending: "Pendente",
+  inactive: "Inativo",
+};
 
-const departmentColors: Record<string, string> = {
-  Produto: "bg-primary/10 text-primary border-primary/20",
-  Tecnologia: "bg-accent/10 text-accent border-accent/20",
-  Design: "bg-warning/10 text-warning border-warning/20",
-  Comercial: "bg-success/10 text-success border-success/20",
-  Pessoas: "bg-destructive/10 text-destructive border-destructive/20",
+const statusColors: Record<string, string> = {
+  active: "bg-success/10 text-success border-success/20",
+  invited: "bg-accent/10 text-accent border-accent/20",
+  pending: "bg-warning/10 text-warning border-warning/20",
+  inactive: "bg-muted text-muted-foreground",
+};
+
+const roleLabels: Record<string, string> = {
+  owner: "Proprietário",
+  admin: "Admin",
+  manager: "Gestor",
+  member: "Membro",
 };
 
 const People = () => {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("collaborators");
-  const { isAdmin } = useUserPermissions();
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const handleInvite = (emails: string[], role: string, newHireData?: {
-    isNewHire: boolean;
-    hireDate?: Date;
-    employmentType?: string;
-  }) => {
-    console.log("Inviting:", { emails, role, newHireData });
-    // TODO: Implement actual invite logic with backend
+  const { isAdmin } = useUserPermissions();
+  const { data: people, isLoading: isLoadingPeople } = usePeopleList();
+  const { data: stats, isLoading: isLoadingStats } = usePeopleStats();
+  const inviteMember = useInviteMember();
+  const updateStatus = useUpdateMemberStatus();
+
+  const filteredPeople = useMemo(() => {
+    if (!people) return [];
+    if (!searchQuery.trim()) return people;
+
+    const query = searchQuery.toLowerCase();
+    return people.filter(
+      (person) =>
+        person.user?.full_name?.toLowerCase().includes(query) ||
+        person.user?.email?.toLowerCase().includes(query) ||
+        person.position?.toLowerCase().includes(query) ||
+        person.department_info?.name?.toLowerCase().includes(query)
+    );
+  }, [people, searchQuery]);
+
+  const handleInvite = (
+    emails: string[],
+    role: string,
+    newHireData?: {
+      isNewHire: boolean;
+      hireDate?: Date;
+      employmentType?: string;
+    }
+  ) => {
+    inviteMember.mutate({ emails, role, newHireData });
+  };
+
+  const handleToggleStatus = (
+    membershipId: string,
+    currentStatus: string
+  ) => {
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+    updateStatus.mutate({ membershipId, status: newStatus });
   };
 
   return (
@@ -110,13 +121,15 @@ const People = () => {
               Gerencie os colaboradores da sua empresa
             </p>
           </div>
-          <Button 
-            className="gap-2 bg-gradient-primary hover:opacity-90 transition-opacity"
-            onClick={() => setInviteModalOpen(true)}
-          >
-            <UserPlus className="h-4 w-4" />
-            Convidar Pessoa
-          </Button>
+          {isAdmin && (
+            <Button
+              className="gap-2 bg-gradient-primary hover:opacity-90 transition-opacity"
+              onClick={() => setInviteModalOpen(true)}
+            >
+              <UserPlus className="h-4 w-4" />
+              Convidar Pessoa
+            </Button>
+          )}
         </div>
 
         {/* Stats Cards */}
@@ -126,7 +139,13 @@ const People = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total</p>
-                  <p className="text-2xl font-bold">248</p>
+                  <p className="text-2xl font-bold">
+                    {isLoadingStats ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      stats?.total || 0
+                    )}
+                  </p>
                 </div>
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <span className="text-lg">👥</span>
@@ -139,7 +158,13 @@ const People = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Ativos</p>
-                  <p className="text-2xl font-bold">235</p>
+                  <p className="text-2xl font-bold">
+                    {isLoadingStats ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      stats?.active || 0
+                    )}
+                  </p>
                 </div>
                 <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
                   <span className="text-lg">✅</span>
@@ -152,7 +177,13 @@ const People = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Novos este mês</p>
-                  <p className="text-2xl font-bold">12</p>
+                  <p className="text-2xl font-bold">
+                    {isLoadingStats ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      stats?.newThisMonth || 0
+                    )}
+                  </p>
                 </div>
                 <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
                   <span className="text-lg">🆕</span>
@@ -165,7 +196,13 @@ const People = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Departamentos</p>
-                  <p className="text-2xl font-bold">8</p>
+                  <p className="text-2xl font-bold">
+                    {isLoadingStats ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      stats?.departments || 0
+                    )}
+                  </p>
                 </div>
                 <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
                   <span className="text-lg">🏢</span>
@@ -201,81 +238,187 @@ const People = () => {
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <CardTitle className="text-lg font-heading">Colaboradores</CardTitle>
+                  <CardTitle className="text-lg font-heading">
+                    Colaboradores
+                  </CardTitle>
                   <div className="relative w-full sm:w-80">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       placeholder="Buscar por nome, email ou cargo..."
                       className="pl-10"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="rounded-lg border overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead>Colaborador</TableHead>
-                        <TableHead>Cargo</TableHead>
-                        <TableHead>Departamento</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-[50px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {people.map((person) => (
-                        <TableRow key={person.id} className="hover:bg-muted/30">
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={person.avatar} alt={person.name} />
-                                <AvatarFallback>
-                                  {person.name
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">{person.name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {person.email}
-                                </p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>{person.role}</TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={departmentColors[person.department] || ""}
-                            >
-                              {person.department}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={
-                                person.status === "active"
-                                  ? "bg-success/10 text-success border-success/20"
-                                  : "bg-warning/10 text-warning border-warning/20"
-                              }
-                            >
-                              {person.status === "active" ? "Ativo" : "Ausente"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
+                {isLoadingPeople ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : filteredPeople.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-medium mb-2">
+                      {searchQuery
+                        ? "Nenhum resultado encontrado"
+                        : "Nenhum colaborador"}
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {searchQuery
+                        ? "Tente buscar por outro termo"
+                        : "Convide membros para começar"}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead>Colaborador</TableHead>
+                          <TableHead>Cargo</TableHead>
+                          <TableHead>Departamento</TableHead>
+                          <TableHead>Função</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredPeople.map((person) => {
+                          const initials =
+                            person.user?.full_name
+                              ?.split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .slice(0, 2) || "?";
+
+                          return (
+                            <TableRow
+                              key={person.id}
+                              className="hover:bg-muted/30"
+                            >
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-10 w-10">
+                                    <AvatarImage
+                                      src={person.user?.avatar_url || undefined}
+                                      alt={person.user?.full_name || ""}
+                                    />
+                                    <AvatarFallback>{initials}</AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <p className="font-medium">
+                                      {person.user?.full_name || "Sem nome"}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {person.user?.email}
+                                    </p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {person.position || (
+                                  <span className="text-muted-foreground">
+                                    —
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {person.department_info ? (
+                                  <Badge
+                                    variant="outline"
+                                    style={{
+                                      backgroundColor: `${person.department_info.color}15`,
+                                      color: person.department_info.color || undefined,
+                                      borderColor: `${person.department_info.color}30`,
+                                    }}
+                                  >
+                                    {person.department_info.name}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">
+                                    —
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <span className="text-sm">
+                                  {roleLabels[person.role || "member"]}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    statusColors[person.status] || ""
+                                  }
+                                >
+                                  {statusLabels[person.status] || person.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {isAdmin && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                      >
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          window.open(
+                                            `mailto:${person.user?.email}`,
+                                            "_blank"
+                                          )
+                                        }
+                                      >
+                                        <Mail className="h-4 w-4 mr-2" />
+                                        Enviar email
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      {person.status === "active" ? (
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleToggleStatus(
+                                              person.id,
+                                              person.status
+                                            )
+                                          }
+                                          className="text-destructive"
+                                        >
+                                          <UserX className="h-4 w-4 mr-2" />
+                                          Desativar
+                                        </DropdownMenuItem>
+                                      ) : (
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleToggleStatus(
+                                              person.id,
+                                              person.status
+                                            )
+                                          }
+                                        >
+                                          <UserCheck className="h-4 w-4 mr-2" />
+                                          Ativar
+                                        </DropdownMenuItem>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
