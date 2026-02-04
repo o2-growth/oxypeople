@@ -32,10 +32,12 @@ import {
   UserX,
   UserCheck,
   Mail,
+  Network,
 } from "lucide-react";
 import { InviteModal } from "@/components/company/InviteModal";
 import { FeedbackTab } from "@/components/people/FeedbackTab";
 import { NPSTab } from "@/components/people/NPSTab";
+import { OrganizationChart } from "@/components/people/OrganizationChart";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import {
   usePeopleList,
@@ -218,6 +220,10 @@ const People = () => {
             <TabsTrigger value="collaborators" className="gap-2">
               <Users className="h-4 w-4" />
               Colaboradores
+            </TabsTrigger>
+            <TabsTrigger value="orgchart" className="gap-2">
+              <Network className="h-4 w-4" />
+              Organograma
             </TabsTrigger>
             {isAdmin && (
               <>
@@ -421,6 +427,10 @@ const People = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="orgchart">
+            <OrganizationChart />
           </TabsContent>
 
           <TabsContent value="feedback">
