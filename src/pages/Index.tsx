@@ -67,7 +67,7 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <div className="p-6 lg:p-8 space-y-8">
+      <div className="space-y-8">
         {/* Welcome Section */}
         <div className="space-y-2">
           <h1 className="text-3xl font-heading font-bold tracking-tight">

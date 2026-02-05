@@ -46,7 +46,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <PendingFeedbackBanner />
           
           {/* Main Content */}
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 overflow-auto p-6 lg:p-8">
             {children}
           </main>
         </SidebarInset>
