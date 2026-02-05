@@ -45,10 +45,17 @@ export function RecognitionCard({
   points,
   createdAt,
 }: RecognitionCardProps) {
-  const timeAgo = formatDistanceToNow(new Date(createdAt), {
-    addSuffix: true,
-    locale: ptBR,
-  });
+  const getTimeAgo = () => {
+    try {
+      const date = new Date(createdAt);
+      if (isNaN(date.getTime())) return "Data inválida";
+      return formatDistanceToNow(date, { addSuffix: true, locale: ptBR });
+    } catch {
+      return "Data inválida";
+    }
+  };
+  
+  const timeAgo = getTimeAgo();
 
   return (
     <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg">
