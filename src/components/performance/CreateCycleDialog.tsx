@@ -34,7 +34,7 @@ import type { CreateCycleInput, PerformanceCycleType } from "@/hooks/usePerforma
 const formSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   description: z.string().optional(),
-  type: z.enum(["self", "180", "360", "leader", "custom"]),
+  type: z.enum(["full", "pocket", "self", "180", "360", "leader", "custom"]),
   start_date: z.string().min(1, "Data de início é obrigatória"),
   end_date: z.string().min(1, "Data de término é obrigatória"),
   target_all: z.boolean().default(false),
@@ -50,6 +50,8 @@ interface CreateCycleDialogProps {
 }
 
 const cycleTypes: { value: PerformanceCycleType; label: string; description: string }[] = [
+  { value: "full", label: "Full", description: "Autoavaliação + Gestor + Calibragem + Feedback" },
+  { value: "pocket", label: "Pocket", description: "Avaliação do Gestor + Feedback" },
   { value: "self", label: "Autoavaliação", description: "Colaborador avalia a si mesmo" },
   { value: "180", label: "180°", description: "Gestor avalia liderado + Autoavaliação" },
   { value: "360", label: "360°", description: "Gestor + Pares + Auto + Liderados" },
@@ -68,7 +70,7 @@ export function CreateCycleDialog({
     defaultValues: {
       name: "",
       description: "",
-      type: "180",
+      type: "full",
       start_date: "",
       end_date: "",
       target_all: true,
