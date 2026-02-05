@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "@/hooks/useUser";
 import { toast } from "sonner";
 
-export type PerformanceCycleType = "self" | "180" | "360" | "leader" | "custom";
+export type PerformanceCycleType = "full" | "pocket" | "self" | "180" | "360" | "leader" | "custom";
 export type PerformanceCycleStatus = "draft" | "scheduled" | "active" | "completed" | "cancelled";
 
 export interface PerformanceCycle {

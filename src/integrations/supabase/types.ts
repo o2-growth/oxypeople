@@ -1698,7 +1698,14 @@ export type Database = {
         | "active"
         | "completed"
         | "cancelled"
-      performance_cycle_type: "self" | "180" | "360" | "leader" | "custom"
+      performance_cycle_type:
+        | "self"
+        | "180"
+        | "360"
+        | "leader"
+        | "custom"
+        | "full"
+        | "pocket"
       post_visibility: "public" | "company" | "private"
       question_type:
         | "text"
@@ -1849,7 +1856,15 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
-      performance_cycle_type: ["self", "180", "360", "leader", "custom"],
+      performance_cycle_type: [
+        "self",
+        "180",
+        "360",
+        "leader",
+        "custom",
+        "full",
+        "pocket",
+      ],
       post_visibility: ["public", "company", "private"],
       question_type: [
         "text",

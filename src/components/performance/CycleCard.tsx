@@ -31,6 +31,8 @@ const statusConfig: Record<PerformanceCycleStatus, { label: string; variant: "de
 };
 
 const typeLabels: Record<PerformanceCycleType, string> = {
+  full: "Full",
+  pocket: "Pocket",
   self: "Autoavaliação",
   "180": "180°",
   "360": "360°",
