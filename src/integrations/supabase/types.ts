@@ -945,6 +945,235 @@ export type Database = {
           },
         ]
       }
+      performance_answers: {
+        Row: {
+          answer: Json
+          created_at: string
+          evaluation_id: string
+          id: string
+          question_id: string
+          score: number | null
+        }
+        Insert: {
+          answer: Json
+          created_at?: string
+          evaluation_id: string
+          id?: string
+          question_id: string
+          score?: number | null
+        }
+        Update: {
+          answer?: Json
+          created_at?: string
+          evaluation_id?: string
+          id?: string
+          question_id?: string
+          score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_answers_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "performance_evaluations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "performance_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_cycles: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          end_date: string
+          id: string
+          name: string
+          start_date: string
+          status: Database["public"]["Enums"]["performance_cycle_status"]
+          target_all: boolean | null
+          target_departments: string[] | null
+          target_teams: string[] | null
+          target_users: string[] | null
+          type: Database["public"]["Enums"]["performance_cycle_type"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          end_date: string
+          id?: string
+          name: string
+          start_date: string
+          status?: Database["public"]["Enums"]["performance_cycle_status"]
+          target_all?: boolean | null
+          target_departments?: string[] | null
+          target_teams?: string[] | null
+          target_users?: string[] | null
+          type?: Database["public"]["Enums"]["performance_cycle_type"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          name?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["performance_cycle_status"]
+          target_all?: boolean | null
+          target_departments?: string[] | null
+          target_teams?: string[] | null
+          target_users?: string[] | null
+          type?: Database["public"]["Enums"]["performance_cycle_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_cycles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_cycles_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_evaluations: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          cycle_id: string
+          due_date: string
+          evaluated_id: string
+          evaluator_id: string
+          id: string
+          overall_score: number | null
+          relationship: string
+          status: Database["public"]["Enums"]["evaluation_status"]
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          cycle_id: string
+          due_date: string
+          evaluated_id: string
+          evaluator_id: string
+          id?: string
+          overall_score?: number | null
+          relationship: string
+          status?: Database["public"]["Enums"]["evaluation_status"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          cycle_id?: string
+          due_date?: string
+          evaluated_id?: string
+          evaluator_id?: string
+          id?: string
+          overall_score?: number | null
+          relationship?: string
+          status?: Database["public"]["Enums"]["evaluation_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_evaluations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_evaluations_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "performance_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_evaluations_evaluated_id_fkey"
+            columns: ["evaluated_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_evaluations_evaluator_id_fkey"
+            columns: ["evaluator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_questions: {
+        Row: {
+          category: string | null
+          created_at: string
+          cycle_id: string
+          id: string
+          options: Json | null
+          order_index: number
+          question_text: string
+          question_type: Database["public"]["Enums"]["question_type"]
+          required: boolean
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          cycle_id: string
+          id?: string
+          options?: Json | null
+          order_index?: number
+          question_text: string
+          question_type?: Database["public"]["Enums"]["question_type"]
+          required?: boolean
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          cycle_id?: string
+          id?: string
+          options?: Json | null
+          order_index?: number
+          question_text?: string
+          question_type?: Database["public"]["Enums"]["question_type"]
+          required?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_questions_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "performance_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           author_id: string
@@ -1458,10 +1687,18 @@ export type Database = {
       announcement_type: "event" | "info" | "urgent" | "celebration"
       automation_log_status: "success" | "failed" | "pending"
       automation_type: "birthday" | "anniversary" | "new_hire" | "reminder"
+      evaluation_status: "pending" | "in_progress" | "completed" | "expired"
       membership_role: "owner" | "admin" | "manager" | "member"
       membership_status: "active" | "invited" | "pending" | "inactive"
       objective_status: "on-track" | "at-risk" | "off-track" | "completed"
       objective_type: "personal" | "team" | "individual"
+      performance_cycle_status:
+        | "draft"
+        | "scheduled"
+        | "active"
+        | "completed"
+        | "cancelled"
+      performance_cycle_type: "self" | "180" | "360" | "leader" | "custom"
       post_visibility: "public" | "company" | "private"
       question_type:
         | "text"
@@ -1600,10 +1837,19 @@ export const Constants = {
       announcement_type: ["event", "info", "urgent", "celebration"],
       automation_log_status: ["success", "failed", "pending"],
       automation_type: ["birthday", "anniversary", "new_hire", "reminder"],
+      evaluation_status: ["pending", "in_progress", "completed", "expired"],
       membership_role: ["owner", "admin", "manager", "member"],
       membership_status: ["active", "invited", "pending", "inactive"],
       objective_status: ["on-track", "at-risk", "off-track", "completed"],
       objective_type: ["personal", "team", "individual"],
+      performance_cycle_status: [
+        "draft",
+        "scheduled",
+        "active",
+        "completed",
+        "cancelled",
+      ],
+      performance_cycle_type: ["self", "180", "360", "leader", "custom"],
       post_visibility: ["public", "company", "private"],
       question_type: [
         "text",

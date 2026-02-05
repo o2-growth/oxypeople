@@ -13,6 +13,7 @@ import {
   Sparkles,
   Zap,
   UsersRound,
+  ClipboardCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -46,6 +47,7 @@ const mainNavItems = [
 const engagementItems = [
   { title: "Reconhecimentos", url: "/recognition", icon: Trophy },
   { title: "Objetivos", url: "/objectives", icon: Target },
+  { title: "Desempenho", url: "/performance", icon: ClipboardCheck },
   { title: "Pesquisas", url: "/surveys", icon: BarChart3 },
 ];
 
