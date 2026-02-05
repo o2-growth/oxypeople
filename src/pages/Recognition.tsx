@@ -3,56 +3,43 @@ import { RecognitionCard } from "@/components/recognition/RecognitionCard";
 import { SendRecognition } from "@/components/recognition/SendRecognition";
 import { Leaderboard } from "@/components/recognition/Leaderboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Send, Inbox } from "lucide-react";
+import { Trophy, Send, Inbox, Award } from "lucide-react";
+import { useRecognitions } from "@/hooks/useRecognitions";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const mockRecognitions = [
-  {
-    id: "1",
-    fromUser: { name: "Carlos Santos", avatar: "", initials: "CS" },
-    toUser: { name: "Ana Silva", avatar: "", initials: "AS" },
-    message: "Excelente trabalho na apresentação do projeto! Sua dedicação e criatividade fizeram toda a diferença.",
-    badge: { name: "Excelência", icon: "🏆", color: "#ef4444" },
-    points: 25,
-    createdAt: "Há 2 horas",
-    likes: 12,
-    comments: 3,
-  },
-  {
-    id: "2",
-    fromUser: { name: "Maria Oliveira", avatar: "", initials: "MO" },
-    toUser: { name: "João Pereira", avatar: "", initials: "JP" },
-    message: "Obrigada por me ajudar a resolver aquele problema complexo. Sua paciência e conhecimento técnico são inspiradores!",
-    badge: { name: "Colaboração", icon: "🤝", color: "#10b981" },
-    points: 10,
-    createdAt: "Há 5 horas",
-    likes: 8,
-    comments: 2,
-  },
-  {
-    id: "3",
-    fromUser: { name: "Fernanda Lima", avatar: "", initials: "FL" },
-    toUser: { name: "Carlos Santos", avatar: "", initials: "CS" },
-    message: "Sua ideia para automatizar o processo de relatórios foi brilhante! Economizou horas de trabalho para toda a equipe.",
-    badge: { name: "Inovação", icon: "💡", color: "#f59e0b" },
-    points: 15,
-    createdAt: "Ontem",
-    likes: 15,
-    comments: 5,
-  },
-  {
-    id: "4",
-    fromUser: { name: "Ana Silva", avatar: "", initials: "AS" },
-    toUser: { name: "Maria Oliveira", avatar: "", initials: "MO" },
-    message: "Você liderou o projeto com maestria! Inspirou toda a equipe a dar o seu melhor.",
-    badge: { name: "Liderança", icon: "🌟", color: "#8b5cf6" },
-    points: 20,
-    createdAt: "2 dias atrás",
-    likes: 20,
-    comments: 7,
-  },
-];
+function RecognitionSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="rounded-lg border p-6 space-y-4">
+          <div className="flex items-start gap-4">
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="text-center py-12">
+      <Award className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
+      <p className="text-muted-foreground">{message}</p>
+    </div>
+  );
+}
 
 export default function Recognition() {
+  const { recognitions, received, sent, isLoading, isLoadingReceived, isLoadingSent } =
+    useRecognitions();
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -69,7 +56,7 @@ export default function Recognition() {
           {/* Feed de Reconhecimentos */}
           <div className="lg:col-span-2 space-y-6">
             <SendRecognition />
-            
+
             <Tabs defaultValue="all" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="all" className="gap-2">
@@ -85,23 +72,68 @@ export default function Recognition() {
                   Enviados
                 </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="all" className="mt-6 space-y-4">
-                {mockRecognitions.map((recognition) => (
-                  <RecognitionCard key={recognition.id} {...recognition} />
-                ))}
+                {isLoading ? (
+                  <RecognitionSkeleton />
+                ) : recognitions.length > 0 ? (
+                  recognitions.map((recognition) => (
+                    <RecognitionCard
+                      key={recognition.id}
+                      id={recognition.id}
+                      fromUser={recognition.from_user}
+                      toUser={recognition.to_user}
+                      message={recognition.message}
+                      badge={recognition.badge}
+                      points={recognition.points}
+                      createdAt={recognition.created_at}
+                    />
+                  ))
+                ) : (
+                  <EmptyState message="Nenhum reconhecimento ainda. Seja o primeiro a reconhecer um colega!" />
+                )}
               </TabsContent>
-              
+
               <TabsContent value="received" className="mt-6 space-y-4">
-                {mockRecognitions.slice(0, 2).map((recognition) => (
-                  <RecognitionCard key={recognition.id} {...recognition} />
-                ))}
+                {isLoadingReceived ? (
+                  <RecognitionSkeleton />
+                ) : received.length > 0 ? (
+                  received.map((recognition) => (
+                    <RecognitionCard
+                      key={recognition.id}
+                      id={recognition.id}
+                      fromUser={recognition.from_user}
+                      toUser={recognition.to_user}
+                      message={recognition.message}
+                      badge={recognition.badge}
+                      points={recognition.points}
+                      createdAt={recognition.created_at}
+                    />
+                  ))
+                ) : (
+                  <EmptyState message="Você ainda não recebeu nenhum reconhecimento." />
+                )}
               </TabsContent>
-              
+
               <TabsContent value="sent" className="mt-6 space-y-4">
-                {mockRecognitions.slice(2).map((recognition) => (
-                  <RecognitionCard key={recognition.id} {...recognition} />
-                ))}
+                {isLoadingSent ? (
+                  <RecognitionSkeleton />
+                ) : sent.length > 0 ? (
+                  sent.map((recognition) => (
+                    <RecognitionCard
+                      key={recognition.id}
+                      id={recognition.id}
+                      fromUser={recognition.from_user}
+                      toUser={recognition.to_user}
+                      message={recognition.message}
+                      badge={recognition.badge}
+                      points={recognition.points}
+                      createdAt={recognition.created_at}
+                    />
+                  ))
+                ) : (
+                  <EmptyState message="Você ainda não enviou nenhum reconhecimento." />
+                )}
               </TabsContent>
             </Tabs>
           </div>

@@ -2,14 +2,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Award } from "lucide-react";
+import { useTopRecognized } from "@/hooks/useTopRecognized";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const leaderboardData = [
-  { id: "1", name: "Ana Silva", initials: "AS", points: 450, recognitions: 23, position: 1 },
-  { id: "2", name: "Carlos Santos", initials: "CS", points: 380, recognitions: 19, position: 2 },
-  { id: "3", name: "Maria Oliveira", initials: "MO", points: 320, recognitions: 16, position: 3 },
-  { id: "4", name: "João Pereira", initials: "JP", points: 280, recognitions: 14, position: 4 },
-  { id: "5", name: "Fernanda Lima", initials: "FL", points: 240, recognitions: 12, position: 5 },
-];
+function getInitials(name: string | null): string {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 function getPositionIcon(position: number) {
   switch (position) {
@@ -38,6 +42,8 @@ function getPositionStyle(position: number) {
 }
 
 export function Leaderboard() {
+  const { data: topUsers, isLoading } = useTopRecognized(5);
+
   return (
     <Card>
       <CardHeader className="pb-4">
@@ -47,32 +53,55 @@ export function Leaderboard() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {leaderboardData.map((user) => (
-          <div
-            key={user.id}
-            className={`flex items-center gap-3 p-3 rounded-lg border transition-all hover:shadow-sm ${getPositionStyle(user.position)}`}
-          >
-            <div className="flex items-center justify-center w-8">
-              {getPositionIcon(user.position)}
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 p-3">
+              <Skeleton className="h-5 w-5 rounded-full" />
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+              <Skeleton className="h-6 w-12" />
             </div>
-            
-            <Avatar className="h-10 w-10">
-              <AvatarImage src="" />
-              <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                {user.initials}
-              </AvatarFallback>
-            </Avatar>
-            
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-foreground truncate">{user.name}</p>
-              <p className="text-xs text-muted-foreground">{user.recognitions} reconhecimentos</p>
+          ))
+        ) : topUsers && topUsers.length > 0 ? (
+          topUsers.map((user, index) => (
+            <div
+              key={user.user_id}
+              className={`flex items-center gap-3 p-3 rounded-lg border transition-all hover:shadow-sm ${getPositionStyle(index + 1)}`}
+            >
+              <div className="flex items-center justify-center w-8">
+                {getPositionIcon(index + 1)}
+              </div>
+
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={user.avatar_url || ""} />
+                <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                  {getInitials(user.full_name)}
+                </AvatarFallback>
+              </Avatar>
+
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-foreground truncate">
+                  {user.full_name || "Sem nome"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {user.recognitions_count} reconhecimento{user.recognitions_count !== 1 ? "s" : ""}
+                </p>
+              </div>
+
+              <Badge variant="secondary" className="font-bold">
+                #{index + 1}
+              </Badge>
             </div>
-            
-            <Badge variant="secondary" className="font-bold">
-              {user.points} pts
-            </Badge>
+          ))
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <Trophy className="h-12 w-12 mx-auto mb-3 opacity-20" />
+            <p className="text-sm">Nenhum reconhecimento este mês</p>
           </div>
-        ))}
+        )}
       </CardContent>
     </Card>
   );
