@@ -235,14 +235,14 @@ export function PipefyConfigDialog({ open, onOpenChange }: PipefyConfigDialogPro
                       <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
                       <div className="flex-1">
                         <Select
-                          value={fieldMapping[field.key] || ""}
-                          onValueChange={(value) => handleMappingChange(field.key, value)}
+                          value={fieldMapping[field.key] || "__none__"}
+                          onValueChange={(value) => handleMappingChange(field.key, value === "__none__" ? "" : value)}
                         >
                           <SelectTrigger className="h-9">
                             <SelectValue placeholder="Selecione o campo" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Não mapear</SelectItem>
+                            <SelectItem value="__none__">Não mapear</SelectItem>
                             {selectedTableFields.map((pf) => (
                               <SelectItem key={pf.id} value={pf.label}>
                                 {pf.label}
