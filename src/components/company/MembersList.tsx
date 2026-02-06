@@ -25,7 +25,7 @@ export interface Member {
   avatar: string;
   initials: string;
   role: "owner" | "admin" | "manager" | "member";
-  status: "active" | "invited" | "pending";
+  status: "active" | "invited" | "pending" | "inactive";
   department: string;
   joinedAt: string;
 }
@@ -47,6 +47,7 @@ const statusConfig = {
   active: { label: "Ativo", className: "bg-green-500/10 text-green-600" },
   invited: { label: "Convidado", className: "bg-yellow-500/10 text-yellow-600" },
   pending: { label: "Pendente", className: "bg-orange-500/10 text-orange-600" },
+  inactive: { label: "Inativo", className: "bg-gray-500/10 text-gray-600" },
 };
 
 export function MembersList({ members, onChangeRole, onRemoveMember }: MembersListProps) {

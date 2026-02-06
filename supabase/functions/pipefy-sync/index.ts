@@ -85,6 +85,30 @@ function extractFieldValue(recordFields: any[], fieldName: string): string | nul
   return field?.value || null;
 }
 
+/**
+ * Parse date from Brazilian format (DD/MM/YYYY) to ISO format (YYYY-MM-DD)
+ */
+function parseDate(dateStr: string | null): string | null {
+  if (!dateStr) return null;
+  
+  // Handle DD/MM/YYYY or D/M/YYYY format (Brazilian)
+  const brMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (brMatch) {
+    const [, d, m, y] = brMatch;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+  
+  // Handle YYYY-MM-DD format (already ISO)
+  const isoMatch = dateStr.match(/^\d{4}-\d{2}-\d{2}$/);
+  if (isoMatch) {
+    return dateStr;
+  }
+  
+  // Return null for invalid formats
+  console.warn(`Invalid date format: ${dateStr}`);
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -149,57 +173,20 @@ serve(async (req) => {
           }
 
           recordsSynced++;
+          const normalizedEmail = email.toLowerCase().trim();
 
-          // Check if user exists
+          // Parse dates from Brazilian format to ISO
+          const hireDate = parseDate(hireDateStr);
+          const birthDate = parseDate(birthDateStr);
+
+          // Check if user exists in public.users
           const { data: existingUser } = await supabase
             .from('users')
             .select('id')
-            .eq('email', email.toLowerCase())
+            .eq('email', normalizedEmail)
             .single();
 
-          let userId: string;
-
-          if (existingUser) {
-            userId = existingUser.id;
-            
-            // Update user info
-            await supabase
-              .from('users')
-              .update({
-                full_name: fullName || undefined,
-                birth_date: birthDateStr || undefined,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', userId);
-
-            recordsUpdated++;
-          } else {
-            // Create user in auth (this would require admin API)
-            // For now, we'll create a placeholder in public.users
-            // The actual auth user will be created when they accept invite
-            
-            const newUserId = crypto.randomUUID();
-            
-            const { error: userError } = await supabase
-              .from('users')
-              .insert({
-                id: newUserId,
-                email: email.toLowerCase(),
-                full_name: fullName || email.split('@')[0],
-                birth_date: birthDateStr || null,
-              });
-
-            if (userError) {
-              console.error('Error creating user:', userError);
-              recordsSkipped++;
-              continue;
-            }
-
-            userId = newUserId;
-            recordsCreated++;
-          }
-
-          // Handle department
+          // Handle department creation/lookup
           let departmentId: string | null = null;
           if (departmentName) {
             const { data: dept } = await supabase
@@ -228,54 +215,112 @@ serve(async (req) => {
             }
           }
 
-          // Check/create company membership
-          const { data: existingMembership } = await supabase
-            .from('company_memberships')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('company_id', companyId)
-            .single();
+          if (existingUser) {
+            // User exists - update their info and membership
+            const userId = existingUser.id;
+            
+            // Update user info (only non-null values)
+            const userUpdate: Record<string, any> = {
+              updated_at: new Date().toISOString(),
+            };
+            if (fullName) userUpdate.full_name = fullName;
+            if (birthDate) userUpdate.birth_date = birthDate;
 
-          if (existingMembership) {
-            // Update membership
             await supabase
+              .from('users')
+              .update(userUpdate)
+              .eq('id', userId);
+
+            // Check/update company membership
+            const { data: existingMembership } = await supabase
               .from('company_memberships')
-              .update({
-                position: position || undefined,
-                department_id: departmentId || undefined,
-                department: departmentName || undefined,
-                hire_date: hireDateStr || undefined,
-                employment_type: employmentType || undefined,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', existingMembership.id);
+              .select('id')
+              .eq('user_id', userId)
+              .eq('company_id', companyId)
+              .single();
+
+            const membershipData: Record<string, any> = {
+              updated_at: new Date().toISOString(),
+            };
+            if (position) membershipData.position = position;
+            if (departmentId) membershipData.department_id = departmentId;
+            if (departmentName) membershipData.department = departmentName;
+            if (hireDate) membershipData.hire_date = hireDate;
+            if (employmentType) membershipData.employment_type = employmentType;
+
+            if (existingMembership) {
+              await supabase
+                .from('company_memberships')
+                .update(membershipData)
+                .eq('id', existingMembership.id);
+            } else {
+              // Create membership for existing user
+              await supabase
+                .from('company_memberships')
+                .insert({
+                  user_id: userId,
+                  company_id: companyId,
+                  status: 'active',
+                  ...membershipData,
+                });
+
+              // Create user role
+              await supabase
+                .from('user_roles')
+                .insert({
+                  user_id: userId,
+                  company_id: companyId,
+                  role: 'member',
+                });
+            }
+
+            recordsUpdated++;
           } else {
-            // Create membership
-            await supabase
-              .from('company_memberships')
-              .insert({
-                user_id: userId,
-                company_id: companyId,
-                position: position || null,
-                department_id: departmentId,
-                department: departmentName,
-                hire_date: hireDateStr || null,
-                employment_type: employmentType || null,
-                status: 'invited',
-              });
+            // User does NOT exist - create invite instead of user
+            // This respects the auth.users FK constraint
+            
+            // Check if invite already exists for this email
+            const { data: existingInvite } = await supabase
+              .from('invites')
+              .select('id')
+              .eq('company_id', companyId)
+              .eq('email', normalizedEmail)
+              .is('accepted_at', null)
+              .single();
 
-            // Create user role
-            await supabase
-              .from('user_roles')
-              .insert({
-                user_id: userId,
-                company_id: companyId,
-                role: 'member',
-              });
+            if (!existingInvite) {
+              // Create invite with token
+              const token = crypto.randomUUID();
+              const expiresAt = new Date();
+              expiresAt.setDate(expiresAt.getDate() + 30); // 30 days expiry for Pipefy imports
+
+              const { error: inviteError } = await supabase
+                .from('invites')
+                .insert({
+                  company_id: companyId,
+                  email: normalizedEmail,
+                  role: 'member',
+                  token,
+                  expires_at: expiresAt.toISOString(),
+                });
+
+              if (inviteError) {
+                console.error('Error creating invite:', inviteError);
+                recordsSkipped++;
+                continue;
+              }
+
+              recordsCreated++;
+            } else {
+              // Invite already exists, count as updated
+              recordsUpdated++;
+            }
           }
 
-          // Handle team if specified
-          if (teamName) {
+          // Handle team if specified (only for existing users)
+          if (teamName && existingUser) {
+            const userId = existingUser.id;
+            
             const { data: team } = await supabase
               .from('teams')
               .select('id')

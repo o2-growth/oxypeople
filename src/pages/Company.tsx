@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MembersList, Member } from "@/components/company/MembersList";
 import { InviteModal } from "@/components/company/InviteModal";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,23 +40,29 @@ import {
   useDeleteDepartment,
   type Department 
 } from "@/hooks/useDepartmentsManager";
+import { usePeopleList, usePeopleStats } from "@/hooks/usePeopleList";
+import { useUser } from "@/hooks/useUser";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-const mockMembers: Member[] = [
-  { id: "1", name: "João Silva", email: "joao@empresa.com", avatar: "", initials: "JS", role: "owner", status: "active", department: "Diretoria", joinedAt: "Jan 2023" },
-  { id: "2", name: "Ana Costa", email: "ana@empresa.com", avatar: "", initials: "AC", role: "admin", status: "active", department: "RH", joinedAt: "Mar 2023" },
-  { id: "3", name: "Carlos Santos", email: "carlos@empresa.com", avatar: "", initials: "CS", role: "manager", status: "active", department: "Tecnologia", joinedAt: "Jun 2023" },
-  { id: "4", name: "Maria Oliveira", email: "maria@empresa.com", avatar: "", initials: "MO", role: "member", status: "active", department: "Marketing", joinedAt: "Ago 2023" },
-  { id: "5", name: "Pedro Lima", email: "pedro@empresa.com", avatar: "", initials: "PL", role: "member", status: "active", department: "Vendas", joinedAt: "Set 2023" },
-  { id: "6", name: "Fernanda Souza", email: "fernanda@empresa.com", avatar: "", initials: "FS", role: "member", status: "invited", department: "Produto", joinedAt: "-" },
-  { id: "7", name: "Lucas Rocha", email: "lucas@empresa.com", avatar: "", initials: "LR", role: "member", status: "invited", department: "Design", joinedAt: "-" },
-];
+function getInitials(name: string | null | undefined): string {
+  if (!name) return "??";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+}
 
-const stats = [
-  { label: "Total de Membros", value: 80, icon: Users, color: "text-primary" },
-  { label: "Administradores", value: 5, icon: Shield, color: "text-red-500" },
-  { label: "Gestores", value: 12, icon: Users, color: "text-blue-500" },
-  { label: "Convites Pendentes", value: 8, icon: Clock, color: "text-yellow-500" },
-];
+function formatJoinDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "-";
+  try {
+    return format(new Date(dateStr), "MMM yyyy", { locale: ptBR });
+  } catch {
+    return "-";
+  }
+}
 
 export default function Company() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
@@ -67,13 +74,62 @@ export default function Company() {
 
   const { data: departments = [], isLoading: isLoadingDepartments } = useDepartmentsWithDetails();
   const deleteDepartment = useDeleteDepartment();
+  
+  // Real data hooks
+  const { data: people = [], isLoading: isLoadingPeople } = usePeopleList();
+  const { data: stats, isLoading: isLoadingStats } = usePeopleStats();
+  const { profile } = useUser();
 
-  const filteredMembers = mockMembers.filter(
-    (member) =>
-      member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.department.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Transform people data to Member format
+  const members: Member[] = useMemo(() => {
+    return people.map((p) => ({
+      id: p.id,
+      name: p.user?.full_name || p.user?.email?.split("@")[0] || "Sem nome",
+      email: p.user?.email || "",
+      avatar: p.user?.avatar_url || "",
+      initials: getInitials(p.user?.full_name),
+      role: p.role || "member",
+      status: p.status,
+      department: p.department_info?.name || p.department || "Sem departamento",
+      joinedAt: formatJoinDate(p.joined_at || p.created_at),
+    }));
+  }, [people]);
+
+  // Filter members (active only for Members tab)
+  const activeMembers = useMemo(() => {
+    return members.filter((m) => m.status === "active");
+  }, [members]);
+
+  // Filter invited members for Invites tab
+  const invitedMembers = useMemo(() => {
+    return members.filter((m) => m.status === "invited" || m.status === "pending");
+  }, [members]);
+
+  // Search filter
+  const filteredMembers = useMemo(() => {
+    if (!searchQuery) return activeMembers;
+    const query = searchQuery.toLowerCase();
+    return activeMembers.filter(
+      (member) =>
+        member.name.toLowerCase().includes(query) ||
+        member.email.toLowerCase().includes(query) ||
+        member.department.toLowerCase().includes(query)
+    );
+  }, [activeMembers, searchQuery]);
+
+  // Compute dynamic stats
+  const computedStats = useMemo(() => {
+    const adminCount = members.filter((m) => m.role === "owner" || m.role === "admin").length;
+    const managerCount = members.filter((m) => m.role === "manager").length;
+    const pendingCount = invitedMembers.length;
+
+    return [
+      { label: "Total de Membros", value: stats?.total || 0, icon: Users, color: "text-primary" },
+      { label: "Administradores", value: adminCount, icon: Shield, color: "text-red-500" },
+      { label: "Gestores", value: managerCount, icon: Users, color: "text-blue-500" },
+      { label: "Convites Pendentes", value: pendingCount, icon: Clock, color: "text-yellow-500" },
+    ];
+  }, [stats, members, invitedMembers]);
 
   const handleEditDepartment = (department: Department) => {
     setEditingDepartment(department);
@@ -101,6 +157,8 @@ export default function Company() {
       setEditingDepartment(null);
     }
   };
+
+  const isLoading = isLoadingPeople || isLoadingStats;
 
   return (
     <AppLayout>
@@ -153,7 +211,7 @@ export default function Company() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Users className="h-4 w-4" />
-                    <span>80 membros</span>
+                    <span>{stats?.total || 0} membros</span>
                   </div>
                 </div>
               </div>
@@ -167,19 +225,33 @@ export default function Company() {
 
         {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <Card key={stat.label}>
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className={`p-3 rounded-lg bg-muted ${stat.color}`}>
-                  <stat.icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="flex items-center gap-4 p-4">
+                  <Skeleton className="h-12 w-12 rounded-lg" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-6 w-16" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            computedStats.map((stat) => (
+              <Card key={stat.label}>
+                <CardContent className="flex items-center gap-4 p-4">
+                  <div className={`p-3 rounded-lg bg-muted ${stat.color}`}>
+                    <stat.icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                    <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* Members Section */}
@@ -188,12 +260,17 @@ export default function Company() {
             <TabsTrigger value="members" className="gap-2">
               <Users className="h-4 w-4" />
               Membros
+              {activeMembers.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 min-w-5 p-0 justify-center">
+                  {activeMembers.length}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="departments" className="gap-2">
               <Building2 className="h-4 w-4" />
               Departamentos
               {departments.length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 justify-center">
+                <Badge variant="secondary" className="ml-1 h-5 min-w-5 p-0 justify-center">
                   {departments.length}
                 </Badge>
               )}
@@ -201,6 +278,11 @@ export default function Company() {
             <TabsTrigger value="invites" className="gap-2">
               <Mail className="h-4 w-4" />
               Convites
+              {invitedMembers.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 min-w-5 p-0 justify-center">
+                  {invitedMembers.length}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -216,7 +298,29 @@ export default function Company() {
               />
             </div>
 
-            <MembersList members={filteredMembers} />
+            {isLoadingPeople ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredMembers.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">Nenhum membro encontrado</h3>
+                <p className="text-muted-foreground mt-1 mb-4">
+                  {searchQuery 
+                    ? "Tente ajustar sua busca" 
+                    : "Convide membros para começar"}
+                </p>
+                {!searchQuery && (
+                  <Button onClick={() => setInviteModalOpen(true)} className="gap-2">
+                    <UserPlus className="h-4 w-4" />
+                    Convidar Membros
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <MembersList members={filteredMembers} />
+            )}
           </TabsContent>
 
           <TabsContent value="departments" className="mt-6">
@@ -252,9 +356,25 @@ export default function Company() {
           </TabsContent>
 
           <TabsContent value="invites" className="mt-6">
-            <MembersList 
-              members={mockMembers.filter(m => m.status === "invited")} 
-            />
+            {isLoadingPeople ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : invitedMembers.length === 0 ? (
+              <div className="text-center py-12">
+                <Mail className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">Nenhum convite pendente</h3>
+                <p className="text-muted-foreground mt-1 mb-4">
+                  Todos os convites foram aceitos
+                </p>
+                <Button onClick={() => setInviteModalOpen(true)} className="gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Convidar Membros
+                </Button>
+              </div>
+            ) : (
+              <MembersList members={invitedMembers} />
+            )}
           </TabsContent>
         </Tabs>
 
