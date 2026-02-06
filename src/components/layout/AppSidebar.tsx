@@ -169,10 +169,16 @@ export function AppSidebar() {
       className="border-r border-sidebar-border"
       collapsible="icon"
     >
-      <SidebarHeader className="border-b border-sidebar-border p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-[0_0_15px_hsla(142,71%,50%,0.5)]">
-            <span className="text-lg font-bold text-primary-foreground">O₂</span>
+      <SidebarHeader className="border-b border-sidebar-border p-3">
+        <div className="flex items-center justify-center gap-3">
+          <div className={cn(
+            "flex items-center justify-center rounded-xl bg-primary shadow-[0_0_15px_hsla(142,71%,50%,0.5)] transition-all",
+            collapsed ? "h-9 w-9" : "h-10 w-10"
+          )}>
+            <span className={cn(
+              "font-bold text-primary-foreground",
+              collapsed ? "text-base" : "text-lg"
+            )}>O₂</span>
           </div>
           {!collapsed && (
             <div className="flex flex-col">
