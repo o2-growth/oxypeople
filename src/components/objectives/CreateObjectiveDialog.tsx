@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -93,6 +94,7 @@ export function CreateObjectiveDialog({
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      title: "",
       type: "personal",
       isActive: true,
       visibility: "company",
@@ -104,6 +106,13 @@ export function CreateObjectiveDialog({
     },
   });
 
+  // Update responsibleId when user loads
+  React.useEffect(() => {
+    if (user?.id && !form.getValues("responsibleId")) {
+      form.setValue("responsibleId", user.id);
+    }
+  }, [user?.id, form]);
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "keyResults",
@@ -113,6 +122,7 @@ export function CreateObjectiveDialog({
   const responsibleId = form.watch("responsibleId");
 
   const handleSubmit = async (data: FormData) => {
+    console.log("Form submitted with data:", data);
     try {
       // Validate conditional fields
       if (data.type === "team" && !data.teamId) {
@@ -120,6 +130,14 @@ export function CreateObjectiveDialog({
         return;
       }
 
+      // Validate key results have titles
+      const invalidKRs = data.keyResults.filter(kr => !kr.title.trim());
+      if (invalidKRs.length > 0) {
+        toast.error("Todos os Key Results devem ter um título");
+        return;
+      }
+
+      console.log("Creating objective...");
       await createObjective.mutateAsync({
         title: data.title,
         is_active: data.isActive,
