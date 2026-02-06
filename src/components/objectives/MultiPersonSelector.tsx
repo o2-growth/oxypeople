@@ -55,7 +55,7 @@ export function MultiPersonSelector({
         .from("company_memberships")
         .select(`
           user_id,
-          users!inner(id, full_name, email, avatar_url)
+          users:user_id(id, full_name, email, avatar_url)
         `)
         .eq("company_id", companyId)
         .eq("status", "active");
@@ -65,12 +65,14 @@ export function MultiPersonSelector({
         return [];
       }
 
-      return (data || []).map((m: any) => ({
-        id: m.users.id,
-        full_name: m.users.full_name,
-        email: m.users.email,
-        avatar_url: m.users.avatar_url,
-      }));
+      return (data || [])
+        .filter((m: any) => m.users !== null)
+        .map((m: any) => ({
+          id: m.users.id,
+          full_name: m.users.full_name,
+          email: m.users.email,
+          avatar_url: m.users.avatar_url,
+        }));
     },
     enabled: !!companyId,
   });
