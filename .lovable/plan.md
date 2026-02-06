@@ -1,44 +1,52 @@
 
+# Corrigir Tamanho dos Icones da Sidebar
 
-# Aumentar Tamanho dos Icones da Sidebar
+## Problema Real Identificado
 
-## Problema Identificado
+O componente `SidebarMenuButton` em `sidebar.tsx` possui regras CSS que **sobrescrevem** qualquer tamanho de icone definido:
 
-Os icones de navegacao na sidebar estao com apenas 22px (`h-[22px] w-[22px]`), o que os deixa pequenos e "esmagados" quando a sidebar esta recolhida.
+| Regra | Efeito |
+|-------|--------|
+| `[&>svg]:size-4` | Forca TODOS os icones para 16px |
+| `group-data-[collapsible=icon]:!size-8` | Limita o botao a 32px quando colapsado |
 
-## Solucao
-
-Aumentar os icones para um tamanho mais confortavel de **24px** (`h-6 w-6`) que fica proporcional ao icone do O2 e melhora a legibilidade.
+Alem disso, a largura da sidebar colapsada e apenas `3rem` (48px), muito pequena para icones grandes.
 
 ---
 
-## Alteracao Planejada
+## Solucao em 2 Partes
 
-**Arquivo:** `src/components/layout/AppSidebar.tsx`
+### Parte 1: Aumentar largura da sidebar colapsada
 
-**Linha 124:**
+**Arquivo:** `src/components/ui/sidebar.tsx`
 
 | Antes | Depois |
 |-------|--------|
-| `h-[22px] w-[22px]` | `h-6 w-6` |
+| `SIDEBAR_WIDTH_ICON = "3rem"` | `SIDEBAR_WIDTH_ICON = "4.5rem"` |
 
-Codigo atualizado:
-```tsx
-<item.icon className="h-6 w-6 shrink-0" />
-```
+Isso aumenta de 48px para 72px, dando espaco para icones maiores.
 
-Isso muda o tamanho de 22px para 24px, que e o proximo tamanho padrao do Tailwind e deixa os icones mais visiveis e proporcionais ao icone do O2 na sidebar.
+### Parte 2: Remover limite de tamanho dos icones
+
+**Arquivo:** `src/components/ui/sidebar.tsx`
+
+Remover a regra `[&>svg]:size-4` e aumentar o container colapsado:
+
+| Antes | Depois |
+|-------|--------|
+| `group-data-[collapsible=icon]:!size-8` | `group-data-[collapsible=icon]:!size-12` |
+| `[&>svg]:size-4` | (remover) |
+
+### Parte 3: Aplicar tamanho consistente nos icones
+
+**Arquivo:** `src/components/layout/AppSidebar.tsx`
+
+Manter os icones em `h-8 w-8` (32px) que agora funcionara corretamente.
 
 ---
 
-## Resultado Visual Esperado
+## Resultado Esperado
 
-**Sidebar Expandida:**
-- Icones maiores e mais legives
-- Melhor proporcao com o texto ao lado
-
-**Sidebar Recolhida:**
-- Icones nao ficam mais "esmagados"
-- Melhor aproveitamento do espaco do container
-- Visual mais equilibrado com o icone O2
-
+- **Sidebar Expandida:** Icones de 32px com bastante espaco
+- **Sidebar Colapsada:** Icones de 32px centralizados em container de 72px
+- **Avatar do usuario:** Permanece proporcional (36px)
