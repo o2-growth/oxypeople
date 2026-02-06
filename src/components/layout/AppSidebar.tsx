@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -16,6 +16,8 @@ import {
   ClipboardCheck,
   Gamepad2,
   Briefcase,
+  LogOut,
+  User,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -36,8 +38,17 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useUser } from "@/hooks/useUser";
+import { useAuth } from "@/contexts/AuthContext";
 
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -127,6 +138,24 @@ function NavGroup({ label, items, defaultOpen = true }: NavGroupProps) {
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const navigate = useNavigate();
+  const { profile } = useUser();
+  const { user, signOut } = useAuth();
+
+  const displayName = profile?.full_name || user?.email?.split("@")[0] || "Usuário";
+  const displayEmail = user?.email || "usuario@empresa.com";
+  const avatarUrl = profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || "user"}`;
+  const initials = displayName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
 
   return (
     <Sidebar
@@ -158,24 +187,43 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-4">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-9 w-9 ring-2 ring-sidebar-primary/20">
-            <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=user" />
-            <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground">
-              U
-            </AvatarFallback>
-          </Avatar>
-          {!collapsed && (
-            <div className="flex flex-col overflow-hidden">
-              <span className="truncate text-sm font-medium text-sidebar-foreground">
-                Usuário
-              </span>
-              <span className="truncate text-xs text-sidebar-foreground/60">
-                usuario@empresa.com
-              </span>
-            </div>
-          )}
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex w-full items-center gap-3 rounded-lg p-1 transition-colors hover:bg-sidebar-accent focus:outline-none focus:ring-2 focus:ring-sidebar-primary/20">
+              <Avatar className="h-9 w-9 ring-2 ring-sidebar-primary/20">
+                <AvatarImage src={avatarUrl} />
+                <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              {!collapsed && (
+                <div className="flex flex-col overflow-hidden text-left">
+                  <span className="truncate text-sm font-medium text-sidebar-foreground">
+                    {displayName}
+                  </span>
+                  <span className="truncate text-xs text-sidebar-foreground/60">
+                    {displayEmail}
+                  </span>
+                </div>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" side="top" className="w-56">
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
+              <User className="mr-2 h-4 w-4" />
+              Meu Perfil
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
+              <Settings className="mr-2 h-4 w-4" />
+              Configurações
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+              <LogOut className="mr-2 h-4 w-4" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
     </Sidebar>
   );
