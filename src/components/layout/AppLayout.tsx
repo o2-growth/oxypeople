@@ -1,10 +1,10 @@
 import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import { Bell, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PendingFeedbackBanner } from "@/components/people/PendingFeedbackBanner";
+import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -31,14 +31,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
             
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative hover:bg-secondary"
-              >
-                <Bell className="h-5 w-5" />
-                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
-              </Button>
+              <NotificationDropdown />
             </div>
           </header>
           
