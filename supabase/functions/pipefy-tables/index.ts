@@ -34,45 +34,36 @@ async function getPipefyToken(): Promise<string> {
   return data.access_token;
 }
 
-async function fetchPipefyTables(token: string, organizationId?: string) {
-  // First get the current user's organizations if no org ID provided
-  const meQuery = `
+async function fetchPipefyOrganizations(token: string) {
+  // Query organizations that this service account has access to
+  const query = `
     query {
-      me {
+      organizations {
         id
         name
-        organizations {
-          id
-          name
-        }
       }
     }
   `;
 
-  const meResponse = await fetch('https://api.pipefy.com/graphql', {
+  const response = await fetch('https://api.pipefy.com/graphql', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ query: meQuery }),
+    body: JSON.stringify({ query }),
   });
 
-  const meData = await meResponse.json();
+  const data = await response.json();
   
-  if (meData.errors) {
-    throw new Error(`GraphQL error: ${JSON.stringify(meData.errors)}`);
+  if (data.errors) {
+    throw new Error(`GraphQL error: ${JSON.stringify(data.errors)}`);
   }
 
-  const organizations = meData.data?.me?.organizations || [];
-  
-  // If no org ID provided, use the first organization
-  const orgId = organizationId || organizations[0]?.id;
-  
-  if (!orgId) {
-    return { organizations: [], tables: [] };
-  }
+  return data.data?.organizations || [];
+}
 
+async function fetchPipefyTables(token: string, organizationId: string) {
   // Fetch tables from the organization
   const tablesQuery = `
     query($orgId: ID!) {
@@ -84,7 +75,7 @@ async function fetchPipefyTables(token: string, organizationId?: string) {
             node {
               id
               name
-              description
+              public
               table_fields {
                 id
                 label
@@ -106,7 +97,7 @@ async function fetchPipefyTables(token: string, organizationId?: string) {
     },
     body: JSON.stringify({ 
       query: tablesQuery,
-      variables: { orgId }
+      variables: { orgId: organizationId }
     }),
   });
 
@@ -119,8 +110,7 @@ async function fetchPipefyTables(token: string, organizationId?: string) {
   const tables = tablesData.data?.organization?.tables?.edges?.map((edge: any) => edge.node) || [];
 
   return {
-    organizations,
-    currentOrganization: tablesData.data?.organization,
+    organization: tablesData.data?.organization,
     tables,
   };
 }
@@ -134,9 +124,31 @@ serve(async (req) => {
     const { organizationId } = await req.json().catch(() => ({}));
     
     const token = await getPipefyToken();
-    const result = await fetchPipefyTables(token, organizationId);
+    
+    // First get organizations
+    const organizations = await fetchPipefyOrganizations(token);
+    
+    if (!organizations || organizations.length === 0) {
+      return new Response(JSON.stringify({ 
+        organizations: [], 
+        tables: [],
+        message: 'No organizations found for this service account'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Use provided org ID or first organization
+    const orgId = organizationId || organizations[0]?.id;
+    
+    // Fetch tables from the organization
+    const { organization, tables } = await fetchPipefyTables(token, orgId);
 
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify({
+      organizations,
+      currentOrganization: organization,
+      tables,
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
