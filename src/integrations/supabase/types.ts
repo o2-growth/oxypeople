@@ -1260,6 +1260,103 @@ export type Database = {
           },
         ]
       }
+      pipefy_sync_config: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          field_mapping: Json
+          id: string
+          last_sync_at: string | null
+          organization_id: string | null
+          sync_status: string | null
+          table_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          field_mapping?: Json
+          id?: string
+          last_sync_at?: string | null
+          organization_id?: string | null
+          sync_status?: string | null
+          table_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          field_mapping?: Json
+          id?: string
+          last_sync_at?: string | null
+          organization_id?: string | null
+          sync_status?: string | null
+          table_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipefy_sync_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipefy_sync_logs: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          created_at: string | null
+          details: Json | null
+          error_message: string | null
+          id: string
+          records_created: number | null
+          records_skipped: number | null
+          records_synced: number | null
+          records_updated: number | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          details?: Json | null
+          error_message?: string | null
+          id?: string
+          records_created?: number | null
+          records_skipped?: number | null
+          records_synced?: number | null
+          records_updated?: number | null
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          details?: Json | null
+          error_message?: string | null
+          id?: string
+          records_created?: number | null
+          records_skipped?: number | null
+          records_synced?: number | null
+          records_updated?: number | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipefy_sync_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           author_id: string

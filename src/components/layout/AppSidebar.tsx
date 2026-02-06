@@ -15,6 +15,7 @@ import {
   UsersRound,
   ClipboardCheck,
   Gamepad2,
+  Briefcase,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -55,6 +56,7 @@ const engagementItems = [
 
 const managementItems = [
   { title: "Empresa", url: "/company", icon: Building2 },
+  { title: "RH", url: "/hr", icon: Briefcase },
   { title: "Equipes", url: "/teams", icon: UsersRound },
   { title: "Configurações", url: "/settings", icon: Settings },
 ];
