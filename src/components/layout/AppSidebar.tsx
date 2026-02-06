@@ -121,7 +121,7 @@ function NavGroup({ label, items, defaultOpen = true }: NavGroupProps) {
                       )}
                       activeClassName="bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
                     >
-                      <item.icon className="h-8 w-8 shrink-0" />
+                      <item.icon className="h-6 w-6 shrink-0" />
                       <span className="font-medium text-base">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
