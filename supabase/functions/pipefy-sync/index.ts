@@ -86,6 +86,26 @@ function extractFieldValue(recordFields: any[], fieldName: string): string | nul
 }
 
 /**
+ * Sanitize email by removing invisible characters (zero-width spaces, etc.)
+ */
+function sanitizeEmail(email: string | null): string | null {
+  if (!email) return null;
+  // Remove zero-width characters and other invisible Unicode chars
+  return email.replace(/[\u200B-\u200D\uFEFF\u2060\u00A0]/g, '').trim();
+}
+
+/**
+ * Validate employment type against allowed values
+ */
+function validateEmploymentType(value: string | null): string | null {
+  if (!value) return null;
+  const allowedValues = ['CLT', 'PJ', 'Estágio', 'Temporário', 'Terceirizado'];
+  // Check if value matches any allowed value (case-insensitive)
+  const normalized = allowedValues.find(v => v.toLowerCase() === value.toLowerCase());
+  return normalized || null;
+}
+
+/**
  * Parse date from Brazilian format (DD/MM/YYYY) to ISO format (YYYY-MM-DD)
  */
 function parseDate(dateStr: string | null): string | null {
@@ -168,10 +188,11 @@ serve(async (req) => {
           const teamName = extractFieldValue(fields, fieldMapping.team);
           const hireDateStr = extractFieldValue(fields, fieldMapping.hire_date);
           const birthDateStr = extractFieldValue(fields, fieldMapping.birth_date);
-          const employmentType = extractFieldValue(fields, fieldMapping.employment_type);
+          const rawEmploymentType = extractFieldValue(fields, fieldMapping.employment_type);
 
-          // Prefer corporate email, fallback to personal
-          const email = corporateEmail || personalEmail;
+          // Prefer corporate email, fallback to personal - sanitize to remove invisible chars
+          const rawEmail = corporateEmail || personalEmail;
+          const email = sanitizeEmail(rawEmail);
 
           if (!email) {
             console.log('Skipping record without email');
@@ -181,6 +202,9 @@ serve(async (req) => {
 
           recordsSynced++;
           const normalizedEmail = email.toLowerCase().trim();
+          
+          // Validate employment type against allowed values
+          const employmentType = validateEmploymentType(rawEmploymentType);
 
           // Parse dates from Brazilian format to ISO
           const hireDate = parseDate(hireDateStr);
@@ -333,20 +357,22 @@ serve(async (req) => {
               console.error(`Error updating user profile:`, userUpdateError);
             }
 
-            // Create company_membership
+            // Create company_membership - only include valid fields
+            const membershipInsert: Record<string, any> = {
+              user_id: userId,
+              company_id: companyId,
+              status: 'active',
+              joined_at: new Date().toISOString(),
+            };
+            if (position) membershipInsert.position = position;
+            if (departmentId) membershipInsert.department_id = departmentId;
+            if (departmentName) membershipInsert.department = departmentName;
+            if (hireDate) membershipInsert.hire_date = hireDate;
+            if (employmentType) membershipInsert.employment_type = employmentType;
+
             const { error: membershipError } = await supabase
               .from('company_memberships')
-              .insert({
-                user_id: userId,
-                company_id: companyId,
-                status: 'active',
-                position: position,
-                department_id: departmentId,
-                department: departmentName,
-                hire_date: hireDate,
-                employment_type: employmentType,
-                joined_at: new Date().toISOString(),
-              });
+              .insert(membershipInsert);
 
             if (membershipError) {
               console.error(`Error creating membership:`, membershipError);
