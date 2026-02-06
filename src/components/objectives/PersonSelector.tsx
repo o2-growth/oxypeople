@@ -60,7 +60,7 @@ export function PersonSelector({
           .select(`
             user_id,
             department,
-            users!inner(id, full_name, email, avatar_url)
+            users:user_id(id, full_name, email, avatar_url)
           `)
           .eq("company_id", companyId)
           .eq("status", "active");
@@ -83,7 +83,7 @@ export function PersonSelector({
           .from("team_members")
           .select(`
             user_id,
-            users!inner(id, full_name, email, avatar_url)
+            users:user_id(id, full_name, email, avatar_url)
           `)
           .in("team_id", ledTeamIds);
 
