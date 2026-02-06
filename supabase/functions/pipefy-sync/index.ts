@@ -158,7 +158,10 @@ serve(async (req) => {
           const fields = record.record_fields;
           
           // Extract mapped fields
-          const email = extractFieldValue(fields, fieldMapping.email);
+          const personalEmail = extractFieldValue(fields, fieldMapping.email);
+          const corporateEmail = fieldMapping.corporate_email 
+            ? extractFieldValue(fields, fieldMapping.corporate_email) 
+            : null;
           const fullName = extractFieldValue(fields, fieldMapping.full_name);
           const position = extractFieldValue(fields, fieldMapping.position);
           const departmentName = extractFieldValue(fields, fieldMapping.department);
@@ -167,7 +170,11 @@ serve(async (req) => {
           const birthDateStr = extractFieldValue(fields, fieldMapping.birth_date);
           const employmentType = extractFieldValue(fields, fieldMapping.employment_type);
 
+          // Prefer corporate email, fallback to personal
+          const email = corporateEmail || personalEmail;
+
           if (!email) {
+            console.log('Skipping record without email');
             recordsSkipped++;
             continue;
           }
@@ -178,13 +185,6 @@ serve(async (req) => {
           // Parse dates from Brazilian format to ISO
           const hireDate = parseDate(hireDateStr);
           const birthDate = parseDate(birthDateStr);
-
-          // Check if user exists in public.users
-          const { data: existingUser } = await supabase
-            .from('users')
-            .select('id')
-            .eq('email', normalizedEmail)
-            .single();
 
           // Handle department creation/lookup
           let departmentId: string | null = null;
@@ -215,11 +215,25 @@ serve(async (req) => {
             }
           }
 
-          if (existingUser) {
-            // User exists - update their info and membership
-            const userId = existingUser.id;
+          // Check if user already exists in auth.users by email
+          const { data: existingAuthUsers } = await supabase.auth.admin.listUsers();
+          const existingAuthUser = existingAuthUsers?.users?.find(
+            u => u.email?.toLowerCase() === normalizedEmail
+          );
+
+          if (existingAuthUser) {
+            // User already exists in auth - update their data
+            const userId = existingAuthUser.id;
+            console.log(`User ${normalizedEmail} already exists, updating...`);
             
-            // Update user info (only non-null values)
+            // Update user metadata
+            await supabase.auth.admin.updateUserById(userId, {
+              user_metadata: {
+                full_name: fullName,
+              }
+            });
+
+            // Update public.users
             const userUpdate: Record<string, any> = {
               updated_at: new Date().toISOString(),
             };
@@ -261,6 +275,7 @@ serve(async (req) => {
                   user_id: userId,
                   company_id: companyId,
                   status: 'active',
+                  joined_at: new Date().toISOString(),
                   ...membershipData,
                 });
 
@@ -276,50 +291,87 @@ serve(async (req) => {
 
             recordsUpdated++;
           } else {
-            // User does NOT exist - create invite instead of user
-            // This respects the auth.users FK constraint
+            // User does NOT exist - CREATE NEW USER via Admin API
+            console.log(`Creating new user: ${normalizedEmail}`);
             
-            // Check if invite already exists for this email
-            const { data: existingInvite } = await supabase
-              .from('invites')
-              .select('id')
-              .eq('company_id', companyId)
-              .eq('email', normalizedEmail)
-              .is('accepted_at', null)
-              .single();
-
-            if (!existingInvite) {
-              // Create invite with token
-              const token = crypto.randomUUID();
-              const expiresAt = new Date();
-              expiresAt.setDate(expiresAt.getDate() + 30); // 30 days expiry for Pipefy imports
-
-              const { error: inviteError } = await supabase
-                .from('invites')
-                .insert({
-                  company_id: companyId,
-                  email: normalizedEmail,
-                  role: 'member',
-                  token,
-                  expires_at: expiresAt.toISOString(),
-                });
-
-              if (inviteError) {
-                console.error('Error creating invite:', inviteError);
-                recordsSkipped++;
-                continue;
+            const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+              email: normalizedEmail,
+              password: '123456',
+              email_confirm: true, // Auto-confirm email for immediate access
+              user_metadata: {
+                full_name: fullName || normalizedEmail.split('@')[0],
               }
+            });
 
-              recordsCreated++;
-            } else {
-              // Invite already exists, count as updated
-              recordsUpdated++;
+            if (authError) {
+              console.error(`Error creating auth user ${normalizedEmail}:`, authError);
+              recordsSkipped++;
+              continue;
             }
+
+            const userId = authUser.user.id;
+            console.log(`Created auth user ${normalizedEmail} with ID ${userId}`);
+
+            // The trigger handle_new_user should create public.users automatically
+            // But let's ensure the data is complete by updating
+            await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for trigger
+
+            // Update public.users with additional data
+            const userUpdate: Record<string, any> = {
+              updated_at: new Date().toISOString(),
+              primary_company_id: companyId,
+            };
+            if (fullName) userUpdate.full_name = fullName;
+            if (birthDate) userUpdate.birth_date = birthDate;
+
+            const { error: userUpdateError } = await supabase
+              .from('users')
+              .update(userUpdate)
+              .eq('id', userId);
+
+            if (userUpdateError) {
+              console.error(`Error updating user profile:`, userUpdateError);
+            }
+
+            // Create company_membership
+            const { error: membershipError } = await supabase
+              .from('company_memberships')
+              .insert({
+                user_id: userId,
+                company_id: companyId,
+                status: 'active',
+                position: position,
+                department_id: departmentId,
+                department: departmentName,
+                hire_date: hireDate,
+                employment_type: employmentType,
+                joined_at: new Date().toISOString(),
+              });
+
+            if (membershipError) {
+              console.error(`Error creating membership:`, membershipError);
+            }
+
+            // Create user_role
+            const { error: roleError } = await supabase
+              .from('user_roles')
+              .insert({
+                user_id: userId,
+                company_id: companyId,
+                role: 'member',
+              });
+
+            if (roleError) {
+              console.error(`Error creating user role:`, roleError);
+            }
+
+            recordsCreated++;
           }
 
-          // Handle team if specified (only for existing users)
-          if (teamName && existingUser) {
-            const userId = existingUser.id;
+          // Handle team if specified
+          if (teamName) {
+            const userId = existingAuthUser?.id;
+            if (!userId) continue;
             
             const { data: team } = await supabase
               .from('teams')

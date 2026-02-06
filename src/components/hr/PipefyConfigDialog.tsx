@@ -25,7 +25,8 @@ interface PipefyConfigDialogProps {
 }
 
 const PEOPLE_HUB_FIELDS = [
-  { key: "email", label: "E-mail", required: true },
+  { key: "email", label: "E-mail Pessoal", required: true },
+  { key: "corporate_email", label: "E-mail Corporativo", required: false, hint: "Preferido para login (ex: @o2inc.com.br)" },
   { key: "full_name", label: "Nome Completo", required: true },
   { key: "position", label: "Cargo", required: false },
   { key: "department", label: "Departamento", required: false },
