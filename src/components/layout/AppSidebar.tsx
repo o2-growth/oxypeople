@@ -121,7 +121,7 @@ function NavGroup({ label, items, defaultOpen = true }: NavGroupProps) {
                       )}
                       activeClassName="bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
                     >
-                      <item.icon className="h-[22px] w-[22px] shrink-0" />
+                      <item.icon className="h-6 w-6 shrink-0" />
                       {!collapsed && (
                         <span className="font-medium">{item.title}</span>
                       )}
