@@ -154,7 +154,7 @@ export function AppSidebar() {
       <SidebarContent className="px-2 py-4">
         <NavGroup label="Principal" items={mainNavItems} />
         <NavGroup label="Engajamento" items={engagementItems} />
-        <NavGroup label="Gestão" items={managementItems} defaultOpen={false} />
+        <NavGroup label="Gestão" items={managementItems} />
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-4">
