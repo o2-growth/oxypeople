@@ -141,7 +141,7 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="flex flex-col">
               <span className="text-lg font-heading font-bold text-sidebar-foreground">
-                People Hub
+                Oxy People
               </span>
               <span className="text-xs text-sidebar-foreground/60">
                 Gestão de Pessoas
