@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "./useUser";
 import { toast } from "sonner";
-import { startOfMonth, parseISO } from "date-fns";
 
 export interface CompanyMember {
   id: string;
@@ -105,13 +104,13 @@ export function usePeopleStats() {
         .eq("company_id", companyId)
         .eq("status", "active");
 
-      // Get new this month (based on joined_at or created_at)
-      const monthStart = startOfMonth(new Date()).toISOString();
+      // Get new hires count (based on is_new_hire flag)
       const { count: newThisMonth } = await supabase
         .from("company_memberships")
         .select("*", { count: "exact", head: true })
         .eq("company_id", companyId)
-        .gte("created_at", monthStart);
+        .eq("status", "active")
+        .eq("is_new_hire", true);
 
       // Get department count
       const { count: departments } = await supabase
