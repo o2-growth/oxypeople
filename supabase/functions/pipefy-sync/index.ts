@@ -129,6 +129,19 @@ function parseDate(dateStr: string | null): string | null {
   return null;
 }
 
+/**
+ * Check if hire date is within 30 days (new hire)
+ */
+function isNewHire(hireDate: string | null): boolean {
+  if (!hireDate) return false;
+  const hire = new Date(hireDate);
+  const today = new Date();
+  const diffDays = Math.floor(
+    (today.getTime() - hire.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  return diffDays >= 0 && diffDays <= 30;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -283,7 +296,10 @@ serve(async (req) => {
             if (position) membershipData.position = position;
             if (departmentId) membershipData.department_id = departmentId;
             if (departmentName) membershipData.department = departmentName;
-            if (hireDate) membershipData.hire_date = hireDate;
+            if (hireDate) {
+              membershipData.hire_date = hireDate;
+              membershipData.is_new_hire = isNewHire(hireDate);
+            }
             if (employmentType) membershipData.employment_type = employmentType;
 
             if (existingMembership) {
@@ -367,7 +383,10 @@ serve(async (req) => {
             if (position) membershipInsert.position = position;
             if (departmentId) membershipInsert.department_id = departmentId;
             if (departmentName) membershipInsert.department = departmentName;
-            if (hireDate) membershipInsert.hire_date = hireDate;
+            if (hireDate) {
+              membershipInsert.hire_date = hireDate;
+              membershipInsert.is_new_hire = isNewHire(hireDate);
+            }
             if (employmentType) membershipInsert.employment_type = employmentType;
 
             const { error: membershipError } = await supabase

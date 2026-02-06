@@ -53,14 +53,13 @@ export function useDashboardStats() {
         .eq("company_id", companyId)
         .eq("status", "active");
 
-      // New collaborators this month
+      // New hires count (based on is_new_hire flag)
       const { count: newThisMonth } = await supabase
         .from("company_memberships")
         .select("*", { count: "exact", head: true })
         .eq("company_id", companyId)
         .eq("status", "active")
-        .gte("joined_at", thisMonthStart)
-        .lte("joined_at", thisMonthEnd);
+        .eq("is_new_hire", true);
 
       // Recognitions this month
       const { count: recognitionsThisMonth } = await supabase
