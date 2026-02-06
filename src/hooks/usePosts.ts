@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "@/hooks/useUser";
+import { useAddPoints } from "@/hooks/useGamification";
 import type { Json } from "@/integrations/supabase/types";
 
 export interface Post {
@@ -92,6 +93,7 @@ export function useCreatePost() {
   const { user } = useAuth();
   const { profile } = useUser();
   const queryClient = useQueryClient();
+  const addPoints = useAddPoints();
 
   return useMutation({
     mutationFn: async ({ 
@@ -142,8 +144,10 @@ export function useCreatePost() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      // Add gamification points for creating a post
+      addPoints.mutate({ actionType: "post", referenceId: data.id });
     },
   });
 }
@@ -165,6 +169,7 @@ export function useDeletePost() {
 export function useToggleReaction() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const addPoints = useAddPoints();
 
   return useMutation({
     mutationFn: async (postId: string) => {
@@ -185,7 +190,7 @@ export function useToggleReaction() {
           .delete()
           .eq("id", existing.id);
         if (error) throw error;
-        return { action: "removed" };
+        return { action: "removed", postId };
       } else {
         // Add reaction
         const { error } = await supabase
@@ -196,11 +201,15 @@ export function useToggleReaction() {
             type: "like",
           });
         if (error) throw error;
-        return { action: "added" };
+        return { action: "added", postId };
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      // Add gamification points only when adding a reaction
+      if (data.action === "added") {
+        addPoints.mutate({ actionType: "reaction", referenceId: data.postId });
+      }
     },
   });
 }

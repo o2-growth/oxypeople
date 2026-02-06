@@ -14,6 +14,7 @@ import {
   Zap,
   UsersRound,
   ClipboardCheck,
+  Gamepad2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -49,6 +50,7 @@ const engagementItems = [
   { title: "Objetivos", url: "/objectives", icon: Target },
   { title: "Desempenho", url: "/performance", icon: ClipboardCheck },
   { title: "Pesquisas", url: "/surveys", icon: BarChart3 },
+  { title: "Gamificação", url: "/gamification", icon: Gamepad2 },
 ];
 
 const managementItems = [

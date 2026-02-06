@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "./useUser";
+import { useAddPoints, useAddPointsForUser } from "./useGamification";
 import { toast } from "sonner";
 
 interface Recognition {
@@ -29,6 +30,8 @@ interface Recognition {
 export function useRecognitions() {
   const { profile } = useUser();
   const queryClient = useQueryClient();
+  const addPoints = useAddPoints();
+  const addPointsForUser = useAddPointsForUser();
 
   const recognitionsQuery = useQuery({
     queryKey: ["recognitions", profile?.primary_company_id],
@@ -153,21 +156,29 @@ export function useRecognitions() {
         throw new Error("User not authenticated");
       }
 
-      const { error } = await supabase.from("recognitions").insert({
+      const { data, error } = await supabase.from("recognitions").insert({
         company_id: profile.primary_company_id,
         from_user_id: profile.id,
         to_user_id: toUserId,
         badge_id: badgeId,
         message,
         points,
-      });
+      }).select().single();
 
       if (error) throw error;
+      return { ...data, toUserId };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Reconhecimento enviado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["recognitions"] });
       queryClient.invalidateQueries({ queryKey: ["top-recognized"] });
+      // Add gamification points: sender gets 10 pts, receiver gets 15 pts
+      addPoints.mutate({ actionType: "recognition_sent", referenceId: data.id });
+      addPointsForUser.mutate({ 
+        userId: data.toUserId, 
+        actionType: "recognition_received", 
+        referenceId: data.id 
+      });
     },
     onError: (error) => {
       console.error("Error sending recognition:", error);
