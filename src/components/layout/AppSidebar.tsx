@@ -164,8 +164,8 @@ export function AppSidebar() {
     >
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-accent shadow-accent-glow">
-            <Sparkles className="h-5 w-5 text-white" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-[0_0_15px_hsla(142,71%,50%,0.5)]">
+            <span className="text-lg font-bold text-primary-foreground">O₂</span>
           </div>
           {!collapsed && (
             <div className="flex flex-col">
@@ -173,7 +173,7 @@ export function AppSidebar() {
                 Oxy People
               </span>
               <span className="text-xs text-sidebar-foreground/60">
-                Gestão de Pessoas
+                by O2 Inc
               </span>
             </div>
           )}
