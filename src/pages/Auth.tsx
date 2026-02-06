@@ -84,23 +84,34 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side - Branding */}
+      {/* Left Side - O2 Inc Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-hero relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+        {/* Tech grid pattern */}
+        <div className="absolute inset-0 opacity-20" style={{
+          backgroundImage: `
+            linear-gradient(rgba(34, 197, 94, 0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(34, 197, 94, 0.1) 1px, transparent 1px)
+          `,
+          backgroundSize: '50px 50px'
+        }} />
+        {/* Glow effect */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-accent/10 rounded-full blur-3xl" />
+        
         <div className="relative z-10 flex flex-col justify-center px-12 lg:px-16">
           <div className="flex items-center gap-3 mb-8">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-accent shadow-accent-glow">
-              <Sparkles className="h-7 w-7 text-white" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-accent-glow">
+              <span className="text-2xl font-bold text-primary-foreground">O₂</span>
             </div>
             <div>
-              <h1 className="text-3xl font-heading font-bold text-white">People Hub</h1>
-              <p className="text-white/70">Gestão de Pessoas</p>
+              <h1 className="text-3xl font-heading font-bold text-white">Oxy People</h1>
+              <p className="text-white/70">by O2 Inc</p>
             </div>
           </div>
           
           <h2 className="text-4xl lg:text-5xl font-heading font-bold text-white leading-tight mb-6">
             Conecte, engaje e<br />
-            <span className="gradient-text-accent">desenvolva</span> seu time
+            <span className="text-primary">desenvolva</span> seu time
           </h2>
           
           <p className="text-lg text-white/80 max-w-md mb-8">
@@ -112,7 +123,7 @@ const Auth = () => {
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className="h-10 w-10 rounded-full border-2 border-sidebar-background bg-cover bg-center"
+                  className="h-10 w-10 rounded-full border-2 border-background/20 bg-cover bg-center"
                   style={{
                     backgroundImage: `url(https://api.dicebear.com/7.x/avataaars/svg?seed=user${i})`,
                   }}
@@ -132,10 +143,10 @@ const Auth = () => {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="flex lg:hidden items-center gap-3 mb-8 justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-accent shadow-accent-glow">
-              <Sparkles className="h-6 w-6 text-white" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-accent-glow">
+              <span className="text-xl font-bold text-primary-foreground">O₂</span>
             </div>
-            <span className="text-2xl font-heading font-bold">People Hub</span>
+            <span className="text-2xl font-heading font-bold">Oxy People</span>
           </div>
 
           <Card className="border-0 shadow-xl">
@@ -216,7 +227,7 @@ const Auth = () => {
 
                 <Button
                   type="submit"
-                  className="w-full gap-2 bg-gradient-primary hover:opacity-90 transition-opacity"
+                  className="w-full gap-2 bg-primary hover:bg-primary/90 transition-all hover:shadow-glow"
                   disabled={isLoading}
                 >
                   {isLoading ? (
