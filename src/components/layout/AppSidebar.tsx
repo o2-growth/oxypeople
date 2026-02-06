@@ -10,7 +10,6 @@ import {
   BarChart3,
   Settings,
   ChevronDown,
-  Sparkles,
   Zap,
   UsersRound,
   ClipboardCheck,
@@ -18,7 +17,10 @@ import {
   Briefcase,
   LogOut,
   User,
+  Moon,
+  Sun,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -141,6 +143,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { profile } = useUser();
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   const displayName = profile?.full_name || user?.email?.split("@")[0] || "Usuário";
   const displayEmail = user?.email || "usuario@empresa.com";
@@ -155,6 +158,10 @@ export function AppSidebar() {
   const handleSignOut = async () => {
     await signOut();
     navigate("/auth");
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   return (
@@ -216,6 +223,14 @@ export function AppSidebar() {
             <DropdownMenuItem onClick={() => navigate("/settings")}>
               <Settings className="mr-2 h-4 w-4" />
               Configurações
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={toggleTheme}>
+              {theme === "dark" ? (
+                <Sun className="mr-2 h-4 w-4" />
+              ) : (
+                <Moon className="mr-2 h-4 w-4" />
+              )}
+              {theme === "dark" ? "Modo Claro" : "Modo Escuro"}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
