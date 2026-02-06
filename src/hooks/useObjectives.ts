@@ -215,6 +215,7 @@ export function useCreateObjective() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["objectives"] });
+      queryClient.invalidateQueries({ queryKey: ["objectives-filtered"] });
     },
   });
 }
@@ -238,6 +239,7 @@ export function useUpdateObjective() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["objectives"] });
+      queryClient.invalidateQueries({ queryKey: ["objectives-filtered"] });
     },
   });
 }
@@ -256,6 +258,7 @@ export function useDeleteObjective() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["objectives"] });
+      queryClient.invalidateQueries({ queryKey: ["objectives-filtered"] });
     },
   });
 }
@@ -283,6 +286,7 @@ export function useUpdateKeyResult() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["objectives"] });
+      queryClient.invalidateQueries({ queryKey: ["objectives-filtered"] });
     },
   });
 }
