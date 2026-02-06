@@ -1,121 +1,117 @@
 
-# Correção da Lógica de Novos Colaboradores
+# Rebranding Visual: Oxy People - Identidade O2 Inc
 
-## Problema Identificado
+## Analise da Identidade Visual O2 Inc
 
-O sistema está contando **40 colaboradores como novos** quando na verdade apenas **4 possuem menos de 30 dias** desde a data de contratação. Isso ocorre porque a lógica atual usa critérios incorretos:
+Baseado na pagina de vendas Oxy Hacker, identifiquei os seguintes elementos de marca:
 
-- `usePeopleStats`: usa `created_at` (data do registro no sistema)
-- `useDashboardStats`: usa `joined_at` (data de entrada no sistema)
-- `pipefy-sync`: não define `is_new_hire` automaticamente baseado em `hire_date`
+**Paleta de Cores Principal:**
+- **Verde Neon/Lime**: #22C55E (cor de destaque principal, botoes CTA)
+- **Fundo Escuro**: #0A0A0A / #111111 (backgrounds profundos)
+- **Tons de Verde**: Gradientes do verde escuro ao lime
+- **Texto Claro**: Branco e tons de cinza claro sobre fundos escuros
 
-## Solucao
-
-Unificar a lógica para que "novos colaboradores" sejam identificados exclusivamente pelo campo `is_new_hire = true`, que por sua vez deve ser calculado com base na `hire_date` (menos de 30 dias).
-
----
-
-## Alteracoes Necessarias
-
-### 1. Hook usePeopleStats
-
-**Arquivo:** `src/hooks/usePeopleList.ts`
-
-Alterar a contagem de "novos este mes" para contar colaboradores onde `is_new_hire = true`:
-
-```typescript
-// Substituir linhas 108-114
-// De: conta por created_at >= monthStart
-// Para: conta por is_new_hire = true
-
-const { count: newThisMonth } = await supabase
-  .from("company_memberships")
-  .select("*", { count: "exact", head: true })
-  .eq("company_id", companyId)
-  .eq("status", "active")
-  .eq("is_new_hire", true);
-```
-
-### 2. Hook useDashboardStats
-
-**Arquivo:** `src/hooks/useDashboardStats.ts`
-
-Alterar a contagem de "novos este mes" para usar `is_new_hire` ao inves de `joined_at`:
-
-```typescript
-// Substituir linhas 56-63
-// De: conta por joined_at no mes atual
-// Para: conta por is_new_hire = true
-
-const { count: newThisMonth } = await supabase
-  .from("company_memberships")
-  .select("*", { count: "exact", head: true })
-  .eq("company_id", companyId)
-  .eq("status", "active")
-  .eq("is_new_hire", true);
-```
-
-### 3. Edge Function pipefy-sync
-
-**Arquivo:** `supabase/functions/pipefy-sync/index.ts`
-
-Adicionar logica para calcular e definir `is_new_hire` baseado na data de contratacao:
-
-```typescript
-// Nova funcao helper
-function isNewHire(hireDate: string | null): boolean {
-  if (!hireDate) return false;
-  const hire = new Date(hireDate);
-  const today = new Date();
-  const diffDays = Math.floor(
-    (today.getTime() - hire.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  return diffDays <= 30;
-}
-
-// Aplicar ao criar/atualizar memberships
-const isNewHireFlag = isNewHire(hireDate);
-membershipInsert.is_new_hire = isNewHireFlag;
-```
+**Estetica Visual:**
+- Dark mode como padrao (tema profissional/tech)
+- Efeitos de glow verde nos elementos de destaque
+- Visual moderno "hacker/tech" com codigo binario como elemento decorativo
+- Tipografia bold e impactante
+- Botoes com cor solida verde vibrante
 
 ---
 
-## Diagrama de Fluxo
+## Alteracoes Planejadas
 
-```text
-+-------------------+     +------------------+     +------------------+
-|   Pipefy Sync     | --> |  hire_date       | --> |  is_new_hire     |
-|   (importacao)    |     |  (DD/MM/YYYY)    |     |  (true/false)    |
-+-------------------+     +------------------+     +------------------+
-                                  |
-                                  v
-                          +------------------+
-                          |  <= 30 dias?     |
-                          +------------------+
-                                  |
-                   +--------------+--------------+
-                   |                             |
-                   v                             v
-            is_new_hire=true             is_new_hire=false
-            (4 colaboradores)            (33 colaboradores)
+### 1. Atualizar Variaveis CSS (src/index.css)
+
+**Nova Paleta Light Mode:**
+| Variavel | Valor Atual | Novo Valor (HSL) | Cor |
+|----------|-------------|------------------|-----|
+| --primary | 220 70% 50% (azul) | 142 71% 45% (verde O2) | Verde |
+| --accent | 174 72% 40% (teal) | 142 76% 45% (lime) | Verde Lime |
+| --sidebar-background | 222 47% 11% | 0 0% 7% | Preto profundo |
+| --sidebar-primary | 174 72% 50% | 142 71% 50% | Verde |
+
+**Nova Paleta Dark Mode:**
+| Variavel | Valor Atual | Novo Valor (HSL) | Cor |
+|----------|-------------|------------------|-----|
+| --background | 222 47% 6% | 0 0% 5% | Preto profundo |
+| --primary | 220 70% 55% | 142 71% 50% | Verde |
+| --accent | 174 72% 45% | 142 76% 50% | Verde Lime |
+
+**Gradientes Atualizados:**
+```css
+--gradient-primary: linear-gradient(135deg, hsl(142 71% 40%) 0%, hsl(142 76% 50%) 100%);
+--gradient-accent: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(155 75% 50%) 100%);
+--gradient-hero: linear-gradient(135deg, hsl(0 0% 5%) 0%, hsl(142 30% 15%) 50%, hsl(142 40% 20%) 100%);
 ```
 
----
+**Sombras com Glow Verde:**
+```css
+--shadow-glow: 0 0 20px hsla(142, 71%, 45%, 0.3);
+--shadow-accent-glow: 0 0 20px hsla(142, 76%, 50%, 0.4);
+```
 
-## Resultado Esperado
+### 2. Atualizar Logo e Branding (AppSidebar.tsx)
 
-- Pagina Pessoas: card "Novos este mes" mostrara **4** (nao 40)
-- Dashboard: estatistica de novos colaboradores mostrara **4**
-- Automacao de boas-vindas: continuara funcionando corretamente pois ja usa `is_new_hire = true`
-- Proximas sincronizacoes Pipefy: definirao automaticamente `is_new_hire` baseado na data de contratacao
+Substituir o icone generico de Sparkles por um icone customizado que represente a marca O2:
+- Manter o container com gradiente verde
+- Atualizar texto "Oxy People" com estilo adequado
+- Aplicar glow verde no container do icone
+
+### 3. Atualizar Pagina de Login (Auth.tsx)
+
+- Alterar gradiente do painel esquerdo para tons de verde/preto da O2
+- Adicionar elementos decorativos inspirados no visual "tech" (grid sutil)
+- Atualizar texto de "People Hub" para "Oxy People" (ja feito parcialmente)
+- Aplicar cores verdes nos elementos de destaque
+- Botao CTA com verde solido
+
+### 4. Adicionar Logo O2 (opcional)
+
+Se fornecida uma imagem do logo O2:
+- Atualizar favicon
+- Adicionar logo na sidebar
+- Adicionar logo na pagina de login
 
 ---
 
 ## Arquivos a Modificar
 
-| Arquivo | Tipo de Alteracao |
-|---------|-------------------|
-| `src/hooks/usePeopleList.ts` | Alterar query de stats |
-| `src/hooks/useDashboardStats.ts` | Alterar query de novos |
-| `supabase/functions/pipefy-sync/index.ts` | Adicionar calculo is_new_hire |
+| Arquivo | Alteracoes |
+|---------|------------|
+| `src/index.css` | Atualizar todas as variaveis de cor, gradientes e sombras |
+| `tailwind.config.ts` | Nenhuma alteracao necessaria (usa variaveis CSS) |
+| `src/components/layout/AppSidebar.tsx` | Atualizar icone/logo e estilos |
+| `src/pages/Auth.tsx` | Atualizar gradientes e texto do branding |
+| `index.html` | Atualizar favicon quando disponivel |
 
+---
+
+## Preview Visual Esperado
+
+**Sidebar:**
+- Fundo preto profundo (#0A0A0A)
+- Itens ativos com destaque verde
+- Glow verde no icone do logo
+
+**Cards e Botoes:**
+- Botoes primarios em verde solido
+- Hover com efeito de glow verde
+- Cards mantendo fundo claro no light mode
+
+**Pagina de Login:**
+- Painel esquerdo com gradiente escuro com tons de verde
+- Efeito de grid/codigo decorativo sutil
+- Botao CTA verde vibrante
+
+---
+
+## Proximos Passos Apos Aprovacao
+
+1. Atualizar variaveis CSS com a nova paleta
+2. Modificar componentes visuais (sidebar, login)
+3. Testar em ambos os modos (light/dark)
+4. Ajustar detalhes conforme necessario
+
+**Observacao:** Se voce tiver o arquivo da logo oficial da O2 Inc / Oxy People, pode envia-lo para que eu adicione ao projeto (favicon e sidebar).
