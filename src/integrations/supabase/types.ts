@@ -472,6 +472,92 @@ export type Database = {
           },
         ]
       }
+      gamification_levels: {
+        Row: {
+          badge_emoji: string | null
+          color: string | null
+          company_id: string
+          created_at: string
+          id: string
+          min_points: number
+          name: string
+        }
+        Insert: {
+          badge_emoji?: string | null
+          color?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          min_points: number
+          name: string
+        }
+        Update: {
+          badge_emoji?: string | null
+          color?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          min_points?: number
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gamification_levels_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gamification_points: {
+        Row: {
+          action_type: string
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          points: number
+          reference_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          points: number
+          reference_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          points?: number
+          reference_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gamification_points_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gamification_points_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invites: {
         Row: {
           accepted_at: string | null

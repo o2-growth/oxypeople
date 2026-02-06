@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAddPoints } from "@/hooks/useGamification";
 
 export interface Comment {
   id: string;
@@ -42,6 +43,7 @@ export function useComments(postId: string | null) {
 export function useCreateComment() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const addPoints = useAddPoints();
 
   return useMutation({
     mutationFn: async ({
@@ -69,9 +71,11 @@ export function useCreateComment() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["comments", variables.postId] });
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      // Add gamification points for commenting
+      addPoints.mutate({ actionType: "comment", referenceId: data.id });
     },
   });
 }
