@@ -234,20 +234,23 @@ export function useCompanyMembers() {
           user_id,
           department,
           position,
-          user:users(id, full_name, email, avatar_url)
+          user:users!company_memberships_user_id_fkey(id, full_name, email, avatar_url)
         `)
         .eq("company_id", profile.primary_company_id)
-        .eq("status", "active");
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
 
       if (error) {
         console.error("Error fetching company members:", error);
         throw error;
       }
 
-      return (data || []).map(item => ({
-        ...item,
-        user: Array.isArray(item.user) ? item.user[0] : item.user
-      }));
+      return (data || [])
+        .filter(item => item.user_id) // Ensure user_id exists
+        .map(item => ({
+          ...item,
+          user: Array.isArray(item.user) ? item.user[0] : item.user
+        }));
     },
     enabled: !!profile?.primary_company_id,
   });
