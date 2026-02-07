@@ -23,16 +23,16 @@ export default function Teams() {
   // Fetch member counts for all teams
   useEffect(() => {
     const fetchMemberCounts = async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
       const counts: Record<string, number> = {};
+      
       for (const team of teams) {
-        const { data } = await import("@/integrations/supabase/client").then(
-          ({ supabase }) =>
-            supabase
-              .from("team_members")
-              .select("id", { count: "exact", head: true })
-              .eq("team_id", team.id)
-        );
-        counts[team.id] = data?.length || 0;
+        const { count } = await supabase
+          .from("team_members")
+          .select("*", { count: "exact", head: true })
+          .eq("team_id", team.id);
+        
+        counts[team.id] = count || 0;
       }
       setMemberCounts(counts);
     };
