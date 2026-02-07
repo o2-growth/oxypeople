@@ -42,14 +42,13 @@ export function TeamMembersDialog({ open, onOpenChange, team }: TeamMembersDialo
 
   const availableMembers = useMemo(() => {
     return companyMembers
-      .filter((m) => !teamMemberIds.has(m.user_id))
+      .filter((m) => m.user_id && !teamMemberIds.has(m.user_id))
       .filter((m) => {
         if (!searchQuery) return true;
         const query = searchQuery.toLowerCase();
-        return (
-          m.user?.full_name?.toLowerCase().includes(query) ||
-          m.user?.email?.toLowerCase().includes(query)
-        );
+        const name = m.user?.full_name || "";
+        const email = m.user?.email || "";
+        return name.toLowerCase().includes(query) || email.toLowerCase().includes(query);
       });
   }, [companyMembers, teamMemberIds, searchQuery]);
 
