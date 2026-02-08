@@ -19,6 +19,8 @@ import {
   User,
   Moon,
   Sun,
+  MonitorPlay,
+  ExternalLink,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { NavLink } from "@/components/NavLink";
@@ -71,12 +73,20 @@ const managementItems = [
   { title: "Empresa", url: "/company", icon: Building2 },
   { title: "RH", url: "/hr", icon: Briefcase },
   { title: "Equipes", url: "/teams", icon: UsersRound },
+  { title: "Oxy VE", url: "https://oxyve.lovable.app", icon: MonitorPlay, external: true },
   { title: "Configurações", url: "/settings", icon: Settings },
 ];
 
+interface NavItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  external?: boolean;
+}
+
 interface NavGroupProps {
   label: string;
-  items: typeof mainNavItems;
+  items: NavItem[];
   defaultOpen?: boolean;
 }
 
@@ -112,18 +122,34 @@ function NavGroup({ label, items, defaultOpen = true }: NavGroupProps) {
                     asChild
                     tooltip={collapsed ? item.title : undefined}
                   >
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/"}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sidebar-foreground/80 transition-all duration-200",
-                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                      )}
-                      activeClassName="bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-                    >
-                      <item.icon className="h-5 w-5 shrink-0" />
-                      <span className="font-medium text-base">{item.title}</span>
-                    </NavLink>
+                    {item.external ? (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sidebar-foreground/80 transition-all duration-200",
+                          "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                        )}
+                      >
+                        <item.icon className="h-5 w-5 shrink-0" />
+                        <span className="font-medium text-base">{item.title}</span>
+                        <ExternalLink className="h-3.5 w-3.5 ml-auto opacity-60" />
+                      </a>
+                    ) : (
+                      <NavLink
+                        to={item.url}
+                        end={item.url === "/"}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sidebar-foreground/80 transition-all duration-200",
+                          "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                        )}
+                        activeClassName="bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
+                      >
+                        <item.icon className="h-5 w-5 shrink-0" />
+                        <span className="font-medium text-base">{item.title}</span>
+                      </NavLink>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
