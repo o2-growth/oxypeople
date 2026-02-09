@@ -2263,7 +2263,13 @@ export type Database = {
       membership_role: "owner" | "admin" | "manager" | "member"
       membership_status: "active" | "invited" | "pending" | "inactive"
       objective_status: "planned" | "active" | "risk" | "completed" | "canceled"
-      objective_type: "personal" | "team" | "individual"
+      objective_type:
+        | "personal"
+        | "team"
+        | "individual"
+        | "strategic"
+        | "tactical"
+        | "operational"
       performance_cycle_status:
         | "draft"
         | "scheduled"
@@ -2420,7 +2426,14 @@ export const Constants = {
       membership_role: ["owner", "admin", "manager", "member"],
       membership_status: ["active", "invited", "pending", "inactive"],
       objective_status: ["planned", "active", "risk", "completed", "canceled"],
-      objective_type: ["personal", "team", "individual"],
+      objective_type: [
+        "personal",
+        "team",
+        "individual",
+        "strategic",
+        "tactical",
+        "operational",
+      ],
       performance_cycle_status: [
         "draft",
         "scheduled",
