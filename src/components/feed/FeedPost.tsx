@@ -78,7 +78,7 @@ export function FeedPost({ post }: FeedPostProps) {
 
   return (
     <>
-      <Card className="feed-card overflow-hidden">
+      <Card className="feed-card overflow-hidden animate-slide-up">
         {/* Banner de celebração quando tem menções */}
         {hasMentions && (
           <div className="flex items-center gap-2 bg-gradient-to-r from-accent to-primary px-4 py-2 text-primary-foreground">

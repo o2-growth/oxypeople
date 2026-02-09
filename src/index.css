@@ -176,24 +176,41 @@
     background-image: var(--gradient-accent);
   }
   
-  /* Stats card - floating panel style */
+  /* Stats card - floating panel with hover lift + green border */
   .stat-card {
-    @apply relative overflow-hidden rounded-xl bg-card/85 backdrop-blur-sm p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 border border-border/30;
+    @apply relative overflow-hidden rounded-xl bg-card/85 backdrop-blur-sm p-6 shadow-lg border border-border/30;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 
+      0 12px 24px -8px hsla(220, 14%, 4%, 0.35),
+      0 0 0 1px hsla(142, 71%, 48%, 0.15);
   }
   
   .stat-card::before {
     content: '';
-    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
-    background: linear-gradient(135deg, hsla(210, 15%, 90%, 0.04) 0%, hsla(210, 15%, 90%, 0.01) 100%);
+    @apply absolute inset-0 opacity-0;
+    transition: opacity 0.3s ease;
+    background: linear-gradient(135deg, hsla(142, 71%, 48%, 0.03) 0%, transparent 60%);
   }
   
   .stat-card:hover::before {
     @apply opacity-100;
   }
   
-  /* Feed post card - floating panel */
+  /* Feed post card - floating panel with hover lift */
   .feed-card {
-    @apply bg-card/85 backdrop-blur-sm rounded-xl border border-border/30 p-4 shadow-lg transition-all duration-200 hover:shadow-xl hover:border-border/50;
+    @apply bg-card/85 backdrop-blur-sm rounded-xl border border-border/30 p-4 shadow-lg;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .feed-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 12px 24px -8px hsla(220, 14%, 4%, 0.35),
+      0 0 0 1px hsla(142, 71%, 48%, 0.12);
   }
   
   /* Avatar with status indicator */
