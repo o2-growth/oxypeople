@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { KeyResultItem, KeyResult } from "./KeyResultItem";
-import { ObjectiveWithDetails, useDeleteObjective } from "@/hooks/useObjectives";
+import { ObjectiveWithDetails, useDeleteObjective, ObjectiveType } from "@/hooks/useObjectives";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -43,41 +43,18 @@ interface ObjectiveCardProps {
   onEdit?: (objective: ObjectiveWithDetails) => void;
 }
 
-const statusConfig = {
-  "on-track": {
-    label: "No Prazo",
-    className: "bg-green-500/10 text-green-600 border-green-500/30",
-  },
-  "at-risk": {
-    label: "Em Risco",
-    className: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30",
-  },
-  "off-track": {
-    label: "Atrasado",
-    className: "bg-red-500/10 text-red-600 border-red-500/30",
-  },
-  completed: {
-    label: "Concluído",
-    className: "bg-blue-500/10 text-blue-600 border-blue-500/30",
-  },
+const statusConfig: Record<string, { label: string; className: string }> = {
+  planned: { label: "Planejado", className: "bg-muted text-muted-foreground" },
+  active: { label: "Ativo", className: "bg-green-500/10 text-green-600 border-green-500/30" },
+  risk: { label: "Em Risco", className: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30" },
+  completed: { label: "Concluído", className: "bg-blue-500/10 text-blue-600 border-blue-500/30" },
+  canceled: { label: "Cancelado", className: "bg-red-500/10 text-red-600 border-red-500/30" },
 };
 
-const typeConfig = {
-  personal: {
-    label: "Pessoal",
-    icon: User,
-    className: "bg-blue-500/10 text-blue-600",
-  },
-  team: {
-    label: "Equipe",
-    icon: Users,
-    className: "bg-purple-500/10 text-purple-600",
-  },
-  individual: {
-    label: "Individual",
-    icon: Target,
-    className: "bg-teal-500/10 text-teal-600",
-  },
+const typeConfig: Record<string, { label: string; icon: typeof Target; className: string }> = {
+  strategic: { label: "Estratégico", icon: Target, className: "bg-violet-500/10 text-violet-600" },
+  tactical: { label: "Tático", icon: Users, className: "bg-blue-500/10 text-blue-600" },
+  operational: { label: "Operacional", icon: User, className: "bg-emerald-500/10 text-emerald-600" },
 };
 
 const visibilityConfig = {
@@ -172,18 +149,15 @@ export function ObjectiveCard({ objective, onEdit }: ObjectiveCardProps) {
                 </p>
               )}
 
-              {/* Show assignee for individual objectives */}
-              {objective.type === "individual" && objective.assignee && (
+              {/* Show assignee */}
+              {objective.assignee && (
                 <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                   <span>Atribuído para:</span>
                   <div className="flex items-center gap-1">
                     <Avatar className="h-5 w-5">
                       <AvatarImage src={objective.assignee.avatar_url || ""} />
                       <AvatarFallback className="text-xs">
-                        {getInitials(
-                          objective.assignee.full_name,
-                          objective.assignee.email
-                        )}
+                        {getInitials(objective.assignee.full_name, objective.assignee.email)}
                       </AvatarFallback>
                     </Avatar>
                     <span className="font-medium">

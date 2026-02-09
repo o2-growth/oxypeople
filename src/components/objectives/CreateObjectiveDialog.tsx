@@ -31,49 +31,40 @@ import { TeamSelector } from "./TeamSelector";
 import { PersonSelector } from "./PersonSelector";
 import { MultiPersonSelector } from "./MultiPersonSelector";
 import { ParentObjectiveSelector } from "./ParentObjectiveSelector";
-import { PeriodSelector } from "./PeriodSelector";
 import { DepartmentSelector } from "./DepartmentSelector";
 import { TagsInput } from "./TagsInput";
-import { useCreateObjective } from "@/hooks/useObjectives";
+import { useCreateObjective, usePeriods, ObjectiveType } from "@/hooks/useObjectives";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Trash2, Target, Users, User } from "lucide-react";
+import { Plus, Trash2, Crosshair, Layers, Zap } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const keyResultSchema = z.object({
   title: z.string().min(1, "Título obrigatório"),
   targetValue: z.coerce.number().min(0.01, "Meta deve ser maior que 0"),
   currentValue: z.coerce.number().min(0).default(0),
+  initialValue: z.coerce.number().min(0).default(0),
   unit: z.string().default("%"),
+  krType: z.string().default("numeric"),
+  weightPercentage: z.coerce.number().min(0).max(100).default(0),
 });
 
 const formSchema = z.object({
-  // Basic info
-  title: z.string().min(1, "Descrição obrigatória"),
-  isActive: z.boolean().default(true),
-  
-  // Type and assignment
-  type: z.enum(["personal", "team", "individual"]),
+  title: z.string().min(1, "Título obrigatório"),
+  description: z.string().optional(),
+  type: z.enum(["strategic", "tactical", "operational"]),
+  ownerId: z.string().min(1, "Responsável obrigatório"),
   teamId: z.string().optional(),
-  responsibleId: z.string().min(1, "Responsável obrigatório"),
-  
-  // Collaborators
+  parentId: z.string().optional(),
+  periodId: z.string().optional(),
+  department: z.string().optional(),
+  visibility: z.enum(["public", "company", "private"]),
+  tags: z.array(z.string()).default([]),
   contributors: z.array(z.string()).default([]),
   editors: z.array(z.string()).default([]),
-  
-  // Organization
-  department: z.string().optional(),
-  parentId: z.string().optional(),
-  period: z.string().optional(),
-  dueDate: z.string().optional(),
-  
-  // Metadata
-  tags: z.array(z.string()).default([]),
-  visibility: z.enum(["public", "company", "private"]),
-  
-  // Key Results
-  keyResults: z.array(keyResultSchema).min(1, "Adicione pelo menos um Key Result"),
+  keyResults: z.array(keyResultSchema).default([]),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -81,37 +72,53 @@ type FormData = z.infer<typeof formSchema>;
 interface CreateObjectiveDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultType?: ObjectiveType;
+  defaultParentId?: string;
 }
 
 export function CreateObjectiveDialog({
   open,
   onOpenChange,
+  defaultType = "operational",
+  defaultParentId,
 }: CreateObjectiveDialogProps) {
   const { user } = useAuth();
-  const { canCreateTeamOrIndividual } = useUserPermissions();
+  const { isAdmin, isTeamLeader } = useUserPermissions();
   const createObjective = useCreateObjective();
+  const { data: periods = [] } = usePeriods();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
-      type: "personal",
-      isActive: true,
+      description: "",
+      type: defaultType,
       visibility: "company",
-      responsibleId: user?.id || "",
+      ownerId: user?.id || "",
       contributors: [],
       editors: [],
       tags: [],
-      keyResults: [{ title: "", targetValue: 100, currentValue: 0, unit: "%" }],
+      keyResults: [],
+      parentId: defaultParentId,
     },
   });
 
-  // Update responsibleId when user loads
   React.useEffect(() => {
-    if (user?.id && !form.getValues("responsibleId")) {
-      form.setValue("responsibleId", user.id);
+    if (open) {
+      form.reset({
+        title: "",
+        description: "",
+        type: defaultType,
+        visibility: "company",
+        ownerId: user?.id || "",
+        contributors: [],
+        editors: [],
+        tags: [],
+        keyResults: defaultType === "operational" ? [{ title: "", targetValue: 100, currentValue: 0, initialValue: 0, unit: "%", krType: "numeric", weightPercentage: 100 }] : [],
+        parentId: defaultParentId,
+      });
     }
-  }, [user?.id, form]);
+  }, [open, defaultType, defaultParentId, user?.id]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -119,36 +126,28 @@ export function CreateObjectiveDialog({
   });
 
   const selectedType = form.watch("type");
-  const responsibleId = form.watch("responsibleId");
+  const ownerId = form.watch("ownerId");
 
   const handleSubmit = async (data: FormData) => {
-    console.log("Form submitted with data:", data);
     try {
-      // Validate conditional fields
-      if (data.type === "team" && !data.teamId) {
-        toast.error("Selecione uma equipe");
-        return;
+      // Validate weight sum for KRs
+      if (data.keyResults.length > 0) {
+        const totalWeight = data.keyResults.reduce((sum, kr) => sum + (kr.weightPercentage || 0), 0);
+        if (totalWeight > 0 && totalWeight !== 100) {
+          toast.error(`A soma dos pesos dos KRs deve ser 100% (atual: ${totalWeight}%)`);
+          return;
+        }
       }
 
-      // Validate key results have titles
-      const invalidKRs = data.keyResults.filter(kr => !kr.title.trim());
-      if (invalidKRs.length > 0) {
-        toast.error("Todos os Key Results devem ter um título");
-        return;
-      }
-
-      console.log("Creating objective...");
       await createObjective.mutateAsync({
         title: data.title,
-        is_active: data.isActive,
-        due_date: data.dueDate,
+        description: data.description,
         visibility: data.visibility,
-        type: data.type,
-        team_id: data.type === "team" ? data.teamId : undefined,
-        assignee_id: data.type === "individual" ? data.responsibleId : undefined,
-        owner_id: data.responsibleId,
+        type: data.type as ObjectiveType,
+        team_id: data.teamId,
+        owner_id: data.ownerId,
         parent_id: data.parentId,
-        period: data.period,
+        period_id: data.periodId,
         department: data.department,
         tags: data.tags.length > 0 ? data.tags : undefined,
         contributors: data.contributors,
@@ -157,21 +156,14 @@ export function CreateObjectiveDialog({
           title: kr.title,
           target_value: kr.targetValue,
           current_value: kr.currentValue,
+          initial_value: kr.initialValue,
           unit: kr.unit,
+          kr_type: kr.krType,
+          weight_percentage: kr.weightPercentage,
         })),
       });
 
       toast.success("Objetivo criado com sucesso!");
-      form.reset({
-        type: "personal",
-        isActive: true,
-        visibility: "company",
-        responsibleId: user?.id || "",
-        contributors: [],
-        editors: [],
-        tags: [],
-        keyResults: [{ title: "", targetValue: 100, currentValue: 0, unit: "%" }],
-      });
       onOpenChange(false);
     } catch (error) {
       console.error("Error creating objective:", error);
@@ -179,142 +171,100 @@ export function CreateObjectiveDialog({
     }
   };
 
+  const canSelectType = isAdmin || isTeamLeader;
+  const showKRWarning = selectedType !== "operational" && fields.length > 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Objetivo</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
             <Tabs defaultValue="general" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="general">Gerais</TabsTrigger>
                 <TabsTrigger value="keyresults">Key Results</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="general" className="space-y-6 mt-4">
-                {/* Row 1: Title + Activity Status */}
-                <div className="grid grid-cols-[1fr,auto] gap-4">
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Descrição do Objetivo *</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Ex.: aumentar receita recorrente" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <TabsContent value="general" className="space-y-4 mt-4">
+                {/* Title */}
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Título do Objetivo *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex.: Aumentar receita previsível" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name="isActive"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Atividade</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={(v) => field.onChange(v === "true")}
-                            value={field.value ? "true" : "false"}
-                            className="flex gap-4 pt-2"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="true" id="active" />
-                              <Label htmlFor="active" className="text-sm cursor-pointer">
-                                Ativo
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="false" id="inactive" />
-                              <Label htmlFor="inactive" className="text-sm cursor-pointer">
-                                Inativo
-                              </Label>
-                            </div>
-                          </RadioGroup>
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                {/* Description */}
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Contexto e detalhes do objetivo..." rows={2} {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-                {/* Objective Type */}
+                {/* Type */}
                 <FormField
                   control={form.control}
                   name="type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tipo de Objetivo</FormLabel>
+                      <FormLabel>Nível Hierárquico</FormLabel>
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
                           value={field.value}
-                          className="grid grid-cols-3 gap-4"
+                          className="grid grid-cols-3 gap-3"
                         >
                           <div>
-                            <RadioGroupItem
-                              value="personal"
-                              id="personal"
-                              className="peer sr-only"
-                            />
+                            <RadioGroupItem value="strategic" id="strategic" className="peer sr-only" disabled={!canSelectType} />
                             <Label
-                              htmlFor="personal"
-                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                              htmlFor="strategic"
+                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent peer-data-[state=checked]:border-violet-500 cursor-pointer peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"
                             >
-                              <User className="mb-2 h-6 w-6" />
-                              <span className="text-sm font-medium">Pessoal</span>
-                              <span className="text-xs text-muted-foreground">
-                                Para mim
-                              </span>
+                              <Crosshair className="mb-1.5 h-5 w-5 text-violet-400" />
+                              <span className="text-xs font-medium">Estratégico</span>
+                              <span className="text-[10px] text-muted-foreground">CEO / Diretoria</span>
                             </Label>
                           </div>
-
-                          {canCreateTeamOrIndividual && (
-                            <>
-                              <div>
-                                <RadioGroupItem
-                                  value="team"
-                                  id="team"
-                                  className="peer sr-only"
-                                />
-                                <Label
-                                  htmlFor="team"
-                                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                                >
-                                  <Users className="mb-2 h-6 w-6" />
-                                  <span className="text-sm font-medium">Equipe</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    Para toda equipe
-                                  </span>
-                                </Label>
-                              </div>
-
-                              <div>
-                                <RadioGroupItem
-                                  value="individual"
-                                  id="individual"
-                                  className="peer sr-only"
-                                />
-                                <Label
-                                  htmlFor="individual"
-                                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                                >
-                                  <Target className="mb-2 h-6 w-6" />
-                                  <span className="text-sm font-medium">Individual</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    Para uma pessoa
-                                  </span>
-                                </Label>
-                              </div>
-                            </>
-                          )}
+                          <div>
+                            <RadioGroupItem value="tactical" id="tactical" className="peer sr-only" disabled={!canSelectType} />
+                            <Label
+                              htmlFor="tactical"
+                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent peer-data-[state=checked]:border-blue-500 cursor-pointer peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"
+                            >
+                              <Layers className="mb-1.5 h-5 w-5 text-blue-400" />
+                              <span className="text-xs font-medium">Tático</span>
+                              <span className="text-[10px] text-muted-foreground">Heads / Gestores</span>
+                            </Label>
+                          </div>
+                          <div>
+                            <RadioGroupItem value="operational" id="operational" className="peer sr-only" />
+                            <Label
+                              htmlFor="operational"
+                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent peer-data-[state=checked]:border-emerald-500 cursor-pointer"
+                            >
+                              <Zap className="mb-1.5 h-5 w-5 text-emerald-400" />
+                              <span className="text-xs font-medium">Operacional</span>
+                              <span className="text-[10px] text-muted-foreground">Líder / Pessoa</span>
+                            </Label>
+                          </div>
                         </RadioGroup>
                       </FormControl>
                       <FormMessage />
@@ -322,59 +272,30 @@ export function CreateObjectiveDialog({
                   )}
                 />
 
-                {/* Conditional Team Selector */}
-                {selectedType === "team" && (
+                {/* Row: Owner + Team + Department */}
+                <div className="grid grid-cols-3 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="ownerId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Dono *</FormLabel>
+                        <FormControl>
+                          <PersonSelector value={field.value} onValueChange={field.onChange} placeholder="Selecione" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <FormField
                     control={form.control}
                     name="teamId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Equipe *</FormLabel>
+                        <FormLabel>Equipe</FormLabel>
                         <FormControl>
-                          <TeamSelector
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                {/* Row 2: Responsible, Contributors, Department */}
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="responsibleId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Responsável *</FormLabel>
-                        <FormControl>
-                          <PersonSelector
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            placeholder="Selecione"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="contributors"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Contribuintes</FormLabel>
-                        <FormControl>
-                          <MultiPersonSelector
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            placeholder="Adicionar"
-                            excludeIds={responsibleId ? [responsibleId] : []}
-                          />
+                          <TeamSelector value={field.value} onValueChange={field.onChange} />
                         </FormControl>
                       </FormItem>
                     )}
@@ -387,28 +308,69 @@ export function CreateObjectiveDialog({
                       <FormItem>
                         <FormLabel>Área</FormLabel>
                         <FormControl>
-                          <DepartmentSelector
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          />
+                          <DepartmentSelector value={field.value} onValueChange={field.onChange} />
                         </FormControl>
                       </FormItem>
                     )}
                   />
                 </div>
 
-                {/* Row 3: Parent Objective, Period */}
-                <div className="grid grid-cols-2 gap-4">
+                {/* Row: Parent + Period */}
+                <div className="grid grid-cols-2 gap-3">
                   <FormField
                     control={form.control}
                     name="parentId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Hierarquia</FormLabel>
+                        <FormLabel>Objetivo Pai</FormLabel>
                         <FormControl>
-                          <ParentObjectiveSelector
+                          <ParentObjectiveSelector value={field.value} onValueChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="periodId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Período</FormLabel>
+                        <FormControl>
+                          <Select
+                            value={field.value || "none"}
+                            onValueChange={(v) => field.onChange(v === "none" ? undefined : v)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Sem período</SelectItem>
+                              {periods.map((p) => (
+                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Collaborators */}
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="contributors"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contribuintes</FormLabel>
+                        <FormControl>
+                          <MultiPersonSelector
                             value={field.value}
                             onValueChange={field.onChange}
+                            placeholder="Adicionar"
+                            excludeIds={ownerId ? [ownerId] : []}
                           />
                         </FormControl>
                       </FormItem>
@@ -417,15 +379,16 @@ export function CreateObjectiveDialog({
 
                   <FormField
                     control={form.control}
-                    name="period"
+                    name="editors"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Período</FormLabel>
+                        <FormLabel>Editores</FormLabel>
                         <FormControl>
-                          <PeriodSelector
+                          <MultiPersonSelector
                             value={field.value}
                             onValueChange={field.onChange}
-                            onDueDateChange={(date) => form.setValue("dueDate", date)}
+                            placeholder="Adicionar"
+                            excludeIds={ownerId ? [ownerId] : []}
                           />
                         </FormControl>
                       </FormItem>
@@ -433,127 +396,76 @@ export function CreateObjectiveDialog({
                   />
                 </div>
 
-                {/* Row 4: Editors */}
-                <FormField
-                  control={form.control}
-                  name="editors"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Colaboradores que podem editar</FormLabel>
-                      <FormControl>
-                        <MultiPersonSelector
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          placeholder="Adicionar editores"
-                          excludeIds={responsibleId ? [responsibleId] : []}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                {/* Row 5: Tags */}
-                <FormField
-                  control={form.control}
-                  name="tags"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Etiquetas</FormLabel>
-                      <FormControl>
-                        <TagsInput
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                {/* Visibility */}
-                <FormField
-                  control={form.control}
-                  name="visibility"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Visibilidade</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                {/* Tags + Visibility */}
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tags</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
+                          <TagsInput value={field.value} onValueChange={field.onChange} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="private">Privado</SelectItem>
-                          <SelectItem value="company">Empresa</SelectItem>
-                          <SelectItem value="public">Público</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="visibility"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Visibilidade</FormLabel>
+                        <FormControl>
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="company">Empresa</SelectItem>
+                              <SelectItem value="private">Privado</SelectItem>
+                              <SelectItem value="public">Público</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </TabsContent>
 
               <TabsContent value="keyresults" className="space-y-4 mt-4">
-                {/* Key Results */}
-                <div className="flex items-center justify-between">
-                  <Label className="text-base">Key Results</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      append({ title: "", targetValue: 100, currentValue: 0, unit: "%" })
-                    }
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Adicionar
-                  </Button>
-                </div>
+                {showKRWarning && (
+                  <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-sm text-yellow-600">
+                    ⚠️ Objetivos {selectedType === "strategic" ? "estratégicos" : "táticos"} normalmente não
+                    possuem KRs diretos. O progresso é calculado a partir dos objetivos filhos.
+                  </div>
+                )}
 
                 {fields.map((field, index) => (
-                  <div
-                    key={field.id}
-                    className="p-4 border rounded-lg space-y-3 bg-muted/30"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <FormField
-                        control={form.control}
-                        name={`keyResults.${index}.title`}
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormControl>
-                              <Input placeholder="Título do Key Result" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      {fields.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => remove(index)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      )}
+                  <div key={field.id} className="p-3 border rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">KR {index + 1}</span>
+                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(index)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
-                      <FormField
-                        control={form.control}
-                        name={`keyResults.${index}.currentValue`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs">Valor Atual</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" {...field} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
+                    <FormField
+                      control={form.control}
+                      name={`keyResults.${index}.title`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input placeholder="Título do KR" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-4 gap-2">
                       <FormField
                         control={form.control}
                         name={`keyResults.${index}.targetValue`}
@@ -568,12 +480,46 @@ export function CreateObjectiveDialog({
                       />
                       <FormField
                         control={form.control}
+                        name={`keyResults.${index}.initialValue`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Valor Inicial</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
                         name={`keyResults.${index}.unit`}
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-xs">Unidade</FormLabel>
                             <FormControl>
-                              <Input placeholder="%" {...field} />
+                              <Select value={field.value} onValueChange={field.onChange}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="%">%</SelectItem>
+                                  <SelectItem value="R$">R$</SelectItem>
+                                  <SelectItem value="un">Unidades</SelectItem>
+                                  <SelectItem value="pts">Pontos</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`keyResults.${index}.weightPercentage`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Peso (%)</FormLabel>
+                            <FormControl>
+                              <Input type="number" min={0} max={100} {...field} />
                             </FormControl>
                           </FormItem>
                         )}
@@ -581,25 +527,35 @@ export function CreateObjectiveDialog({
                     </div>
                   </div>
                 ))}
-                {form.formState.errors.keyResults?.root && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.keyResults.root.message}
-                  </p>
-                )}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={() =>
+                    append({
+                      title: "",
+                      targetValue: 100,
+                      currentValue: 0,
+                      initialValue: 0,
+                      unit: "%",
+                      krType: "numeric",
+                      weightPercentage: 0,
+                    })
+                  }
+                >
+                  <Plus className="h-4 w-4" />
+                  Adicionar Key Result
+                </Button>
               </TabsContent>
             </Tabs>
 
-            {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
+            <div className="flex justify-end gap-3 pt-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={createObjective.isPending}>
-                {createObjective.isPending ? "Salvando..." : "Salvar"}
+                {createObjective.isPending ? "Criando..." : "Criar Objetivo"}
               </Button>
             </div>
           </form>
