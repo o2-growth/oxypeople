@@ -9,8 +9,8 @@ export interface ObjectivesFilterState {
   departments: string[];
   responsibleIds: string[];
   periodId: string | null;
-  status: "all" | ObjectiveStatus;
-  objectiveType: "all" | ObjectiveType;
+  statuses: ObjectiveStatus[];
+  objectiveTypes: ObjectiveType[];
   progressRange: [number, number] | null;
   // Quick filters
   atRisk: boolean;
@@ -35,8 +35,8 @@ const defaultFilters: ObjectivesFilterState = {
   departments: [],
   responsibleIds: [],
   periodId: null,
-  status: "all",
-  objectiveType: "all",
+  statuses: [],
+  objectiveTypes: [],
   progressRange: null,
   atRisk: false,
   checkinOverdue: false,
@@ -133,13 +133,13 @@ export function useObjectivesFilters() {
       }
 
       // Status filter
-      if (filters.status !== "all") {
-        if (obj.status !== filters.status) return false;
+      if (filters.statuses.length > 0) {
+        if (!filters.statuses.includes(obj.status)) return false;
       }
 
       // Type filter
-      if (filters.objectiveType !== "all") {
-        if (obj.type !== filters.objectiveType) return false;
+      if (filters.objectiveTypes.length > 0) {
+        if (!filters.objectiveTypes.includes(obj.type)) return false;
       }
 
       // Progress range
@@ -211,8 +211,8 @@ export function useObjectivesFilters() {
       filters.departments.length > 0 ||
       filters.responsibleIds.length > 0 ||
       filters.periodId !== null ||
-      filters.status !== "all" ||
-      filters.objectiveType !== "all" ||
+      filters.statuses.length > 0 ||
+      filters.objectiveTypes.length > 0 ||
       filters.progressRange !== null ||
       filters.atRisk ||
       filters.checkinOverdue ||
