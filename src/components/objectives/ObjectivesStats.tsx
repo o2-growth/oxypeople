@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Target, TrendingUp, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Crosshair, Layers, Zap, TrendingUp } from "lucide-react";
 import { ObjectivesStats as Stats } from "@/hooks/useObjectivesFilters";
 
 interface ObjectivesStatsProps {
@@ -11,31 +11,31 @@ interface ObjectivesStatsProps {
 export function ObjectivesStats({ stats, isLoading }: ObjectivesStatsProps) {
   const statsData = [
     {
-      label: "Objetivos",
-      value: stats.total,
-      icon: Target,
-      iconColor: "text-primary",
-      bgColor: "bg-primary/10",
+      label: "Estratégicos",
+      value: stats.strategic,
+      icon: Crosshair,
+      iconColor: "text-violet-400",
+      bgColor: "bg-violet-500/10",
     },
     {
-      label: "Progresso",
-      value: `${stats.averageProgress}%`,
-      icon: TrendingUp,
-      iconColor: "text-blue-600",
+      label: "Táticos",
+      value: stats.tactical,
+      icon: Layers,
+      iconColor: "text-blue-400",
       bgColor: "bg-blue-500/10",
     },
     {
-      label: "Encaminhado",
-      value: `${stats.onTrackPercentage}%`,
-      icon: CheckCircle2,
-      iconColor: "text-green-600",
-      bgColor: "bg-green-500/10",
+      label: "Operacionais",
+      value: stats.operational,
+      icon: Zap,
+      iconColor: "text-emerald-400",
+      bgColor: "bg-emerald-500/10",
     },
     {
-      label: "Em Atenção",
-      value: `${stats.atRiskPercentage}%`,
-      icon: AlertTriangle,
-      iconColor: "text-amber-600",
+      label: "Progresso Médio",
+      value: `${stats.averageProgress}%`,
+      icon: TrendingUp,
+      iconColor: "text-amber-400",
       bgColor: "bg-amber-500/10",
     },
   ];

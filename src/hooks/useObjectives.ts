@@ -7,7 +7,12 @@ import type { Database } from "@/integrations/supabase/types";
 type ObjectiveRow = Database["public"]["Tables"]["objectives"]["Row"];
 type KeyResultRow = Database["public"]["Tables"]["key_results"]["Row"];
 
-export interface ObjectiveWithDetails extends ObjectiveRow {
+export type ObjectiveType = "strategic" | "tactical" | "operational";
+export type ObjectiveStatus = "planned" | "active" | "risk" | "completed" | "canceled";
+
+export interface ObjectiveWithDetails extends Omit<ObjectiveRow, 'type' | 'status'> {
+  type: ObjectiveType;
+  status: ObjectiveStatus;
   owner: {
     id: string;
     full_name: string | null;
@@ -26,7 +31,7 @@ export interface ObjectiveWithDetails extends ObjectiveRow {
     department: string | null;
   } | null;
   key_results: KeyResultRow[];
-  type: "personal" | "team" | "individual";
+  children?: ObjectiveWithDetails[];
   collaborators?: {
     user_id: string;
     role: string;
@@ -38,14 +43,15 @@ export interface CreateObjectiveInput {
   description?: string;
   due_date?: string;
   visibility: "public" | "company" | "private";
-  type: "personal" | "team" | "individual";
+  type: ObjectiveType;
   team_id?: string;
   assignee_id?: string;
   owner_id?: string;
   parent_id?: string;
   is_active?: boolean;
-  period?: string;
+  period_id?: string;
   department?: string;
+  owner_department_id?: string;
   tags?: string[];
   contributors?: string[];
   editors?: string[];
@@ -53,7 +59,11 @@ export interface CreateObjectiveInput {
     title: string;
     target_value: number;
     current_value?: number;
+    initial_value?: number;
     unit?: string;
+    kr_type?: string;
+    weight_percentage?: number;
+    owner_user_id?: string;
   }[];
 }
 
@@ -62,25 +72,26 @@ export interface UpdateObjectiveInput {
   title?: string;
   description?: string;
   due_date?: string;
-  status?: "on-track" | "at-risk" | "off-track" | "completed";
+  status?: ObjectiveStatus;
   visibility?: "public" | "company" | "private";
   is_active?: boolean;
-  period?: string;
+  period_id?: string;
   department?: string;
+  owner_department_id?: string;
   tags?: string[];
 }
 
-export function useObjectives(filter?: "all" | "personal" | "team" | "company") {
+export function useObjectives() {
   const { user } = useAuth();
   const { profile } = useUser();
   const companyId = profile?.primary_company_id;
 
   return useQuery({
-    queryKey: ["objectives", companyId, filter, user?.id],
+    queryKey: ["objectives", companyId, user?.id],
     queryFn: async (): Promise<ObjectiveWithDetails[]> => {
       if (!companyId || !user?.id) return [];
 
-      let query = supabase
+      const { data, error } = await supabase
         .from("objectives")
         .select(`
           *,
@@ -92,17 +103,6 @@ export function useObjectives(filter?: "all" | "personal" | "team" | "company") 
         .eq("company_id", companyId)
         .order("created_at", { ascending: false });
 
-      // Apply filters
-      if (filter === "personal") {
-        query = query.or(`owner_id.eq.${user.id},assignee_id.eq.${user.id}`);
-      } else if (filter === "team") {
-        query = query.not("team_id", "is", null);
-      } else if (filter === "company") {
-        query = query.eq("visibility", "company");
-      }
-
-      const { data, error } = await query;
-
       if (error) {
         console.error("Error fetching objectives:", error);
         throw error;
@@ -110,11 +110,55 @@ export function useObjectives(filter?: "all" | "personal" | "team" | "company") 
 
       return (data || []).map((obj) => ({
         ...obj,
-        type: (obj as any).type as "personal" | "team" | "individual",
+        type: obj.type as ObjectiveType,
+        status: obj.status as ObjectiveStatus,
       })) as ObjectiveWithDetails[];
     },
     enabled: !!companyId && !!user?.id,
   });
+}
+
+export function useObjectiveTree() {
+  const { data: objectives = [], isLoading } = useObjectives();
+
+  // Build tree structure
+  const tree = buildObjectiveTree(objectives);
+
+  return { tree, flatObjectives: objectives, isLoading };
+}
+
+function buildObjectiveTree(objectives: ObjectiveWithDetails[]): ObjectiveWithDetails[] {
+  const map = new Map<string, ObjectiveWithDetails>();
+  const roots: ObjectiveWithDetails[] = [];
+
+  // Clone and init children
+  objectives.forEach((obj) => {
+    map.set(obj.id, { ...obj, children: [] });
+  });
+
+  // Build parent-child relationships
+  objectives.forEach((obj) => {
+    const node = map.get(obj.id)!;
+    if (obj.parent_id && map.has(obj.parent_id)) {
+      map.get(obj.parent_id)!.children!.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+
+  // Sort: strategic first, then tactical, then operational
+  const typeOrder: Record<string, number> = { strategic: 0, tactical: 1, operational: 2 };
+  const sortFn = (a: ObjectiveWithDetails, b: ObjectiveWithDetails) =>
+    (typeOrder[a.type] ?? 3) - (typeOrder[b.type] ?? 3);
+
+  roots.sort(sortFn);
+  const sortChildren = (nodes: ObjectiveWithDetails[]) => {
+    nodes.sort(sortFn);
+    nodes.forEach((n) => n.children && sortChildren(n.children));
+  };
+  sortChildren(roots);
+
+  return roots;
 }
 
 export function useCreateObjective() {
@@ -127,47 +171,49 @@ export function useCreateObjective() {
     mutationFn: async (input: CreateObjectiveInput) => {
       if (!user?.id || !companyId) throw new Error("Not authenticated");
 
-      // Determine owner_id based on type and input
-      let ownerId = input.owner_id || user.id;
-      if (input.type === "individual" && input.assignee_id) {
-        ownerId = input.assignee_id;
-      }
+      const ownerId = input.owner_id || user.id;
 
-      // Create objective
+      const insertData: any = {
+        company_id: companyId,
+        owner_id: ownerId,
+        created_by: user.id,
+        title: input.title,
+        description: input.description || null,
+        due_date: input.due_date || null,
+        visibility: input.visibility,
+        type: input.type,
+        team_id: input.team_id || null,
+        assignee_id: input.assignee_id || null,
+        parent_id: input.parent_id || null,
+        is_active: input.is_active ?? true,
+        period_id: input.period_id || null,
+        department: input.department || null,
+        owner_department_id: input.owner_department_id || null,
+        tags: input.tags || null,
+        status: "planned",
+        progress: 0,
+      };
+
       const { data: objective, error: objError } = await supabase
         .from("objectives")
-        .insert({
-          company_id: companyId,
-          owner_id: ownerId,
-          created_by: user.id,
-          title: input.title,
-          description: input.description || null,
-          due_date: input.due_date || null,
-          visibility: input.visibility,
-          type: input.type,
-          team_id: input.team_id || null,
-          assignee_id: input.assignee_id || null,
-          parent_id: input.parent_id || null,
-          is_active: input.is_active ?? true,
-          period: input.period || null,
-          department: input.department || null,
-          tags: input.tags || null,
-          status: "on-track",
-          progress: 0,
-        })
+        .insert(insertData)
         .select()
         .single();
 
       if (objError) throw objError;
 
-      // Create key results if provided
+      // Create key results
       if (input.key_results && input.key_results.length > 0) {
         const keyResultsData = input.key_results.map((kr) => ({
           objective_id: objective.id,
           title: kr.title,
           target_value: kr.target_value,
           current_value: kr.current_value || 0,
+          initial_value: kr.initial_value || 0,
           unit: kr.unit || "%",
+          kr_type: kr.kr_type || "numeric",
+          weight_percentage: kr.weight_percentage || 0,
+          owner_user_id: kr.owner_user_id || null,
         }));
 
         const { error: krError } = await supabase
@@ -177,38 +223,32 @@ export function useCreateObjective() {
         if (krError) throw krError;
       }
 
-      // Create collaborators (contributors and editors)
+      // Create collaborators
       const collaborators: { objective_id: string; user_id: string; role: string }[] = [];
 
-      if (input.contributors && input.contributors.length > 0) {
+      if (input.contributors?.length) {
         input.contributors.forEach((userId) => {
-          collaborators.push({
-            objective_id: objective.id,
-            user_id: userId,
-            role: "contributor",
-          });
+          collaborators.push({ objective_id: objective.id, user_id: userId, role: "contributor" });
         });
       }
 
-      if (input.editors && input.editors.length > 0) {
+      if (input.editors?.length) {
         input.editors.forEach((userId) => {
-          collaborators.push({
-            objective_id: objective.id,
-            user_id: userId,
-            role: "editor",
-          });
+          collaborators.push({ objective_id: objective.id, user_id: userId, role: "editor" });
         });
       }
 
       if (collaborators.length > 0) {
-        const { error: collabError } = await supabase
-          .from("objective_collaborators")
-          .insert(collaborators);
+        await supabase.from("objective_collaborators").insert(collaborators);
+      }
 
-        if (collabError) {
-          console.error("Error creating collaborators:", collabError);
-          // Don't throw - objective was created successfully
-        }
+      // Create objective relation if parent_id
+      if (input.parent_id) {
+        await supabase.from("objective_relations").insert({
+          parent_objective_id: input.parent_id,
+          child_objective_id: objective.id,
+          weight_percentage: 0,
+        });
       }
 
       return objective;
@@ -291,33 +331,23 @@ export function useUpdateKeyResult() {
   });
 }
 
-export function useObjectiveStats() {
+export function usePeriods() {
   const { profile } = useUser();
   const companyId = profile?.primary_company_id;
 
   return useQuery({
-    queryKey: ["objective-stats", companyId],
+    queryKey: ["periods", companyId],
     queryFn: async () => {
-      if (!companyId) return null;
+      if (!companyId) return [];
 
       const { data, error } = await supabase
-        .from("objectives")
-        .select("status, is_active")
-        .eq("company_id", companyId);
+        .from("periods")
+        .select("*")
+        .eq("company_id", companyId)
+        .order("start_date", { ascending: true });
 
       if (error) throw error;
-
-      const activeObjectives = (data || []).filter((o: any) => o.is_active !== false);
-
-      const stats = {
-        total: activeObjectives.length,
-        onTrack: activeObjectives.filter((o: any) => o.status === "on-track").length,
-        atRisk: activeObjectives.filter((o: any) => o.status === "at-risk").length,
-        offTrack: activeObjectives.filter((o: any) => o.status === "off-track").length,
-        completed: activeObjectives.filter((o: any) => o.status === "completed").length,
-      };
-
-      return stats;
+      return data || [];
     },
     enabled: !!companyId,
   });

@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ObjectiveCard } from "./ObjectiveCard";
 import { ObjectiveWithDetails } from "@/hooks/useObjectives";
-import { GroupedObjectives } from "@/hooks/useObjectivesFilters";
+
+type GroupedObjectives = Record<string, ObjectiveWithDetails[]>;
 import {
   Collapsible,
   CollapsibleContent,
