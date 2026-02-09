@@ -7,6 +7,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -30,8 +31,11 @@ import {
   Crosshair,
   Layers,
   Zap,
+  GitBranchPlus,
 } from "lucide-react";
 import { KeyResultItem, KeyResult } from "./KeyResultItem";
+import { BreakdownObjectiveDialog } from "./BreakdownObjectiveDialog";
+import { ChildWeightEditor } from "./ChildWeightEditor";
 import { ObjectiveWithDetails, useDeleteObjective, ObjectiveType } from "@/hooks/useObjectives";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { format } from "date-fns";
@@ -91,6 +95,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild }: Objec
   const [isExpanded, setIsExpanded] = useState(depth < 2);
   const [showKRs, setShowKRs] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const { canEditObjective, canDeleteObjective } = useUserPermissions();
   const deleteObjective = useDeleteObjective();
 
@@ -270,6 +275,13 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild }: Objec
                   Criar {typeConfig[childTypeMap[objective.type]!]?.label}
                 </DropdownMenuItem>
               )}
+              {canAddChild && canEdit && (
+                <DropdownMenuItem onClick={() => setShowBreakdown(true)}>
+                  <GitBranchPlus className="h-4 w-4 mr-2" />
+                  Quebrar em filhos
+                </DropdownMenuItem>
+              )}
+              {(canAddChild || canDelete) && <DropdownMenuSeparator />}
               {canDelete && (
                 <DropdownMenuItem
                   onClick={() => setShowDeleteDialog(true)}
@@ -301,6 +313,15 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild }: Objec
               </div>
             )}
           </div>
+        )}
+
+        {/* Child weight editor */}
+        {isExpanded && hasChildren && (
+          <ChildWeightEditor
+            parentId={objective.id}
+            children={objective.children!}
+            canEdit={canEdit}
+          />
         )}
 
         {/* Children */}
@@ -339,6 +360,15 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild }: Objec
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Breakdown Dialog */}
+      {showBreakdown && (
+        <BreakdownObjectiveDialog
+          open={showBreakdown}
+          onOpenChange={setShowBreakdown}
+          parentObjective={objective}
+        />
+      )}
     </>
   );
 }

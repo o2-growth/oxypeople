@@ -33,7 +33,7 @@ import { MultiPersonSelector } from "./MultiPersonSelector";
 import { ParentObjectiveSelector } from "./ParentObjectiveSelector";
 import { DepartmentSelector } from "./DepartmentSelector";
 import { TagsInput } from "./TagsInput";
-import { useCreateObjective, usePeriods, ObjectiveType } from "@/hooks/useObjectives";
+import { useCreateObjective, usePeriods, useObjectives, ObjectiveType } from "@/hooks/useObjectives";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -86,6 +86,12 @@ export function CreateObjectiveDialog({
   const { isAdmin, isTeamLeader } = useUserPermissions();
   const createObjective = useCreateObjective();
   const { data: periods = [] } = usePeriods();
+  const { data: allObjectives = [] } = useObjectives();
+
+  // Find parent objective to inherit context
+  const parentObjective = defaultParentId
+    ? allObjectives.find((o) => o.id === defaultParentId)
+    : undefined;
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -107,15 +113,17 @@ export function CreateObjectiveDialog({
     if (open) {
       form.reset({
         title: "",
-        description: "",
+        description: parentObjective ? `Derivado de: ${parentObjective.title}` : "",
         type: defaultType,
-        visibility: "company",
+        visibility: (parentObjective?.visibility as "company" | "public" | "private") || "company",
         ownerId: user?.id || "",
         contributors: [],
         editors: [],
         tags: [],
         keyResults: defaultType === "operational" ? [{ title: "", targetValue: 100, currentValue: 0, initialValue: 0, unit: "%", krType: "numeric", weightPercentage: 100 }] : [],
         parentId: defaultParentId,
+        periodId: parentObjective?.period_id || undefined,
+        department: parentObjective?.department || undefined,
       });
     }
   }, [open, defaultType, defaultParentId, user?.id]);
