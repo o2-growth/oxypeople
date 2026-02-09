@@ -1,41 +1,55 @@
 
-# Plano: Adicionar Link "Oxy VE" na Navegação
 
-## Objetivo
-Adicionar um item de menu "Oxy VE" na seção "Gestão" da sidebar, posicionado acima de "Configurações", que abre o sistema Oxy VE em uma nova aba.
+# Empilhamento de Filtros na Pagina de Objetivos
 
-## Abordagem Técnica
+## Problema Atual
+Os filtros de **Tipo** (Estrategico/Tatico/Operacional) e **Status** (Ativo/Planejado/Em Risco/etc.) permitem selecionar apenas um valor por vez. Departamento e Dono ja suportam multi-selecao.
 
-### 1. Modificar a Sidebar (AppSidebar.tsx)
+## Solucao
+Converter Tipo e Status para multi-selecao com checkboxes (mesmo padrao visual de Departamento e Dono), permitindo combinar filtros livremente.
 
-**Adicionar ícone apropriado:**
-- Importar um ícone adequado do Lucide (sugestão: `ExternalLink` ou `MonitorPlay` para indicar sistema externo)
+## Alteracoes
 
-**Atualizar o array `managementItems`:**
+### 1. Hook `useObjectivesFilters.ts`
+- Mudar `status: "all" | ObjectiveStatus` para `statuses: ObjectiveStatus[]` (array vazio = todos)
+- Mudar `objectiveType: "all" | ObjectiveType` para `objectiveTypes: ObjectiveType[]` (array vazio = todos)
+- Atualizar a logica de filtragem para verificar `includes()` quando o array nao esta vazio
+- Atualizar `hasActiveFilters` e `clearFilters` para os novos campos
+- Atualizar `defaultFilters`
+
+### 2. Componente `ObjectivesContextBar.tsx`
+- Substituir os `<Select>` de Tipo e Status por `<Popover>` com checkboxes (mesmo padrao de Area/Dono)
+- Cada opcao com checkbox para marcar/desmarcar individualmente
+- Badge no botao mostrando quantos estao selecionados
+- Badges individuais removiveis na area de filtros ativos
+
+### 3. Componente `ObjectivesFilters.tsx`
+- Mesma conversao de `<Select>` para `<Popover>` com checkboxes para Tipo e Status
+
+### 4. Pagina `Objectives.tsx`
+- Atualizar referencias de `filters.status` e `filters.objectiveType` para os novos nomes de campo (`statuses`, `objectiveTypes`)
+
+---
+
+### Detalhes Tecnicos
+
+**Estado do filtro (antes/depois):**
 ```text
-const managementItems = [
-  { title: "Empresa", url: "/company", icon: Building2 },
-  { title: "RH", url: "/hr", icon: Briefcase },
-  { title: "Equipes", url: "/teams", icon: UsersRound },
-  { title: "Oxy VE", url: "https://oxyve.lovable.app", icon: MonitorPlay, external: true },  // NOVO
-  { title: "Configurações", url: "/settings", icon: Settings },
-];
+ANTES                              DEPOIS
+status: "all" | "active"...   -->  statuses: [] | ["active", "risk"]
+objectiveType: "all" | ...    -->  objectiveTypes: [] | ["strategic", "tactical"]
 ```
 
-**Modificar o componente `NavGroup`:**
-- Adicionar lógica para detectar links externos (propriedade `external`)
-- Para links externos: usar tag `<a>` com `target="_blank"` e `rel="noopener noreferrer"`
-- Para links internos: manter o `NavLink` atual
+**Logica de filtragem atualizada:**
+```text
+// Array vazio = sem filtro (mostra todos)
+if (filters.statuses.length > 0 && !filters.statuses.includes(obj.status)) return false;
+if (filters.objectiveTypes.length > 0 && !filters.objectiveTypes.includes(obj.type)) return false;
+```
 
-### 2. Visual do Item Externo
-- Adicionar um pequeno ícone de "external link" ao lado do texto para indicar que abrirá em nova aba
-- Manter o mesmo estilo visual dos outros itens para consistência
+**Arquivos modificados:**
+- `src/hooks/useObjectivesFilters.ts`
+- `src/components/objectives/ObjectivesContextBar.tsx`
+- `src/components/objectives/ObjectivesFilters.tsx`
+- `src/pages/Objectives.tsx` (se houver referencias diretas)
 
-## Benefícios da Abordagem
-- Zero impacto no bundle size do Oxy People
-- Projetos evoluem independentemente
-- Usuário tem acesso rápido ao VE direto da navegação principal
-- Indicação visual clara de que é um link externo
-
-## Arquivos a Modificar
-- `src/components/layout/AppSidebar.tsx`
