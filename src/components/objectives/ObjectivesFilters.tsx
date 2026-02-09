@@ -65,42 +65,108 @@ export function ObjectivesFilters({
     }));
   };
 
+  const handleTypeToggle = (type: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      objectiveTypes: prev.objectiveTypes.includes(type as any)
+        ? prev.objectiveTypes.filter((t) => t !== type)
+        : [...prev.objectiveTypes, type as any],
+    }));
+  };
+
+  const handleStatusToggle = (status: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      statuses: prev.statuses.includes(status as any)
+        ? prev.statuses.filter((s) => s !== status)
+        : [...prev.statuses, status as any],
+    }));
+  };
+
+  const typeLabels: Record<string, string> = {
+    strategic: "Estratégico",
+    tactical: "Tático",
+    operational: "Operacional",
+  };
+
+  const statusLabels: Record<string, string> = {
+    planned: "Planejado",
+    active: "Ativo",
+    risk: "Em Risco",
+    completed: "Concluído",
+    canceled: "Cancelado",
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         {/* Type filter */}
-        <Select
-          value={filters.objectiveType}
-          onValueChange={(value) => setFilters((prev) => ({ ...prev, objectiveType: value as any }))}
-        >
-          <SelectTrigger className="w-36 h-9 text-xs">
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os tipos</SelectItem>
-            <SelectItem value="strategic">Estratégico</SelectItem>
-            <SelectItem value="tactical">Tático</SelectItem>
-            <SelectItem value="operational">Operacional</SelectItem>
-          </SelectContent>
-        </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1 h-9 text-xs">
+              Tipo
+              {filters.objectiveTypes.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                  {filters.objectiveTypes.length}
+                </Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-48" align="start">
+            <div className="space-y-2">
+              <h4 className="font-medium text-xs">Tipo de Objetivo</h4>
+              <Separator />
+              <div className="space-y-1.5">
+                {Object.entries(typeLabels).map(([value, label]) => (
+                  <div key={value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`filter-type-${value}`}
+                      checked={filters.objectiveTypes.includes(value as any)}
+                      onCheckedChange={() => handleTypeToggle(value)}
+                    />
+                    <Label htmlFor={`filter-type-${value}`} className="text-xs cursor-pointer">
+                      {label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
 
         {/* Status filter */}
-        <Select
-          value={filters.status}
-          onValueChange={(value) => setFilters((prev) => ({ ...prev, status: value as any }))}
-        >
-          <SelectTrigger className="w-32 h-9 text-xs">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="planned">Planejado</SelectItem>
-            <SelectItem value="active">Ativo</SelectItem>
-            <SelectItem value="risk">Em Risco</SelectItem>
-            <SelectItem value="completed">Concluído</SelectItem>
-            <SelectItem value="canceled">Cancelado</SelectItem>
-          </SelectContent>
-        </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1 h-9 text-xs">
+              Status
+              {filters.statuses.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                  {filters.statuses.length}
+                </Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-48" align="start">
+            <div className="space-y-2">
+              <h4 className="font-medium text-xs">Status</h4>
+              <Separator />
+              <div className="space-y-1.5">
+                {Object.entries(statusLabels).map(([value, label]) => (
+                  <div key={value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`filter-status-${value}`}
+                      checked={filters.statuses.includes(value as any)}
+                      onCheckedChange={() => handleStatusToggle(value)}
+                    />
+                    <Label htmlFor={`filter-status-${value}`} className="text-xs cursor-pointer">
+                      {label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
 
         {/* Period filter */}
         <Select
@@ -213,22 +279,22 @@ export function ObjectivesFilters({
       {/* Active filter badges */}
       {hasActiveFilters && (
         <div className="flex flex-wrap gap-1.5">
-          {filters.objectiveType !== "all" && (
-            <Badge variant="secondary" className="gap-1 text-xs">
-              {filters.objectiveType === "strategic" ? "Estratégico" : filters.objectiveType === "tactical" ? "Tático" : "Operacional"}
-              <button onClick={() => setFilters((p) => ({ ...p, objectiveType: "all" }))} className="ml-0.5">
+          {filters.objectiveTypes.map((type) => (
+            <Badge key={type} variant="secondary" className="gap-1 text-xs">
+              {typeLabels[type] || type}
+              <button onClick={() => handleTypeToggle(type)} className="ml-0.5">
                 <X className="h-3 w-3" />
               </button>
             </Badge>
-          )}
-          {filters.status !== "all" && (
-            <Badge variant="secondary" className="gap-1 text-xs">
-              {filters.status}
-              <button onClick={() => setFilters((p) => ({ ...p, status: "all" }))} className="ml-0.5">
+          ))}
+          {filters.statuses.map((status) => (
+            <Badge key={status} variant="secondary" className="gap-1 text-xs">
+              {statusLabels[status] || status}
+              <button onClick={() => handleStatusToggle(status)} className="ml-0.5">
                 <X className="h-3 w-3" />
               </button>
             </Badge>
-          )}
+          ))}
           {filters.periodId && (
             <Badge variant="secondary" className="gap-1 text-xs">
               {periods.find((p) => p.id === filters.periodId)?.name || "Período"}
