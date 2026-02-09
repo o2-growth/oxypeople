@@ -8,14 +8,15 @@ import { ObjectiveTreeNode } from "@/components/objectives/ObjectiveTreeNode";
 import { ObjectiveDetailPanel } from "@/components/objectives/ObjectiveDetailPanel";
 import { BreakdownObjectiveDialog } from "@/components/objectives/BreakdownObjectiveDialog";
 import { ObjectivesMap } from "@/components/objectives/ObjectivesMap";
+import { ActionsKanban } from "@/components/actions/ActionsKanban";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Target, List, Map } from "lucide-react";
+import { Plus, Target, List, Map, Zap } from "lucide-react";
 import { useObjectivesFilters } from "@/hooks/useObjectivesFilters";
 import { ObjectiveType, ObjectiveWithDetails } from "@/hooks/useObjectives";
 
-export type DisplayMode = "tree" | "map";
+export type DisplayMode = "tree" | "map" | "actions";
 
 export default function Objectives() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -145,6 +146,15 @@ export default function Objectives() {
                 <Map className="h-4 w-4" />
                 Mapa
               </Button>
+              <Button
+                variant={displayMode === "actions" ? "default" : "ghost"}
+                size="sm"
+                className="rounded-none h-9 px-3 gap-1.5"
+                onClick={() => setDisplayMode("actions")}
+              >
+                <Zap className="h-4 w-4" />
+                Ações
+              </Button>
             </div>
             <ObjectivesExport objectives={filteredObjectives} />
             <Button className="gap-2" onClick={handleNewObjective}>
@@ -177,14 +187,16 @@ export default function Objectives() {
           stats={stats}
         />
 
-        {/* Tree View or Map View */}
-        {displayMode === "tree" ? renderTree() : (
+        {/* Content based on display mode */}
+        {displayMode === "tree" && renderTree()}
+        {displayMode === "map" && (
           <ObjectivesMap
             tree={filteredTree}
             isLoading={isLoading}
             onSelectObjective={setSelectedObjective}
           />
         )}
+        {displayMode === "actions" && <ActionsKanban />}
       </div>
 
       {/* Create Dialog */}
