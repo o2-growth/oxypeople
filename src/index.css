@@ -34,9 +34,9 @@
     --muted: 150 10% 95%;
     --muted-foreground: 160 10% 45%;
     
-    /* Accent — Teal */
-    --accent: 170 55% 40%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent — subtle surface for hover states */
+    --accent: 150 12% 93%;
+    --accent-foreground: 160 30% 8%;
     
     /* Destructive */
     --destructive: 0 72% 51%;
