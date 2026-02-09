@@ -1,6 +1,9 @@
 import { useState, useMemo, useCallback } from "react";
 import { useObjectiveTree, ObjectiveWithDetails, ObjectiveType, ObjectiveStatus } from "./useObjectives";
-import { isWithinInterval, differenceInDays } from "date-fns";
+import { useUserPermissions } from "./useUserPermissions";
+import { useAuth } from "@/contexts/AuthContext";
+
+export type ViewMode = "company" | "department" | "my";
 
 export interface ObjectivesFilterState {
   departments: string[];
@@ -9,6 +12,11 @@ export interface ObjectivesFilterState {
   status: "all" | ObjectiveStatus;
   objectiveType: "all" | ObjectiveType;
   progressRange: [number, number] | null;
+  // Quick filters
+  atRisk: boolean;
+  checkinOverdue: boolean;
+  noKR: boolean;
+  search: string;
 }
 
 export interface ObjectivesStats {
@@ -18,6 +26,9 @@ export interface ObjectivesStats {
   operational: number;
   averageProgress: number;
   byStatus: Record<string, number>;
+  atRiskCount: number;
+  overdueCheckinCount: number;
+  noKRCount: number;
 }
 
 const defaultFilters: ObjectivesFilterState = {
@@ -27,11 +38,39 @@ const defaultFilters: ObjectivesFilterState = {
   status: "all",
   objectiveType: "all",
   progressRange: null,
+  atRisk: false,
+  checkinOverdue: false,
+  noKR: false,
+  search: "",
 };
+
+function isCheckinOverdue(obj: ObjectiveWithDetails, overdueDays = 7): boolean {
+  if (obj.type !== "operational") return false;
+  if (obj.key_results.length === 0) return false;
+  const now = new Date();
+  return obj.key_results.some((kr) => {
+    const lastCheckin = (kr as any).last_checkin_at;
+    if (!lastCheckin) return true; // never checked in
+    const diff = (now.getTime() - new Date(lastCheckin).getTime()) / (1000 * 60 * 60 * 24);
+    return diff > overdueDays;
+  });
+}
+
+function isAtRisk(obj: ObjectiveWithDetails): boolean {
+  const autoStatus = (obj as any).auto_status;
+  return autoStatus === "risk" || autoStatus === "overdue" || obj.status === "risk";
+}
+
+function hasNoKR(obj: ObjectiveWithDetails): boolean {
+  return obj.type === "operational" && obj.key_results.length === 0;
+}
 
 export function useObjectivesFilters() {
   const [filters, setFilters] = useState<ObjectivesFilterState>(defaultFilters);
+  const [viewMode, setViewMode] = useState<ViewMode>("company");
   const { tree, flatObjectives, isLoading } = useObjectiveTree();
+  const { user } = useAuth();
+  const { isAdmin, ledTeamIds } = useUserPermissions();
 
   // Get unique departments
   const departments = useMemo(() => {
@@ -60,38 +99,72 @@ export function useObjectivesFilters() {
     return Array.from(usersMap.values());
   }, [flatObjectives]);
 
+  // Determine user's department for "department" view
+  const userDepartment = useMemo(() => {
+    const myObj = flatObjectives.find((o) => o.owner_id === user?.id);
+    return myObj?.department || (myObj?.team as any)?.department || null;
+  }, [flatObjectives, user?.id]);
+
   // Filter flat objectives
   const filteredObjectives = useMemo(() => {
     return flatObjectives.filter((obj) => {
+      // View mode filter
+      if (viewMode === "my") {
+        if (obj.owner_id !== user?.id && obj.assignee_id !== user?.id) return false;
+      } else if (viewMode === "department" && userDepartment) {
+        const objDept = obj.department || (obj.team as any)?.department;
+        if (objDept !== userDepartment) return false;
+      }
+
+      // Department filter
       if (filters.departments.length > 0) {
         const objDept = obj.department || (obj.team as any)?.department;
         if (!objDept || !filters.departments.includes(objDept)) return false;
       }
 
+      // Responsible filter
       if (filters.responsibleIds.length > 0) {
         if (!obj.owner || !filters.responsibleIds.includes(obj.owner.id)) return false;
       }
 
+      // Period filter
       if (filters.periodId) {
         if (obj.period_id !== filters.periodId) return false;
       }
 
+      // Status filter
       if (filters.status !== "all") {
         if (obj.status !== filters.status) return false;
       }
 
+      // Type filter
       if (filters.objectiveType !== "all") {
         if (obj.type !== filters.objectiveType) return false;
       }
 
+      // Progress range
       if (filters.progressRange) {
         const [min, max] = filters.progressRange;
         if (obj.progress < min || obj.progress > max) return false;
       }
 
+      // Quick filters
+      if (filters.atRisk && !isAtRisk(obj)) return false;
+      if (filters.checkinOverdue && !isCheckinOverdue(obj)) return false;
+      if (filters.noKR && !hasNoKR(obj)) return false;
+
+      // Search
+      if (filters.search) {
+        const q = filters.search.toLowerCase();
+        const matchTitle = obj.title.toLowerCase().includes(q);
+        const matchOwner = obj.owner?.full_name?.toLowerCase().includes(q) || obj.owner?.email.toLowerCase().includes(q);
+        const matchKR = obj.key_results.some((kr) => kr.title.toLowerCase().includes(q));
+        if (!matchTitle && !matchOwner && !matchKR) return false;
+      }
+
       return true;
     });
-  }, [flatObjectives, filters]);
+  }, [flatObjectives, filters, viewMode, user?.id, userDepartment]);
 
   // Filtered tree (keep parents visible if children match)
   const filteredTree = useMemo(() => {
@@ -126,7 +199,11 @@ export function useObjectivesFilters() {
       byStatus[obj.status] = (byStatus[obj.status] || 0) + 1;
     });
 
-    return { total, strategic, tactical, operational, averageProgress, byStatus };
+    const atRiskCount = flatObjectives.filter(isAtRisk).length;
+    const overdueCheckinCount = flatObjectives.filter((o) => isCheckinOverdue(o)).length;
+    const noKRCount = flatObjectives.filter(hasNoKR).length;
+
+    return { total, strategic, tactical, operational, averageProgress, byStatus, atRiskCount, overdueCheckinCount, noKRCount };
   }, [flatObjectives]);
 
   const hasActiveFilters = useMemo(() => {
@@ -136,7 +213,11 @@ export function useObjectivesFilters() {
       filters.periodId !== null ||
       filters.status !== "all" ||
       filters.objectiveType !== "all" ||
-      filters.progressRange !== null
+      filters.progressRange !== null ||
+      filters.atRisk ||
+      filters.checkinOverdue ||
+      filters.noKR ||
+      filters.search !== ""
     );
   }, [filters]);
 
@@ -156,5 +237,7 @@ export function useObjectivesFilters() {
     departments,
     responsibleUsers,
     isLoading,
+    viewMode,
+    setViewMode,
   };
 }

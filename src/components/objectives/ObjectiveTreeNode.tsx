@@ -32,6 +32,8 @@ import {
   Layers,
   Zap,
   GitBranchPlus,
+  Clock,
+  AlertTriangle,
 } from "lucide-react";
 import { KeyResultItem, KeyResult } from "./KeyResultItem";
 import { BreakdownObjectiveDialog } from "./BreakdownObjectiveDialog";
@@ -47,6 +49,7 @@ interface ObjectiveTreeNodeProps {
   objective: ObjectiveWithDetails;
   depth?: number;
   onCreateChild?: (parentId: string, parentType: ObjectiveType) => void;
+  onSelectObjective?: (objective: ObjectiveWithDetails) => void;
 }
 
 const typeConfig: Record<ObjectiveType, { label: string; icon: typeof Target; color: string; bgColor: string }> = {
@@ -91,13 +94,24 @@ const childTypeMap: Record<ObjectiveType, ObjectiveType | null> = {
   operational: null,
 };
 
-export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild }: ObjectiveTreeNodeProps) {
+export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelectObjective }: ObjectiveTreeNodeProps) {
   const [isExpanded, setIsExpanded] = useState(depth < 2);
   const [showKRs, setShowKRs] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const { canEditObjective, canDeleteObjective } = useUserPermissions();
   const deleteObjective = useDeleteObjective();
+
+  // Check-in overdue detection
+  const isCheckinOverdue = objective.type === "operational" && objective.key_results.length > 0 &&
+    objective.key_results.some((kr) => {
+      const lastCheckin = (kr as any).last_checkin_at;
+      if (!lastCheckin) return true;
+      const diff = (Date.now() - new Date(lastCheckin).getTime()) / (1000 * 60 * 60 * 24);
+      return diff > 7;
+    });
+
+  const hasNoKRWarning = objective.type === "operational" && objective.key_results.length === 0;
 
   const type = typeConfig[objective.type] || typeConfig.operational;
   const status = statusConfig[objective.status] || statusConfig.planned;

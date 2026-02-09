@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CreateObjectiveDialog } from "@/components/objectives/CreateObjectiveDialog";
-import { ObjectivesFilters } from "@/components/objectives/ObjectivesFilters";
-import { ObjectivesStats } from "@/components/objectives/ObjectivesStats";
+import { ObjectivesContextBar } from "@/components/objectives/ObjectivesContextBar";
+import { ExecutiveSummary } from "@/components/objectives/ExecutiveSummary";
 import { ObjectivesExport } from "@/components/objectives/ObjectivesExport";
 import { ObjectiveTreeNode } from "@/components/objectives/ObjectiveTreeNode";
+import { ObjectiveDetailPanel } from "@/components/objectives/ObjectiveDetailPanel";
+import { BreakdownObjectiveDialog } from "@/components/objectives/BreakdownObjectiveDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Target } from "lucide-react";
 import { useObjectivesFilters } from "@/hooks/useObjectivesFilters";
-import { ObjectiveType } from "@/hooks/useObjectives";
+import { ObjectiveType, ObjectiveWithDetails } from "@/hooks/useObjectives";
 
 export default function Objectives() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -18,6 +20,9 @@ export default function Objectives() {
     type: ObjectiveType;
     parentId?: string;
   }>({ type: "operational" });
+
+  const [selectedObjective, setSelectedObjective] = useState<ObjectiveWithDetails | null>(null);
+  const [breakdownObjective, setBreakdownObjective] = useState<ObjectiveWithDetails | null>(null);
 
   const {
     filters,
@@ -30,6 +35,8 @@ export default function Objectives() {
     departments,
     responsibleUsers,
     isLoading,
+    viewMode,
+    setViewMode,
   } = useObjectivesFilters();
 
   const handleCreateChild = (parentId: string, childType: ObjectiveType) => {
@@ -93,6 +100,7 @@ export default function Objectives() {
             key={objective.id}
             objective={objective}
             onCreateChild={handleCreateChild}
+            onSelectObjective={setSelectedObjective}
           />
         ))}
       </div>
@@ -106,7 +114,7 @@ export default function Objectives() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-heading font-bold text-foreground">
-              Objetivos
+              Gestão de Objetivos
             </h1>
             <p className="text-muted-foreground mt-1">
               OKRs hierárquicos — Estratégico → Tático → Operacional → KRs
@@ -121,17 +129,27 @@ export default function Objectives() {
           </div>
         </div>
 
-        {/* Stats */}
-        <ObjectivesStats stats={stats} isLoading={isLoading} />
+        {/* Executive Summary Cards */}
+        <ExecutiveSummary
+          stats={stats}
+          objectives={filteredObjectives}
+          isLoading={isLoading}
+          onFilterAtRisk={() => setFilters((p) => ({ ...p, atRisk: !p.atRisk }))}
+          onFilterOverdue={() => setFilters((p) => ({ ...p, checkinOverdue: !p.checkinOverdue }))}
+          onFilterNoKR={() => setFilters((p) => ({ ...p, noKR: !p.noKR }))}
+        />
 
-        {/* Filters */}
-        <ObjectivesFilters
+        {/* Context Bar (view mode + period + filters) */}
+        <ObjectivesContextBar
           filters={filters}
           setFilters={setFilters}
           clearFilters={clearFilters}
           hasActiveFilters={hasActiveFilters}
           departments={departments}
           responsibleUsers={responsibleUsers}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          stats={stats}
         />
 
         {/* Tree View */}
@@ -145,6 +163,27 @@ export default function Objectives() {
         defaultType={createDefaults.type}
         defaultParentId={createDefaults.parentId}
       />
+
+      {/* Detail Panel */}
+      {selectedObjective && (
+        <ObjectiveDetailPanel
+          open={!!selectedObjective}
+          onOpenChange={(open) => !open && setSelectedObjective(null)}
+          objective={selectedObjective}
+          onCreateChild={handleCreateChild}
+          onBreakdown={setBreakdownObjective}
+          onSelectObjective={setSelectedObjective}
+        />
+      )}
+
+      {/* Breakdown Dialog */}
+      {breakdownObjective && (
+        <BreakdownObjectiveDialog
+          open={!!breakdownObjective}
+          onOpenChange={(open) => !open && setBreakdownObjective(null)}
+          parentObjective={breakdownObjective}
+        />
+      )}
     </AppLayout>
   );
 }
