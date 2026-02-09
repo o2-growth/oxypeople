@@ -4,6 +4,7 @@ import { AppSidebar } from "./AppSidebar";
 import { Search, Command } from "lucide-react";
 import { PendingFeedbackBanner } from "@/components/people/PendingFeedbackBanner";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -29,6 +30,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
             
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               <NotificationDropdown />
             </div>
           </header>
