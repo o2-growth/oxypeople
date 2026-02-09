@@ -23,12 +23,14 @@ import {
   Plus,
   Scale,
   GitBranchPlus,
+  ListTodo,
 } from "lucide-react";
 import { KeyResultItem, KeyResult } from "./KeyResultItem";
 import { ProgressChart } from "./ProgressChart";
 import { AuditHistory } from "./AuditHistory";
 import { ObjectiveWithDetails, ObjectiveType } from "@/hooks/useObjectives";
 import { useCheckins } from "@/hooks/useCheckins";
+import { useActions, Action, formatWeekLabel } from "@/hooks/useActions";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -271,10 +273,11 @@ function OperationalContent({
         </Card>
       )}
 
-      {/* Tabs: KRs, Gráfico, Histórico */}
+      {/* Tabs: KRs, Ações, Gráfico, Histórico */}
       <Tabs defaultValue="krs" className="w-full">
-        <TabsList className="w-full grid grid-cols-3 h-8">
+        <TabsList className="w-full grid grid-cols-4 h-8">
           <TabsTrigger value="krs" className="text-xs">Key Results</TabsTrigger>
+          <TabsTrigger value="actions" className="text-xs">Ações</TabsTrigger>
           <TabsTrigger value="chart" className="text-xs">Gráfico</TabsTrigger>
           <TabsTrigger value="history" className="text-xs">Histórico</TabsTrigger>
         </TabsList>
@@ -294,6 +297,10 @@ function OperationalContent({
               <p className="text-xs text-muted-foreground">Nenhum KR cadastrado.</p>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="actions" className="mt-3">
+          <ObjectiveActionsTab objectiveId={objective.id} />
         </TabsContent>
 
         <TabsContent value="chart" className="mt-3">
@@ -430,6 +437,75 @@ function ParentContent({
           </span>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// Actions linked to an objective
+function ObjectiveActionsTab({ objectiveId }: { objectiveId: string }) {
+  const { data: actions = [], isLoading } = useActions();
+
+  const linkedActions = actions.filter((a) => a.objective_id === objectiveId);
+
+  const statusColors: Record<string, string> = {
+    todo: "bg-muted text-muted-foreground",
+    doing: "bg-blue-500/10 text-blue-500 border-blue-500/30",
+    done: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
+    blocked: "bg-red-500/10 text-red-500 border-red-500/30",
+  };
+
+  const statusLabels: Record<string, string> = {
+    todo: "A Fazer",
+    doing: "Fazendo",
+    done: "Feito",
+    blocked: "Bloqueado",
+  };
+
+  if (isLoading) {
+    return <p className="text-xs text-muted-foreground">Carregando ações...</p>;
+  }
+
+  if (linkedActions.length === 0) {
+    return (
+      <div className="text-center py-4">
+        <ListTodo className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+        <p className="text-xs text-muted-foreground">
+          Nenhuma ação vinculada a este objetivo.
+        </p>
+        <p className="text-[10px] text-muted-foreground mt-1">
+          Crie ações na aba "Ações" e vincule a este objetivo.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-sm font-medium">Ações ({linkedActions.length})</h4>
+      {linkedActions.map((action) => (
+        <div key={action.id} className="p-2.5 rounded-lg border space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium truncate flex-1">{action.title}</span>
+            <Badge variant="outline" className={cn("text-[10px] ml-2", statusColors[action.status])}>
+              {statusLabels[action.status] || action.status}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+            {action.owner && (
+              <div className="flex items-center gap-1">
+                <Avatar className="h-4 w-4">
+                  <AvatarImage src={action.owner.avatar_url || ""} />
+                  <AvatarFallback className="text-[7px]">
+                    {(action.owner.full_name || action.owner.email).charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span>{action.owner.full_name || action.owner.email}</span>
+              </div>
+            )}
+            <span>{formatWeekLabel(action.week_bucket)}</span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
