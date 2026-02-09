@@ -64,6 +64,7 @@ export interface CreateObjectiveInput {
     kr_type?: string;
     weight_percentage?: number;
     owner_user_id?: string;
+    direction?: string;
   }[];
 }
 
@@ -214,6 +215,7 @@ export function useCreateObjective() {
           kr_type: kr.kr_type || "numeric",
           weight_percentage: kr.weight_percentage || 0,
           owner_user_id: kr.owner_user_id || null,
+          direction: kr.direction || "up",
         }));
 
         const { error: krError } = await supabase

@@ -49,6 +49,7 @@ const keyResultSchema = z.object({
   unit: z.string().default("%"),
   krType: z.string().default("numeric"),
   weightPercentage: z.coerce.number().min(0).max(100).default(0),
+  direction: z.enum(["up", "down"]).default("up"),
 });
 
 const formSchema = z.object({
@@ -533,6 +534,53 @@ export function CreateObjectiveDialog({
                         )}
                       />
                     </div>
+
+                    {/* Direction + KR Type */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <FormField
+                        control={form.control}
+                        name={`keyResults.${index}.krType`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Tipo</FormLabel>
+                            <FormControl>
+                              <Select value={field.value} onValueChange={field.onChange}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="numeric">Numérico</SelectItem>
+                                  <SelectItem value="percent">Percentual</SelectItem>
+                                  <SelectItem value="binary">Binário</SelectItem>
+                                  <SelectItem value="currency">Monetário</SelectItem>
+                                  <SelectItem value="sla_time">SLA/Tempo</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`keyResults.${index}.direction`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Direção</FormLabel>
+                            <FormControl>
+                              <Select value={field.value} onValueChange={field.onChange}>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="up">↑ Maior é melhor</SelectItem>
+                                  <SelectItem value="down">↓ Menor é melhor</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
                 ))}
 
@@ -549,6 +597,7 @@ export function CreateObjectiveDialog({
                       unit: "%",
                       krType: "numeric",
                       weightPercentage: 0,
+                      direction: "up",
                     })
                   }
                 >

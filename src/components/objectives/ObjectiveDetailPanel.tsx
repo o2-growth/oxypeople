@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -30,7 +31,8 @@ import { ProgressChart } from "./ProgressChart";
 import { AuditHistory } from "./AuditHistory";
 import { ObjectiveWithDetails, ObjectiveType } from "@/hooks/useObjectives";
 import { useCheckins } from "@/hooks/useCheckins";
-import { useActions, Action, formatWeekLabel } from "@/hooks/useActions";
+import { useActions, useCreateAction, Action, formatWeekLabel } from "@/hooks/useActions";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -39,6 +41,7 @@ interface ObjectiveDetailPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   objective: ObjectiveWithDetails;
+  allObjectives?: ObjectiveWithDetails[];
   onCreateChild?: (parentId: string, childType: ObjectiveType) => void;
   onBreakdown?: (objective: ObjectiveWithDetails) => void;
   onSelectObjective?: (objective: ObjectiveWithDetails) => void;
@@ -74,6 +77,7 @@ export function ObjectiveDetailPanel({
   open,
   onOpenChange,
   objective,
+  allObjectives = [],
   onCreateChild,
   onBreakdown,
   onSelectObjective,
@@ -116,6 +120,20 @@ export function ObjectiveDetailPanel({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="space-y-3">
+          {/* Breadcrumb */}
+          {allObjectives.length > 0 && objective.parent_id && (
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground flex-wrap">
+              {buildBreadcrumb(objective, allObjectives).map((title, idx, arr) => (
+                <span key={idx} className="flex items-center gap-1">
+                  {idx > 0 && <ChevronRight className="h-2.5 w-2.5" />}
+                  <span className={idx === arr.length - 1 ? "font-medium text-foreground" : ""}>
+                    {title.length > 25 ? title.substring(0, 25) + "…" : title}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Type badge */}
           <div className="flex items-center gap-2">
             <div className={cn("p-1.5 rounded-md", type.bgColor)}>
@@ -184,7 +202,13 @@ export function ObjectiveDetailPanel({
             {objective.due_date && (
               <div>
                 <p className="text-xs font-medium">{format(new Date(objective.due_date), "dd MMM yyyy", { locale: ptBR })}</p>
-                <p className="text-[10px] text-muted-foreground">Prazo</p>
+                <p className="text-[10px] text-muted-foreground">
+                  Prazo{" "}
+                  {(() => {
+                    const days = Math.ceil((new Date(objective.due_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                    return days > 0 ? `(${days}d restantes)` : days === 0 ? "(hoje)" : `(${Math.abs(days)}d atrasado)`;
+                  })()}
+                </p>
               </div>
             )}
             {objective.department && (
@@ -443,6 +467,7 @@ function ParentContent({
 
 // Actions linked to an objective
 function ObjectiveActionsTab({ objectiveId }: { objectiveId: string }) {
+  const [showCreate, setShowCreate] = useState(false);
   const { data: actions = [], isLoading } = useActions();
 
   const linkedActions = actions.filter((a) => a.objective_id === objectiveId);
@@ -465,47 +490,119 @@ function ObjectiveActionsTab({ objectiveId }: { objectiveId: string }) {
     return <p className="text-xs text-muted-foreground">Carregando ações...</p>;
   }
 
-  if (linkedActions.length === 0) {
-    return (
-      <div className="text-center py-4">
-        <ListTodo className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-        <p className="text-xs text-muted-foreground">
-          Nenhuma ação vinculada a este objetivo.
-        </p>
-        <p className="text-[10px] text-muted-foreground mt-1">
-          Crie ações na aba "Ações" e vincule a este objetivo.
-        </p>
-      </div>
-    );
-  }
+  const currentWeek = (() => {
+    const d = new Date();
+    const dUTC = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = dUTC.getUTCDay() || 7;
+    dUTC.setUTCDate(dUTC.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(dUTC.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil(((dUTC.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+    return `${dUTC.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+  })();
 
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-medium">Ações ({linkedActions.length})</h4>
-      {linkedActions.map((action) => (
-        <div key={action.id} className="p-2.5 rounded-lg border space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium truncate flex-1">{action.title}</span>
-            <Badge variant="outline" className={cn("text-[10px] ml-2", statusColors[action.status])}>
-              {statusLabels[action.status] || action.status}
-            </Badge>
-          </div>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-            {action.owner && (
-              <div className="flex items-center gap-1">
-                <Avatar className="h-4 w-4">
-                  <AvatarImage src={action.owner.avatar_url || ""} />
-                  <AvatarFallback className="text-[7px]">
-                    {(action.owner.full_name || action.owner.email).charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span>{action.owner.full_name || action.owner.email}</span>
-              </div>
-            )}
-            <span>{formatWeekLabel(action.week_bucket)}</span>
-          </div>
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-medium">Ações ({linkedActions.length})</h4>
+        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowCreate(true)}>
+          <Plus className="h-3 w-3" />
+          Nova Ação
+        </Button>
+      </div>
+
+      {linkedActions.length === 0 ? (
+        <div className="text-center py-4">
+          <ListTodo className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+          <p className="text-xs text-muted-foreground">
+            Nenhuma ação vinculada a este objetivo.
+          </p>
         </div>
-      ))}
+      ) : (
+        linkedActions.map((action) => (
+          <div key={action.id} className="p-2.5 rounded-lg border space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium truncate flex-1">{action.title}</span>
+              <Badge variant="outline" className={cn("text-[10px] ml-2", statusColors[action.status])}>
+                {statusLabels[action.status] || action.status}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+              {action.owner && (
+                <div className="flex items-center gap-1">
+                  <Avatar className="h-4 w-4">
+                    <AvatarImage src={action.owner.avatar_url || ""} />
+                    <AvatarFallback className="text-[7px]">
+                      {(action.owner.full_name || action.owner.email).charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span>{action.owner.full_name || action.owner.email}</span>
+                </div>
+              )}
+              <span>{formatWeekLabel(action.week_bucket)}</span>
+            </div>
+          </div>
+        ))
+      )}
+
+      {showCreate && (
+        <CreateActionDialogInline
+          objectiveId={objectiveId}
+          weekBucket={currentWeek}
+          onClose={() => setShowCreate(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Inline create action (simplified for the detail panel)
+function CreateActionDialogInline({
+  objectiveId,
+  weekBucket,
+  onClose,
+}: {
+  objectiveId: string;
+  weekBucket: string;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const createAction = useCreateAction();
+  const { user } = useAuth();
+
+  const handleCreate = async () => {
+    if (!title.trim() || !user?.id) return;
+    try {
+      await createAction.mutateAsync({
+        title: title.trim(),
+        objective_id: objectiveId,
+        owner_user_id: user.id,
+        week_bucket: weekBucket,
+        status: "todo",
+      });
+      onClose();
+    } catch {
+      // error handled by mutation
+    }
+  };
+
+  return (
+    <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 space-y-2">
+      <input
+        className="w-full text-xs bg-transparent border-b border-border focus:border-primary outline-none pb-1"
+        placeholder="Título da ação..."
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+        autoFocus
+      />
+      <div className="flex items-center gap-2">
+        <Button size="sm" className="h-6 text-xs px-2" onClick={handleCreate} disabled={!title.trim() || createAction.isPending}>
+          Criar
+        </Button>
+        <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={onClose}>
+          Cancelar
+        </Button>
+      </div>
     </div>
   );
 }

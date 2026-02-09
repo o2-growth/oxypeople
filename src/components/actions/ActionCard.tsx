@@ -7,10 +7,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Trash2, Target } from "lucide-react";
+import { MoreVertical, Trash2, Target, GripVertical } from "lucide-react";
 import { Action, useUpdateAction, useDeleteAction } from "@/hooks/useActions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface ActionCardProps {
   action: Action;
@@ -27,6 +29,24 @@ export function ActionCard({ action }: ActionCardProps) {
   const updateAction = useUpdateAction();
   const deleteAction = useDeleteAction();
   const status = statusConfig[action.status] || statusConfig.todo;
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: action.id,
+    data: { type: "action", action },
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   const getInitials = (name: string | null, email: string) => {
     if (name) return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -51,8 +71,22 @@ export function ActionCard({ action }: ActionCardProps) {
   };
 
   return (
-    <div className="group rounded-lg border bg-card p-3 shadow-sm hover:shadow-md transition-shadow">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "group rounded-lg border bg-card p-3 shadow-sm hover:shadow-md transition-shadow",
+        isDragging && "shadow-lg ring-2 ring-primary/20"
+      )}
+    >
       <div className="flex items-start justify-between gap-2">
+        <div
+          className="shrink-0 cursor-grab active:cursor-grabbing mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+        </div>
         <h4 className="text-xs font-medium text-foreground leading-snug flex-1">
           {action.title}
         </h4>

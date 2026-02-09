@@ -12,7 +12,9 @@ import { ActionsKanban } from "@/components/actions/ActionsKanban";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Target, List, Map, Zap } from "lucide-react";
+import { Plus, Target, List, Map, Zap, Building2 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
 import { useObjectivesFilters } from "@/hooks/useObjectivesFilters";
 import { ObjectiveType, ObjectiveWithDetails } from "@/hooks/useObjectives";
 
@@ -36,6 +38,7 @@ export default function Objectives() {
     hasActiveFilters,
     filteredObjectives,
     filteredTree,
+    tree,
     stats,
     departments,
     responsibleUsers,
@@ -95,6 +98,41 @@ export default function Objectives() {
             </Button>
           )}
         </Card>
+      );
+    }
+
+    // Group by department if viewMode is "department"
+    if (viewMode === "department") {
+      const grouped: Record<string, ObjectiveWithDetails[]> = {};
+      filteredTree.forEach((obj) => {
+        const dept = obj.department || (obj.team as any)?.department || "Sem departamento";
+        if (!grouped[dept]) grouped[dept] = [];
+        grouped[dept].push(obj);
+      });
+
+      return (
+        <div className="space-y-4">
+          {Object.entries(grouped).map(([dept, objectives]) => (
+            <Collapsible key={dept} defaultOpen>
+              <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-semibold">{dept}</span>
+                <span className="text-xs text-muted-foreground">({objectives.length})</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 mt-1">
+                {objectives.map((objective) => (
+                  <ObjectiveTreeNode
+                    key={objective.id}
+                    objective={objective}
+                    onCreateChild={handleCreateChild}
+                    onSelectObjective={setSelectedObjective}
+                  />
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          ))}
+        </div>
       );
     }
 
@@ -213,6 +251,7 @@ export default function Objectives() {
           open={!!selectedObjective}
           onOpenChange={(open) => !open && setSelectedObjective(null)}
           objective={selectedObjective}
+          allObjectives={filteredObjectives}
           onCreateChild={handleCreateChild}
           onBreakdown={setBreakdownObjective}
           onSelectObjective={setSelectedObjective}
