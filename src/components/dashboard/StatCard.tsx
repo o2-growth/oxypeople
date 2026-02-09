@@ -55,7 +55,7 @@ export function StatCard({
         </div>
         <div
           className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-lg transition-transform group-hover:scale-110",
+            "flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110",
             colorClass
           )}
         >
