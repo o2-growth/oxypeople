@@ -38,6 +38,7 @@ import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Plus, Trash2, Crosshair, Layers, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -136,6 +137,23 @@ export function CreateObjectiveDialog({
 
   const selectedType = form.watch("type");
   const ownerId = form.watch("ownerId");
+  const watchedParentId = form.watch("parentId");
+  const watchedKRs = form.watch("keyResults");
+
+  // Inherit period from parent objective
+  React.useEffect(() => {
+    if (watchedParentId) {
+      const parent = allObjectives.find((o) => o.id === watchedParentId);
+      if (parent?.period_id) {
+        form.setValue("periodId", parent.period_id);
+      }
+    }
+  }, [watchedParentId, allObjectives]);
+
+  // KR weight validation
+  const totalWeight = watchedKRs?.reduce((sum, kr) => sum + (kr.weightPercentage || 0), 0) || 0;
+  const hasKRs = (watchedKRs?.length || 0) > 0;
+  const weightInvalid = hasKRs && totalWeight > 0 && totalWeight !== 100;
 
   const handleSubmit = async (data: FormData) => {
     try {
@@ -344,11 +362,12 @@ export function CreateObjectiveDialog({
                     name="periodId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Período</FormLabel>
+                        <FormLabel>Período {watchedParentId ? "(herdado)" : ""}</FormLabel>
                         <FormControl>
                           <Select
                             value={field.value || "none"}
                             onValueChange={(v) => field.onChange(v === "none" ? undefined : v)}
+                            disabled={!!watchedParentId}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione" />
@@ -584,6 +603,35 @@ export function CreateObjectiveDialog({
                   </div>
                 ))}
 
+                {/* Weight validation bar */}
+                {hasKRs && (
+                  <div className="p-3 rounded-lg border space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium">Soma dos Pesos</span>
+                      <span className={cn(
+                        "text-xs font-bold",
+                        totalWeight === 100 ? "text-emerald-500" : totalWeight > 100 ? "text-red-500" : "text-amber-500"
+                      )}>
+                        {totalWeight}/100%
+                      </span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          totalWeight === 100 ? "bg-emerald-500" : totalWeight > 100 ? "bg-red-500" : "bg-amber-500"
+                        )}
+                        style={{ width: `${Math.min(totalWeight, 100)}%` }}
+                      />
+                    </div>
+                    {weightInvalid && (
+                      <p className="text-[10px] text-amber-500">
+                        ⚠️ A soma dos pesos deve ser exatamente 100% para criar o objetivo.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <Button
                   type="button"
                   variant="outline"
@@ -611,7 +659,7 @@ export function CreateObjectiveDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={createObjective.isPending}>
+              <Button type="submit" disabled={createObjective.isPending || weightInvalid}>
                 {createObjective.isPending ? "Criando..." : "Criar Objetivo"}
               </Button>
             </div>

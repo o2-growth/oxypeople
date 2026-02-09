@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { useObjectiveTree, ObjectiveWithDetails, ObjectiveType, ObjectiveStatus } from "./useObjectives";
 import { useUserPermissions } from "./useUserPermissions";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOkrSettings } from "./useCheckins";
 
 export type ViewMode = "company" | "department" | "my";
 
@@ -44,13 +45,22 @@ const defaultFilters: ObjectivesFilterState = {
   search: "",
 };
 
+function getOverdueDays(frequency?: string): number {
+  switch (frequency) {
+    case "biweekly": return 14;
+    case "monthly": return 30;
+    case "weekly":
+    default: return 7;
+  }
+}
+
 function isCheckinOverdue(obj: ObjectiveWithDetails, overdueDays = 7): boolean {
   if (obj.type !== "operational") return false;
   if (obj.key_results.length === 0) return false;
   const now = new Date();
   return obj.key_results.some((kr) => {
     const lastCheckin = (kr as any).last_checkin_at;
-    if (!lastCheckin) return true; // never checked in
+    if (!lastCheckin) return true;
     const diff = (now.getTime() - new Date(lastCheckin).getTime()) / (1000 * 60 * 60 * 24);
     return diff > overdueDays;
   });
@@ -71,6 +81,8 @@ export function useObjectivesFilters() {
   const { tree, flatObjectives, isLoading } = useObjectiveTree();
   const { user } = useAuth();
   const { isAdmin, ledTeamIds } = useUserPermissions();
+  const { data: okrSettings } = useOkrSettings();
+  const overdueDays = getOverdueDays(okrSettings?.checkin_frequency);
 
   // Get unique departments
   const departments = useMemo(() => {
@@ -150,7 +162,7 @@ export function useObjectivesFilters() {
 
       // Quick filters
       if (filters.atRisk && !isAtRisk(obj)) return false;
-      if (filters.checkinOverdue && !isCheckinOverdue(obj)) return false;
+      if (filters.checkinOverdue && !isCheckinOverdue(obj, overdueDays)) return false;
       if (filters.noKR && !hasNoKR(obj)) return false;
 
       // Search
@@ -164,7 +176,7 @@ export function useObjectivesFilters() {
 
       return true;
     });
-  }, [flatObjectives, filters, viewMode, user?.id, userDepartment]);
+  }, [flatObjectives, filters, viewMode, user?.id, userDepartment, overdueDays]);
 
   // Filtered tree (keep parents visible if children match)
   const filteredTree = useMemo(() => {
@@ -200,11 +212,11 @@ export function useObjectivesFilters() {
     });
 
     const atRiskCount = flatObjectives.filter(isAtRisk).length;
-    const overdueCheckinCount = flatObjectives.filter((o) => isCheckinOverdue(o)).length;
+    const overdueCheckinCount = flatObjectives.filter((o) => isCheckinOverdue(o, overdueDays)).length;
     const noKRCount = flatObjectives.filter(hasNoKR).length;
 
     return { total, strategic, tactical, operational, averageProgress, byStatus, atRiskCount, overdueCheckinCount, noKRCount };
-  }, [flatObjectives]);
+  }, [flatObjectives, overdueDays]);
 
   const hasActiveFilters = useMemo(() => {
     return (

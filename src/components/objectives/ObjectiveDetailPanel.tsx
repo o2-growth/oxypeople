@@ -271,6 +271,8 @@ function OperationalContent({
     kr_type: (kr as any).kr_type,
     direction: (kr as any).direction,
     owner_user_id: (kr as any).owner_user_id,
+    periodStart: period?.start_date,
+    periodEnd: period?.end_date,
   }));
 
   const filteredKRs = krSearch
@@ -617,10 +619,12 @@ function ObjectiveActionsTab({ objectiveId }: { objectiveId: string }) {
 
 function CreateActionInline({
   objectiveId,
+  keyResultId,
   weekBucket,
   onClose,
 }: {
   objectiveId: string;
+  keyResultId?: string;
   weekBucket: string;
   onClose: () => void;
 }) {
@@ -634,6 +638,7 @@ function CreateActionInline({
       await createAction.mutateAsync({
         title: title.trim(),
         objective_id: objectiveId,
+        key_result_id: keyResultId,
         owner_user_id: user.id,
         week_bucket: weekBucket,
         status: "todo",

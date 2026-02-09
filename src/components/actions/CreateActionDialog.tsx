@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,7 @@ interface CreateActionDialogProps {
   defaultWeek: string;
   weeks: string[];
   defaultObjectiveId?: string;
+  defaultKeyResultId?: string;
 }
 
 export function CreateActionDialog({
@@ -37,6 +38,7 @@ export function CreateActionDialog({
   defaultWeek,
   weeks,
   defaultObjectiveId,
+  defaultKeyResultId,
 }: CreateActionDialogProps) {
   const { user } = useAuth();
   const { data: objectives = [] } = useObjectives();
@@ -47,7 +49,15 @@ export function CreateActionDialog({
   const [ownerId, setOwnerId] = useState(user?.id || "");
   const [weekBucket, setWeekBucket] = useState(defaultWeek);
   const [objectiveId, setObjectiveId] = useState(defaultObjectiveId || "none");
+  const [keyResultId, setKeyResultId] = useState(defaultKeyResultId || "none");
   const [dueDate, setDueDate] = useState("");
+
+  // Get KRs for selected objective
+  const availableKRs = useMemo(() => {
+    if (objectiveId === "none") return [];
+    const obj = objectives.find((o) => o.id === objectiveId);
+    return obj?.key_results || [];
+  }, [objectiveId, objectives]);
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -62,6 +72,7 @@ export function CreateActionDialog({
         owner_user_id: ownerId || user?.id || "",
         week_bucket: weekBucket,
         objective_id: objectiveId !== "none" ? objectiveId : undefined,
+        key_result_id: keyResultId !== "none" ? keyResultId : undefined,
         due_date: dueDate || undefined,
       });
       toast.success("Ação criada!");
@@ -78,6 +89,7 @@ export function CreateActionDialog({
     setOwnerId(user?.id || "");
     setWeekBucket(defaultWeek);
     setObjectiveId(defaultObjectiveId || "none");
+    setKeyResultId(defaultKeyResultId || "none");
     setDueDate("");
   };
 
@@ -145,7 +157,7 @@ export function CreateActionDialog({
 
           <div className="space-y-2">
             <Label>Objetivo (opcional)</Label>
-            <Select value={objectiveId} onValueChange={setObjectiveId}>
+            <Select value={objectiveId} onValueChange={(v) => { setObjectiveId(v); setKeyResultId("none"); }}>
               <SelectTrigger>
                 <SelectValue placeholder="Vincular a objetivo" />
               </SelectTrigger>
@@ -159,6 +171,25 @@ export function CreateActionDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {availableKRs.length > 0 && (
+            <div className="space-y-2">
+              <Label>Key Result (opcional)</Label>
+              <Select value={keyResultId} onValueChange={setKeyResultId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Vincular a KR" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {availableKRs.map((kr) => (
+                    <SelectItem key={kr.id} value={kr.id}>
+                      {kr.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
