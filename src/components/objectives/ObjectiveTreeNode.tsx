@@ -203,13 +203,23 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild }: Objec
             )}
           </div>
 
-          {/* Progress */}
-          <div className="flex items-center gap-2 shrink-0 w-36">
-            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-              <div
-                className={cn("h-full rounded-full transition-all", progressColor)}
-                style={{ width: `${Math.min(objective.progress, 100)}%` }}
-              />
+          {/* Progress with expected curve */}
+          <div className="flex items-center gap-2 shrink-0 w-44">
+            <div className="flex-1 relative">
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={cn("h-full rounded-full transition-all", progressColor)}
+                  style={{ width: `${Math.min(objective.progress, 100)}%` }}
+                />
+              </div>
+              {/* Expected progress marker */}
+              {(objective as any).expected_progress > 0 && (
+                <div
+                  className="absolute top-0 h-1.5 w-0.5 bg-foreground/40"
+                  style={{ left: `${Math.min(Number((objective as any).expected_progress), 100)}%` }}
+                  title={`Esperado: ${Math.round(Number((objective as any).expected_progress))}%`}
+                />
+              )}
             </div>
             <span className="text-xs font-medium text-muted-foreground w-8 text-right">
               {objective.progress}%
