@@ -7,15 +7,19 @@ import { ObjectivesExport } from "@/components/objectives/ObjectivesExport";
 import { ObjectiveTreeNode } from "@/components/objectives/ObjectiveTreeNode";
 import { ObjectiveDetailPanel } from "@/components/objectives/ObjectiveDetailPanel";
 import { BreakdownObjectiveDialog } from "@/components/objectives/BreakdownObjectiveDialog";
+import { ObjectivesMap } from "@/components/objectives/ObjectivesMap";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Target } from "lucide-react";
+import { Plus, Target, List, Map } from "lucide-react";
 import { useObjectivesFilters } from "@/hooks/useObjectivesFilters";
 import { ObjectiveType, ObjectiveWithDetails } from "@/hooks/useObjectives";
 
+export type DisplayMode = "tree" | "map";
+
 export default function Objectives() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("tree");
   const [createDefaults, setCreateDefaults] = useState<{
     type: ObjectiveType;
     parentId?: string;
@@ -121,6 +125,27 @@ export default function Objectives() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {/* Display mode toggle */}
+            <div className="flex items-center border rounded-lg overflow-hidden">
+              <Button
+                variant={displayMode === "tree" ? "default" : "ghost"}
+                size="sm"
+                className="rounded-none h-9 px-3 gap-1.5"
+                onClick={() => setDisplayMode("tree")}
+              >
+                <List className="h-4 w-4" />
+                Lista
+              </Button>
+              <Button
+                variant={displayMode === "map" ? "default" : "ghost"}
+                size="sm"
+                className="rounded-none h-9 px-3 gap-1.5"
+                onClick={() => setDisplayMode("map")}
+              >
+                <Map className="h-4 w-4" />
+                Mapa
+              </Button>
+            </div>
             <ObjectivesExport objectives={filteredObjectives} />
             <Button className="gap-2" onClick={handleNewObjective}>
               <Plus className="h-4 w-4" />
@@ -152,8 +177,14 @@ export default function Objectives() {
           stats={stats}
         />
 
-        {/* Tree View */}
-        {renderTree()}
+        {/* Tree View or Map View */}
+        {displayMode === "tree" ? renderTree() : (
+          <ObjectivesMap
+            tree={filteredTree}
+            isLoading={isLoading}
+            onSelectObjective={setSelectedObjective}
+          />
+        )}
       </div>
 
       {/* Create Dialog */}
