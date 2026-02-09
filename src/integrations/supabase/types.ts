@@ -613,32 +613,53 @@ export type Database = {
         Row: {
           created_at: string
           current_value: number
+          data_source: string | null
           id: string
+          initial_value: number
+          is_automatic: boolean
+          kr_type: string
           objective_id: string
+          owner_user_id: string | null
+          status: string
           target_value: number
           title: string
           unit: string | null
           updated_at: string
+          weight_percentage: number
         }
         Insert: {
           created_at?: string
           current_value?: number
+          data_source?: string | null
           id?: string
+          initial_value?: number
+          is_automatic?: boolean
+          kr_type?: string
           objective_id: string
+          owner_user_id?: string | null
+          status?: string
           target_value?: number
           title: string
           unit?: string | null
           updated_at?: string
+          weight_percentage?: number
         }
         Update: {
           created_at?: string
           current_value?: number
+          data_source?: string | null
           id?: string
+          initial_value?: number
+          is_automatic?: boolean
+          kr_type?: string
           objective_id?: string
+          owner_user_id?: string | null
+          status?: string
           target_value?: number
           title?: string
           unit?: string | null
           updated_at?: string
+          weight_percentage?: number
         }
         Relationships: [
           {
@@ -646,6 +667,13 @@ export type Database = {
             columns: ["objective_id"]
             isOneToOne: false
             referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "key_results_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -851,6 +879,45 @@ export type Database = {
           },
         ]
       }
+      objective_relations: {
+        Row: {
+          child_objective_id: string
+          created_at: string
+          id: string
+          parent_objective_id: string
+          weight_percentage: number
+        }
+        Insert: {
+          child_objective_id: string
+          created_at?: string
+          id?: string
+          parent_objective_id: string
+          weight_percentage?: number
+        }
+        Update: {
+          child_objective_id?: string
+          created_at?: string
+          id?: string
+          parent_objective_id?: string
+          weight_percentage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objective_relations_child_objective_id_fkey"
+            columns: ["child_objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objective_relations_parent_objective_id_fkey"
+            columns: ["parent_objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objectives: {
         Row: {
           assignee_id: string | null
@@ -862,9 +929,10 @@ export type Database = {
           due_date: string | null
           id: string
           is_active: boolean
+          owner_department_id: string | null
           owner_id: string
           parent_id: string | null
-          period: string | null
+          period_id: string | null
           progress: number
           status: Database["public"]["Enums"]["objective_status"]
           tags: string[] | null
@@ -884,9 +952,10 @@ export type Database = {
           due_date?: string | null
           id?: string
           is_active?: boolean
+          owner_department_id?: string | null
           owner_id: string
           parent_id?: string | null
-          period?: string | null
+          period_id?: string | null
           progress?: number
           status?: Database["public"]["Enums"]["objective_status"]
           tags?: string[] | null
@@ -906,9 +975,10 @@ export type Database = {
           due_date?: string | null
           id?: string
           is_active?: boolean
+          owner_department_id?: string | null
           owner_id?: string
           parent_id?: string | null
-          period?: string | null
+          period_id?: string | null
           progress?: number
           status?: Database["public"]["Enums"]["objective_status"]
           tags?: string[] | null
@@ -941,6 +1011,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "objectives_owner_department_id_fkey"
+            columns: ["owner_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "objectives_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
@@ -952,6 +1029,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objectives_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "periods"
             referencedColumns: ["id"]
           },
           {
@@ -1310,6 +1394,44 @@ export type Database = {
             columns: ["cycle_id"]
             isOneToOne: false
             referencedRelation: "performance_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      periods: {
+        Row: {
+          company_id: string
+          created_at: string
+          end_date: string
+          id: string
+          name: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          name: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          name?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "periods_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1898,6 +2020,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cascade_objective_progress: {
+        Args: { p_objective_id: string }
+        Returns: undefined
+      }
       get_led_teams: { Args: { p_user_id: string }; Returns: string[] }
       get_user_role: {
         Args: { p_company_id: string; p_user_id: string }
@@ -1927,7 +2053,7 @@ export type Database = {
       evaluation_status: "pending" | "in_progress" | "completed" | "expired"
       membership_role: "owner" | "admin" | "manager" | "member"
       membership_status: "active" | "invited" | "pending" | "inactive"
-      objective_status: "on-track" | "at-risk" | "off-track" | "completed"
+      objective_status: "planned" | "active" | "risk" | "completed" | "canceled"
       objective_type: "personal" | "team" | "individual"
       performance_cycle_status:
         | "draft"
@@ -2084,7 +2210,7 @@ export const Constants = {
       evaluation_status: ["pending", "in_progress", "completed", "expired"],
       membership_role: ["owner", "admin", "manager", "member"],
       membership_status: ["active", "invited", "pending", "inactive"],
-      objective_status: ["on-track", "at-risk", "off-track", "completed"],
+      objective_status: ["planned", "active", "risk", "completed", "canceled"],
       objective_type: ["personal", "team", "individual"],
       performance_cycle_status: [
         "draft",
