@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -26,6 +25,8 @@ import {
   GitBranchPlus,
 } from "lucide-react";
 import { KeyResultItem, KeyResult } from "./KeyResultItem";
+import { ProgressChart } from "./ProgressChart";
+import { AuditHistory } from "./AuditHistory";
 import { ObjectiveWithDetails, ObjectiveType } from "@/hooks/useObjectives";
 import { useCheckins } from "@/hooks/useCheckins";
 import { cn } from "@/lib/utils";
@@ -223,7 +224,7 @@ export function ObjectiveDetailPanel({
   );
 }
 
-// Operational objective: shows KRs, check-ins, impact
+// Operational objective: shows KRs with tabs for chart & history
 function OperationalContent({
   objective,
   keyResults,
@@ -233,6 +234,12 @@ function OperationalContent({
   keyResults: KeyResult[];
   hasKRs: boolean;
 }) {
+  // Aggregate all checkins for all KRs to build chart
+  const allKrIds = objective.key_results.map((kr) => kr.id);
+  // Get checkins for the first KR (primary view) - chart shows aggregate
+  const firstKrId = allKrIds[0];
+  const { data: checkins = [] } = useCheckins(firstKrId);
+
   return (
     <div className="space-y-4">
       {/* Impact on parent */}
@@ -264,21 +271,45 @@ function OperationalContent({
         </Card>
       )}
 
-      {/* Key Results */}
-      <div>
-        <h4 className="text-sm font-medium mb-3">
-          Key Results ({keyResults.length})
-        </h4>
-        {keyResults.length > 0 ? (
-          <div className="space-y-2">
-            {keyResults.map((kr) => (
-              <KeyResultItem key={kr.id} keyResult={kr} canEdit />
-            ))}
+      {/* Tabs: KRs, Gráfico, Histórico */}
+      <Tabs defaultValue="krs" className="w-full">
+        <TabsList className="w-full grid grid-cols-3 h-8">
+          <TabsTrigger value="krs" className="text-xs">Key Results</TabsTrigger>
+          <TabsTrigger value="chart" className="text-xs">Gráfico</TabsTrigger>
+          <TabsTrigger value="history" className="text-xs">Histórico</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="krs" className="mt-3">
+          <div>
+            <h4 className="text-sm font-medium mb-3">
+              Key Results ({keyResults.length})
+            </h4>
+            {keyResults.length > 0 ? (
+              <div className="space-y-2">
+                {keyResults.map((kr) => (
+                  <KeyResultItem key={kr.id} keyResult={kr} canEdit />
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Nenhum KR cadastrado.</p>
+            )}
           </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">Nenhum KR cadastrado.</p>
-        )}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="chart" className="mt-3">
+          <ProgressChart
+            checkins={checkins}
+            targetValue={Number(objective.key_results[0]?.target_value || 100)}
+            initialValue={Number((objective.key_results[0] as any)?.initial_value || 0)}
+            expectedProgress={Number((objective as any).expected_progress || 0)}
+            unit={objective.key_results[0]?.unit}
+          />
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-3">
+          <AuditHistory entityId={objective.id} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
