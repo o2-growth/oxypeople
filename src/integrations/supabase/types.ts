@@ -702,6 +702,7 @@ export type Database = {
           created_at: string
           current_value: number
           data_source: string | null
+          direction: string
           id: string
           initial_value: number
           is_automatic: boolean
@@ -721,6 +722,7 @@ export type Database = {
           created_at?: string
           current_value?: number
           data_source?: string | null
+          direction?: string
           id?: string
           initial_value?: number
           is_automatic?: boolean
@@ -740,6 +742,7 @@ export type Database = {
           created_at?: string
           current_value?: number
           data_source?: string | null
+          direction?: string
           id?: string
           initial_value?: number
           is_automatic?: boolean

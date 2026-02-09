@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import {
 import { Plus, CalendarDays, ListTodo, User, Target } from "lucide-react";
 import {
   useActions,
+  useUpdateAction,
   generateWeekBuckets,
   getWeekBucket,
   formatWeekLabel,
@@ -24,13 +25,41 @@ import { useObjectives } from "@/hooks/useObjectives";
 import { ActionCard } from "./ActionCard";
 import { CreateActionDialog } from "./CreateActionDialog";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+  DragOverEvent,
+  useDroppable,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+
+function DroppableColumn({ id, children }: { id: string; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex-1 min-h-[200px] bg-muted/20 rounded-b-md border border-t-0 p-2 space-y-2 transition-colors ${isOver ? "bg-primary/5 border-primary/20" : ""}`}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function ActionsKanban() {
   const { data: periods = [] } = usePeriods();
   const { data: objectives = [] } = useObjectives();
   const { data: companyUsers = [] } = useCompanyUsers();
+  const updateAction = useUpdateAction();
 
-  // Find current period or use current quarter
   const currentWeek = getWeekBucket(new Date());
   const currentPeriod = periods.find((p) => {
     const now = new Date();
@@ -44,10 +73,10 @@ export function ActionsKanban() {
   const [filterOwnerId, setFilterOwnerId] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createWeek, setCreateWeek] = useState(currentWeek);
+  const [activeAction, setActiveAction] = useState<Action | null>(null);
 
   const selectedPeriod = periods.find((p) => p.id === selectedPeriodId);
 
-  // Generate weeks from period or default 8 weeks
   const weeks = useMemo(() => {
     if (selectedPeriod) {
       return generateWeekBuckets(
@@ -55,7 +84,6 @@ export function ActionsKanban() {
         new Date(selectedPeriod.end_date)
       );
     }
-    // Default: 4 weeks back + 4 weeks forward
     const now = new Date();
     const start = new Date(now);
     start.setDate(start.getDate() - 28);
@@ -66,7 +94,6 @@ export function ActionsKanban() {
 
   const { data: actions = [], isLoading } = useActions(weeks);
 
-  // Filter actions
   const filteredActions = useMemo(() => {
     return actions.filter((a) => {
       if (filterObjectiveId !== "all" && a.objective_id !== filterObjectiveId) return false;
@@ -75,7 +102,6 @@ export function ActionsKanban() {
     });
   }, [actions, filterObjectiveId, filterOwnerId]);
 
-  // Group by week
   const actionsByWeek = useMemo(() => {
     const map: Record<string, Action[]> = {};
     weeks.forEach((w) => (map[w] = []));
@@ -92,6 +118,44 @@ export function ActionsKanban() {
     setIsCreateOpen(true);
   };
 
+  // DnD
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const action = filteredActions.find((a) => a.id === event.active.id);
+    setActiveAction(action || null);
+  }, [filteredActions]);
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    setActiveAction(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const actionId = active.id as string;
+    const overId = over.id as string;
+
+    // Check if dropped on a week column
+    const targetWeek = weeks.find((w) => w === overId);
+    if (targetWeek) {
+      const action = filteredActions.find((a) => a.id === actionId);
+      if (action && action.week_bucket !== targetWeek) {
+        await updateAction.mutateAsync({ id: actionId, week_bucket: targetWeek });
+      }
+      return;
+    }
+
+    // Dropped on another action — move to same week as that action
+    const targetAction = filteredActions.find((a) => a.id === overId);
+    if (targetAction) {
+      const action = filteredActions.find((a) => a.id === actionId);
+      if (action && action.week_bucket !== targetAction.week_bucket) {
+        await updateAction.mutateAsync({ id: actionId, week_bucket: targetAction.week_bucket });
+      }
+    }
+  }, [filteredActions, weeks, updateAction]);
+
   return (
     <Card>
       <CardHeader className="pb-4">
@@ -102,7 +166,6 @@ export function ActionsKanban() {
           </CardTitle>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Period filter */}
             <Select
               value={selectedPeriodId || "default"}
               onValueChange={(v) => setSelectedPeriodId(v === "default" ? null : v)}
@@ -121,7 +184,6 @@ export function ActionsKanban() {
               </SelectContent>
             </Select>
 
-            {/* Objective filter */}
             <Select value={filterObjectiveId} onValueChange={setFilterObjectiveId}>
               <SelectTrigger className="w-40 h-8 text-xs">
                 <Target className="h-3 w-3 mr-1" />
@@ -137,7 +199,6 @@ export function ActionsKanban() {
               </SelectContent>
             </Select>
 
-            {/* Owner filter */}
             <Select value={filterOwnerId} onValueChange={setFilterOwnerId}>
               <SelectTrigger className="w-36 h-8 text-xs">
                 <User className="h-3 w-3 mr-1" />
@@ -173,62 +234,74 @@ export function ActionsKanban() {
             ))}
           </div>
         ) : (
-          <ScrollArea className="w-full">
-            <div className="flex gap-4 pb-4 min-w-max">
-              {weeks.map((week) => {
-                const weekActions = actionsByWeek[week] || [];
-                const isCurrent = week === currentWeek;
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <ScrollArea className="w-full">
+              <div className="flex gap-4 pb-4 min-w-max">
+                {weeks.map((week) => {
+                  const weekActions = actionsByWeek[week] || [];
+                  const isCurrent = week === currentWeek;
+                  const actionIds = weekActions.map((a) => a.id);
 
-                return (
-                  <div
-                    key={week}
-                    className="w-56 shrink-0 flex flex-col"
-                  >
-                    {/* Week header */}
-                    <div className={`flex items-center justify-between px-2 py-1.5 rounded-t-md border-b ${isCurrent ? "bg-primary/10 border-primary/30" : "bg-muted/50"}`}>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-semibold">
-                          {formatWeekLabel(week)}
-                        </span>
-                        {isCurrent && (
-                          <Badge variant="default" className="text-[9px] h-4 px-1">
-                            Atual
+                  return (
+                    <div key={week} className="w-56 shrink-0 flex flex-col">
+                      <div className={`flex items-center justify-between px-2 py-1.5 rounded-t-md border-b ${isCurrent ? "bg-primary/10 border-primary/30" : "bg-muted/50"}`}>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold">
+                            {formatWeekLabel(week)}
+                          </span>
+                          {isCurrent && (
+                            <Badge variant="default" className="text-[9px] h-4 px-1">
+                              Atual
+                            </Badge>
+                          )}
+                        </div>
+                        {weekActions.length > 0 && (
+                          <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                            {weekActions.length}
                           </Badge>
                         )}
                       </div>
-                      {weekActions.length > 0 && (
-                        <Badge variant="secondary" className="text-[9px] h-4 px-1">
-                          {weekActions.length}
-                        </Badge>
-                      )}
-                    </div>
 
-                    {/* Actions column */}
-                    <div className="flex-1 min-h-[200px] bg-muted/20 rounded-b-md border border-t-0 p-2 space-y-2">
-                      {weekActions.map((action) => (
-                        <ActionCard key={action.id} action={action} />
-                      ))}
+                      <SortableContext items={actionIds} strategy={verticalListSortingStrategy}>
+                        <DroppableColumn id={week}>
+                          {weekActions.map((action) => (
+                            <ActionCard key={action.id} action={action} />
+                          ))}
 
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full h-8 text-xs text-muted-foreground hover:text-foreground gap-1"
-                        onClick={() => handleCreateInWeek(week)}
-                      >
-                        <Plus className="h-3 w-3" />
-                        Adicionar
-                      </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full h-8 text-xs text-muted-foreground hover:text-foreground gap-1"
+                            onClick={() => handleCreateInWeek(week)}
+                          >
+                            <Plus className="h-3 w-3" />
+                            Adicionar
+                          </Button>
+                        </DroppableColumn>
+                      </SortableContext>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+                  );
+                })}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+
+            <DragOverlay>
+              {activeAction && (
+                <div className="w-52 rounded-lg border bg-card p-3 shadow-lg opacity-90">
+                  <h4 className="text-xs font-medium">{activeAction.title}</h4>
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
         )}
       </CardContent>
 
-      {/* Create Dialog */}
       <CreateActionDialog
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
