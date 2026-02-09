@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      actions: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          id: string
+          key_result_id: string | null
+          objective_id: string | null
+          order_index: number
+          owner_user_id: string
+          status: string
+          title: string
+          updated_at: string
+          week_bucket: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          key_result_id?: string | null
+          objective_id?: string | null
+          order_index?: number
+          owner_user_id: string
+          status?: string
+          title: string
+          updated_at?: string
+          week_bucket: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          key_result_id?: string | null
+          objective_id?: string | null
+          order_index?: number
+          owner_user_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          week_bucket?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actions_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: false
+            referencedRelation: "key_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actions_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actions_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           author_id: string
