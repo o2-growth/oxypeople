@@ -35,6 +35,7 @@ import { StatusBadge } from "./StatusBadge";
 import { OverdueBadge } from "./OverdueBadge";
 import { AuditHistory } from "./AuditHistory";
 import { ObjectiveWithDetails, ObjectiveType, usePeriods } from "@/hooks/useObjectives";
+import { CreateKeyResultDialog } from "./CreateKeyResultDialog";
 import { useCheckins } from "@/hooks/useCheckins";
 import { useActions, useCreateAction, Action, formatWeekLabel, getWeekBucket } from "@/hooks/useActions";
 import { useAuth } from "@/contexts/AuthContext";
@@ -252,6 +253,7 @@ function OperationalContent({
   childType: ObjectiveType | null;
 }) {
   const [krSearch, setKrSearch] = useState("");
+  const [isCreateKROpen, setIsCreateKROpen] = useState(false);
   const allKrIds = objective.key_results.map((kr) => kr.id);
   const firstKrId = allKrIds[0];
   const { data: checkins = [] } = useCheckins(firstKrId);
@@ -282,29 +284,36 @@ function OperationalContent({
   // Empty state: no KRs and no children
   if (!hasKRs && !hasChildren) {
     return (
-      <Card className="border-dashed border-orange-500/30 bg-orange-500/5">
-        <CardContent className="p-6 text-center space-y-3">
-          <AlertTriangle className="h-8 w-8 mx-auto text-orange-500" />
-          <div>
-            <p className="text-sm font-medium">Este objetivo ainda não possui metas (KRs) nem objetivos filhos.</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Adicione Key Results para medir o progresso ou crie objetivos filhos.
-            </p>
-          </div>
-          <div className="flex justify-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-              <Plus className="h-3 w-3" />
-              Adicionar KR
-            </Button>
-            {childType && onCreateChild && (
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => onCreateChild(objective.id, childType)}>
-                <GitBranchPlus className="h-3 w-3" />
-                Criar Objetivo Filho
+      <>
+        <Card className="border-dashed border-orange-500/30 bg-orange-500/5">
+          <CardContent className="p-6 text-center space-y-3">
+            <AlertTriangle className="h-8 w-8 mx-auto text-orange-500" />
+            <div>
+              <p className="text-sm font-medium">Este objetivo ainda não possui metas (KRs) nem objetivos filhos.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Adicione Key Results para medir o progresso ou crie objetivos filhos.
+              </p>
+            </div>
+            <div className="flex justify-center gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setIsCreateKROpen(true)}>
+                <Plus className="h-3 w-3" />
+                Adicionar KR
               </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              {childType && onCreateChild && (
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => onCreateChild(objective.id, childType)}>
+                  <GitBranchPlus className="h-3 w-3" />
+                  Criar Objetivo Filho
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <CreateKeyResultDialog
+          open={isCreateKROpen}
+          onOpenChange={setIsCreateKROpen}
+          objectiveId={objective.id}
+        />
+      </>
     );
   }
 
