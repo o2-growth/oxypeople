@@ -151,9 +151,18 @@
 }
 
 @layer components {
-  /* Glass morphism card */
+  /* Glass morphism card - floating panel effect */
   .glass-card {
-    @apply bg-card/80 backdrop-blur-xl border border-white/20 shadow-lg;
+    @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg;
+  }
+  
+  /* Elevated floating panel */
+  .floating-panel {
+    @apply bg-card/90 backdrop-blur-md border border-border/40 shadow-xl rounded-xl;
+    box-shadow: 
+      0 4px 6px -1px hsla(220, 14%, 4%, 0.3),
+      0 10px 20px -5px hsla(220, 14%, 4%, 0.2),
+      0 0 0 1px hsla(210, 15%, 90%, 0.03);
   }
   
   /* Gradient text */
@@ -167,24 +176,24 @@
     background-image: var(--gradient-accent);
   }
   
-  /* Stats card */
+  /* Stats card - floating panel style */
   .stat-card {
-    @apply relative overflow-hidden rounded-xl bg-card p-6 shadow-md transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5;
+    @apply relative overflow-hidden rounded-xl bg-card/85 backdrop-blur-sm p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 border border-border/30;
   }
   
   .stat-card::before {
     content: '';
     @apply absolute inset-0 opacity-0 transition-opacity duration-300;
-    background: var(--gradient-glass);
+    background: linear-gradient(135deg, hsla(210, 15%, 90%, 0.04) 0%, hsla(210, 15%, 90%, 0.01) 100%);
   }
   
   .stat-card:hover::before {
     @apply opacity-100;
   }
   
-  /* Feed post card */
+  /* Feed post card - floating panel */
   .feed-card {
-    @apply bg-card rounded-xl border border-border p-4 shadow-sm transition-all duration-200 hover:shadow-md;
+    @apply bg-card/85 backdrop-blur-sm rounded-xl border border-border/30 p-4 shadow-lg transition-all duration-200 hover:shadow-xl hover:border-border/50;
   }
   
   /* Avatar with status indicator */
@@ -199,7 +208,7 @@
   
   /* Interactive list item */
   .list-item-interactive {
-    @apply flex items-center gap-3 rounded-lg p-3 transition-colors duration-150 hover:bg-accent/10 cursor-pointer;
+    @apply flex items-center gap-3 rounded-lg p-3 transition-colors duration-150 hover:bg-accent/50 cursor-pointer;
   }
   
   /* Badge variants */
@@ -212,7 +221,7 @@
   }
   
   .badge-accent {
-    @apply bg-accent/10 text-accent border-accent/20;
+    @apply bg-primary/10 text-primary border-primary/20;
   }
 }
 
