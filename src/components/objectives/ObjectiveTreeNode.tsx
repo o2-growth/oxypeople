@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +23,6 @@ import {
   ChevronDown,
   ChevronRight,
   Target,
-  Calendar,
   MoreVertical,
   Trash2,
   Plus,
@@ -32,10 +30,12 @@ import {
   Layers,
   Zap,
   GitBranchPlus,
-  Clock,
-  AlertTriangle,
+  Users,
 } from "lucide-react";
 import { KeyResultItem, KeyResult } from "./KeyResultItem";
+import { ProgressBarStatus } from "./ProgressBarStatus";
+import { StatusBadge } from "./StatusBadge";
+import { OverdueBadge } from "./OverdueBadge";
 import { BreakdownObjectiveDialog } from "./BreakdownObjectiveDialog";
 import { ChildWeightEditor } from "./ChildWeightEditor";
 import { ObjectiveWithDetails, useDeleteObjective, ObjectiveType } from "@/hooks/useObjectives";
@@ -53,39 +53,9 @@ interface ObjectiveTreeNodeProps {
 }
 
 const typeConfig: Record<ObjectiveType, { label: string; icon: typeof Target; color: string; bgColor: string }> = {
-  strategic: {
-    label: "Estratégico",
-    icon: Crosshair,
-    color: "text-violet-400",
-    bgColor: "bg-violet-500/10 border-violet-500/30",
-  },
-  tactical: {
-    label: "Tático",
-    icon: Layers,
-    color: "text-blue-400",
-    bgColor: "bg-blue-500/10 border-blue-500/30",
-  },
-  operational: {
-    label: "Operacional",
-    icon: Zap,
-    color: "text-emerald-400",
-    bgColor: "bg-emerald-500/10 border-emerald-500/30",
-  },
-};
-
-const statusConfig: Record<string, { label: string; color: string }> = {
-  planned: { label: "Planejado", color: "bg-muted text-muted-foreground" },
-  active: { label: "Ativo", color: "bg-green-500/10 text-green-500 border-green-500/30" },
-  risk: { label: "Em Risco", color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/30" },
-  completed: { label: "Concluído", color: "bg-blue-500/10 text-blue-500 border-blue-500/30" },
-  canceled: { label: "Cancelado", color: "bg-red-500/10 text-red-500 border-red-500/30" },
-};
-
-const autoStatusConfig: Record<string, { label: string; color: string; emoji: string }> = {
-  on_track: { label: "On Track", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30", emoji: "✅" },
-  attention: { label: "Atenção", color: "bg-amber-500/10 text-amber-500 border-amber-500/30", emoji: "⚠️" },
-  risk: { label: "Em Risco", color: "bg-red-500/10 text-red-500 border-red-500/30", emoji: "🔴" },
-  overdue: { label: "Atrasado", color: "bg-red-600/10 text-red-600 border-red-600/30", emoji: "⏰" },
+  strategic: { label: "Estratégico", icon: Crosshair, color: "text-violet-400", bgColor: "bg-violet-500/10 border-violet-500/30" },
+  tactical: { label: "Tático", icon: Layers, color: "text-blue-400", bgColor: "bg-blue-500/10 border-blue-500/30" },
+  operational: { label: "Operacional", icon: Zap, color: "text-emerald-400", bgColor: "bg-emerald-500/10 border-emerald-500/30" },
 };
 
 const childTypeMap: Record<ObjectiveType, ObjectiveType | null> = {
@@ -102,7 +72,6 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
   const { canEditObjective, canDeleteObjective } = useUserPermissions();
   const deleteObjective = useDeleteObjective();
 
-  // Check-in overdue detection
   const isCheckinOverdue = objective.type === "operational" && objective.key_results.length > 0 &&
     objective.key_results.some((kr) => {
       const lastCheckin = (kr as any).last_checkin_at;
@@ -112,20 +81,18 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
     });
 
   const hasNoKRWarning = objective.type === "operational" && objective.key_results.length === 0;
-
   const type = typeConfig[objective.type] || typeConfig.operational;
-  const status = statusConfig[objective.status] || statusConfig.planned;
   const TypeIcon = type.icon;
   const hasChildren = objective.children && objective.children.length > 0;
   const hasKRs = objective.key_results.length > 0;
   const canAddChild = childTypeMap[objective.type] !== null;
+  const autoStatus = (objective as any).auto_status || "no_data";
 
   const canEdit = canEditObjective({
     owner_id: objective.owner_id,
     created_by: objective.created_by,
     team_id: objective.team_id,
   });
-
   const canDelete = canDeleteObjective({ created_by: objective.created_by });
 
   const getInitials = (name: string | null, email: string) => {
@@ -143,8 +110,6 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
     }
   };
 
-  const autoStatus = autoStatusConfig[(objective as any).auto_status] || null;
-
   const keyResults: KeyResult[] = objective.key_results.map((kr) => ({
     id: kr.id,
     title: kr.title,
@@ -155,29 +120,21 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
     objective_id: objective.id,
     weight_percentage: Number((kr as any).weight_percentage || 0),
     last_checkin_at: (kr as any).last_checkin_at,
+    kr_type: (kr as any).kr_type,
+    direction: (kr as any).direction,
   }));
-
-  const progressColor = objective.progress >= 75
-    ? "bg-emerald-500"
-    : objective.progress >= 50
-    ? "bg-yellow-500"
-    : objective.progress >= 25
-    ? "bg-orange-500"
-    : "bg-red-500";
 
   return (
     <>
-      <div
-        className={cn(
-          "group border rounded-lg transition-all",
-          depth === 0 && "border-border/60",
-          depth === 1 && "border-border/40 ml-6",
-          depth >= 2 && "border-border/30 ml-6",
-        )}
-      >
+      <div className={cn(
+        "group border rounded-lg transition-all",
+        depth === 0 && "border-border/60",
+        depth === 1 && "border-border/40 ml-6",
+        depth >= 2 && "border-border/30 ml-6",
+      )}>
         {/* Main row */}
         <div className="flex items-center gap-3 p-3">
-          {/* Expand toggle */}
+          {/* Expand */}
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className={cn(
@@ -185,11 +142,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
               !hasChildren && !hasKRs && "invisible"
             )}
           >
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
+            {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
           </button>
 
           {/* Type icon */}
@@ -197,24 +150,20 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
             <TypeIcon className={cn("h-4 w-4", type.color)} />
           </div>
 
-          {/* Content */}
-          <div
-            className="flex-1 min-w-0 cursor-pointer"
-            onClick={() => onSelectObjective?.(objective)}
-          >
-            <div className="flex items-center gap-2">
+          {/* Content — clickable */}
+          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onSelectObjective?.(objective)}>
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-medium text-sm text-foreground truncate hover:text-primary transition-colors">
                 {objective.title}
               </span>
               <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 shrink-0", type.bgColor)}>
                 {type.label}
               </Badge>
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 shrink-0", status.color)}>
-                {status.label}
-              </Badge>
-              {autoStatus && (
-                <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 shrink-0", autoStatus.color)}>
-                  {autoStatus.emoji} {autoStatus.label}
+              <StatusBadge status={autoStatus} />
+              <OverdueBadge overdue={isCheckinOverdue} label="Atrasado" />
+              {hasNoKRWarning && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 shrink-0 bg-orange-500/10 text-orange-500 border-orange-500/30">
+                  Sem KR
                 </Badge>
               )}
             </div>
@@ -225,27 +174,13 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
             )}
           </div>
 
-          {/* Progress with expected curve */}
-          <div className="flex items-center gap-2 shrink-0 w-44">
-            <div className="flex-1 relative">
-              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                <div
-                  className={cn("h-full rounded-full transition-all", progressColor)}
-                  style={{ width: `${Math.min(objective.progress, 100)}%` }}
-                />
-              </div>
-              {/* Expected progress marker */}
-              {(objective as any).expected_progress > 0 && (
-                <div
-                  className="absolute top-0 h-1.5 w-0.5 bg-foreground/40"
-                  style={{ left: `${Math.min(Number((objective as any).expected_progress), 100)}%` }}
-                  title={`Esperado: ${Math.round(Number((objective as any).expected_progress))}%`}
-                />
-              )}
-            </div>
-            <span className="text-xs font-medium text-muted-foreground w-8 text-right">
-              {objective.progress}%
-            </span>
+          {/* Progress */}
+          <div className="w-36 shrink-0">
+            <ProgressBarStatus
+              value={objective.progress}
+              expectedValue={Number((objective as any).expected_progress || 0)}
+              size="sm"
+            />
           </div>
 
           {/* Owner */}
@@ -258,23 +193,12 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
             </Avatar>
           )}
 
-          {/* Due date */}
-          {objective.due_date && (
-            <span className="text-xs text-muted-foreground shrink-0">
-              {format(new Date(objective.due_date), "dd MMM", { locale: ptBR })}
-            </span>
-          )}
-
-          {/* Alerts */}
-          {isCheckinOverdue && (
-            <span title="Check-in atrasado">
-              <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-            </span>
-          )}
-          {hasNoKRWarning && (
-            <span title="Sem Key Results">
-              <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
-            </span>
+          {/* Children indicator */}
+          {hasChildren && (
+            <Badge variant="secondary" className="text-[10px] shrink-0 gap-0.5">
+              <Users className="h-2.5 w-2.5" />
+              {objective.children!.length}
+            </Badge>
           )}
 
           {/* KR count */}
@@ -284,22 +208,23 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
             </Badge>
           )}
 
-          {/* Actions */}
+          {/* Due date */}
+          {objective.due_date && (
+            <span className="text-xs text-muted-foreground shrink-0">
+              {format(new Date(objective.due_date), "dd MMM", { locale: ptBR })}
+            </span>
+          )}
+
+          {/* Menu ⋯ */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-              >
+              <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                 <MoreVertical className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {canAddChild && onCreateChild && (
-                <DropdownMenuItem
-                  onClick={() => onCreateChild(objective.id, childTypeMap[objective.type]!)}
-                >
+                <DropdownMenuItem onClick={() => onCreateChild(objective.id, childTypeMap[objective.type]!)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Criar {typeConfig[childTypeMap[objective.type]!]?.label}
                 </DropdownMenuItem>
@@ -312,10 +237,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
               )}
               {(canAddChild || canDelete) && <DropdownMenuSeparator />}
               {canDelete && (
-                <DropdownMenuItem
-                  onClick={() => setShowDeleteDialog(true)}
-                  className="text-destructive"
-                >
+                <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-destructive">
                   <Trash2 className="h-4 w-4 mr-2" />
                   Excluir
                 </DropdownMenuItem>
@@ -324,7 +246,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
           </DropdownMenu>
         </div>
 
-        {/* Expanded content: KRs */}
+        {/* Expanded: KRs */}
         {isExpanded && hasKRs && (
           <div className="px-3 pb-3 pl-12 space-y-2">
             <button
@@ -337,7 +259,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
             {showKRs && (
               <div className="space-y-2 mt-2">
                 {keyResults.map((kr) => (
-                  <KeyResultItem key={kr.id} keyResult={kr} canEdit={canEdit} />
+                  <KeyResultItem key={kr.id} keyResult={kr} canEdit={canEdit} expandable />
                 ))}
               </div>
             )}
@@ -346,11 +268,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
 
         {/* Child weight editor */}
         {isExpanded && hasChildren && (
-          <ChildWeightEditor
-            parentId={objective.id}
-            children={objective.children!}
-            canEdit={canEdit}
-          />
+          <ChildWeightEditor parentId={objective.id} children={objective.children!} canEdit={canEdit} />
         )}
 
         {/* Children */}
@@ -375,16 +293,12 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir objetivo?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O objetivo "{objective.title}" e todos os seus
-              filhos e Key Results serão excluídos permanentemente.
+              Esta ação não pode ser desfeita. O objetivo "{objective.title}" e todos os seus filhos e Key Results serão excluídos permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -393,11 +307,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
 
       {/* Breakdown Dialog */}
       {showBreakdown && (
-        <BreakdownObjectiveDialog
-          open={showBreakdown}
-          onOpenChange={setShowBreakdown}
-          parentObjective={objective}
-        />
+        <BreakdownObjectiveDialog open={showBreakdown} onOpenChange={setShowBreakdown} parentObjective={objective} />
       )}
     </>
   );
