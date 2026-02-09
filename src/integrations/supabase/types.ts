@@ -611,6 +611,7 @@ export type Database = {
       }
       key_results: {
         Row: {
+          checkin_frequency: string | null
           created_at: string
           current_value: number
           data_source: string | null
@@ -618,6 +619,7 @@ export type Database = {
           initial_value: number
           is_automatic: boolean
           kr_type: string
+          last_checkin_at: string | null
           objective_id: string
           owner_user_id: string | null
           status: string
@@ -628,6 +630,7 @@ export type Database = {
           weight_percentage: number
         }
         Insert: {
+          checkin_frequency?: string | null
           created_at?: string
           current_value?: number
           data_source?: string | null
@@ -635,6 +638,7 @@ export type Database = {
           initial_value?: number
           is_automatic?: boolean
           kr_type?: string
+          last_checkin_at?: string | null
           objective_id: string
           owner_user_id?: string | null
           status?: string
@@ -645,6 +649,7 @@ export type Database = {
           weight_percentage?: number
         }
         Update: {
+          checkin_frequency?: string | null
           created_at?: string
           current_value?: number
           data_source?: string | null
@@ -652,6 +657,7 @@ export type Database = {
           initial_value?: number
           is_automatic?: boolean
           kr_type?: string
+          last_checkin_at?: string | null
           objective_id?: string
           owner_user_id?: string | null
           status?: string
@@ -921,14 +927,17 @@ export type Database = {
       objectives: {
         Row: {
           assignee_id: string | null
+          auto_status: string | null
           company_id: string
           created_at: string
           created_by: string
           department: string | null
           description: string | null
           due_date: string | null
+          expected_progress: number | null
           id: string
           is_active: boolean
+          last_status_check: string | null
           owner_department_id: string | null
           owner_id: string
           parent_id: string | null
@@ -944,14 +953,17 @@ export type Database = {
         }
         Insert: {
           assignee_id?: string | null
+          auto_status?: string | null
           company_id: string
           created_at?: string
           created_by: string
           department?: string | null
           description?: string | null
           due_date?: string | null
+          expected_progress?: number | null
           id?: string
           is_active?: boolean
+          last_status_check?: string | null
           owner_department_id?: string | null
           owner_id: string
           parent_id?: string | null
@@ -967,14 +979,17 @@ export type Database = {
         }
         Update: {
           assignee_id?: string | null
+          auto_status?: string | null
           company_id?: string
           created_at?: string
           created_by?: string
           department?: string | null
           description?: string | null
           due_date?: string | null
+          expected_progress?: number | null
           id?: string
           is_active?: boolean
+          last_status_check?: string | null
           owner_department_id?: string | null
           owner_id?: string
           parent_id?: string | null
@@ -1043,6 +1058,181 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_audit_log: {
+        Row: {
+          action: string
+          changed_by: string
+          company_id: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          field_changed: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          action: string
+          changed_by: string
+          company_id: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          action?: string
+          changed_by?: string
+          company_id?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_audit_log_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_audit_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_checkins: {
+        Row: {
+          blocker_description: string | null
+          comment: string
+          company_id: string
+          created_at: string
+          has_blocker: boolean
+          id: string
+          key_result_id: string
+          new_value: number
+          objective_id: string
+          perceived_risk: string
+          previous_value: number
+          user_id: string
+        }
+        Insert: {
+          blocker_description?: string | null
+          comment: string
+          company_id: string
+          created_at?: string
+          has_blocker?: boolean
+          id?: string
+          key_result_id: string
+          new_value: number
+          objective_id: string
+          perceived_risk?: string
+          previous_value?: number
+          user_id: string
+        }
+        Update: {
+          blocker_description?: string | null
+          comment?: string
+          company_id?: string
+          created_at?: string
+          has_blocker?: boolean
+          id?: string
+          key_result_id?: string
+          new_value?: number
+          objective_id?: string
+          perceived_risk?: string
+          previous_value?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_checkins_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_checkins_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: false
+            referencedRelation: "key_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_checkins_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "okr_checkins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_settings: {
+        Row: {
+          checkin_frequency: string
+          checkin_min_chars: number
+          checkin_overdue_days: number
+          company_id: string
+          created_at: string
+          deviation_attention_pct: number
+          deviation_risk_pct: number
+          id: string
+          risk_days_before_escalation: number
+          updated_at: string
+        }
+        Insert: {
+          checkin_frequency?: string
+          checkin_min_chars?: number
+          checkin_overdue_days?: number
+          company_id: string
+          created_at?: string
+          deviation_attention_pct?: number
+          deviation_risk_pct?: number
+          id?: string
+          risk_days_before_escalation?: number
+          updated_at?: string
+        }
+        Update: {
+          checkin_frequency?: string
+          checkin_min_chars?: number
+          checkin_overdue_days?: number
+          company_id?: string
+          created_at?: string
+          deviation_attention_pct?: number
+          deviation_risk_pct?: number
+          id?: string
+          risk_days_before_escalation?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -2020,9 +2210,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_expected_progress: {
+        Args: { p_due_date?: string; p_period_id: string }
+        Returns: number
+      }
       cascade_objective_progress: {
         Args: { p_objective_id: string }
         Returns: undefined
+      }
+      determine_objective_auto_status: {
+        Args: {
+          p_checkin_overdue_days?: number
+          p_deviation_attention?: number
+          p_deviation_risk?: number
+          p_expected_progress: number
+          p_last_checkin_at: string
+          p_progress: number
+        }
+        Returns: string
       }
       get_led_teams: { Args: { p_user_id: string }; Returns: string[] }
       get_user_role: {
@@ -2044,6 +2249,10 @@ export type Database = {
       is_team_leader: {
         Args: { p_team_id: string; p_user_id: string }
         Returns: boolean
+      }
+      update_objective_auto_status: {
+        Args: { p_objective_id: string }
+        Returns: undefined
       }
     }
     Enums: {
