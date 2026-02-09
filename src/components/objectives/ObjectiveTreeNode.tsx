@@ -74,6 +74,13 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   canceled: { label: "Cancelado", color: "bg-red-500/10 text-red-500 border-red-500/30" },
 };
 
+const autoStatusConfig: Record<string, { label: string; color: string; emoji: string }> = {
+  on_track: { label: "On Track", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30", emoji: "✅" },
+  attention: { label: "Atenção", color: "bg-amber-500/10 text-amber-500 border-amber-500/30", emoji: "⚠️" },
+  risk: { label: "Em Risco", color: "bg-red-500/10 text-red-500 border-red-500/30", emoji: "🔴" },
+  overdue: { label: "Atrasado", color: "bg-red-600/10 text-red-600 border-red-600/30", emoji: "⏰" },
+};
+
 const childTypeMap: Record<ObjectiveType, ObjectiveType | null> = {
   strategic: "tactical",
   tactical: "operational",
@@ -117,12 +124,18 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild }: Objec
     }
   };
 
+  const autoStatus = autoStatusConfig[(objective as any).auto_status] || null;
+
   const keyResults: KeyResult[] = objective.key_results.map((kr) => ({
     id: kr.id,
     title: kr.title,
     current_value: Number(kr.current_value),
     target_value: Number(kr.target_value),
+    initial_value: Number((kr as any).initial_value || 0),
     unit: kr.unit,
+    objective_id: objective.id,
+    weight_percentage: Number((kr as any).weight_percentage || 0),
+    last_checkin_at: (kr as any).last_checkin_at,
   }));
 
   const progressColor = objective.progress >= 75
@@ -177,6 +190,11 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild }: Objec
               <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 shrink-0", status.color)}>
                 {status.label}
               </Badge>
+              {autoStatus && (
+                <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 shrink-0", autoStatus.color)}>
+                  {autoStatus.emoji} {autoStatus.label}
+                </Badge>
+              )}
             </div>
             {objective.description && (
               <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-md">

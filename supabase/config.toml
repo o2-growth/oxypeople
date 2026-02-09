@@ -1,1 +1,4 @@
 project_id = "pkwsbpxhwjewbiyiquad"
+
+[functions.okr-escalation]
+verify_jwt = false

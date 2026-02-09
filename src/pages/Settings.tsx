@@ -1,6 +1,7 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ProfileForm } from "@/components/settings/ProfileForm";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
+import { OkrSettingsPanel } from "@/components/objectives/OkrSettingsPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,8 @@ import {
   Moon,
   Sun,
   LogOut,
-  Trash2
+  Trash2,
+  Target,
 } from "lucide-react";
 
 export default function Settings() {
@@ -52,6 +54,10 @@ export default function Settings() {
             <TabsTrigger value="integrations" className="gap-2">
               <Link2 className="h-4 w-4" />
               Integrações
+            </TabsTrigger>
+            <TabsTrigger value="okr" className="gap-2">
+              <Target className="h-4 w-4" />
+              OKR
             </TabsTrigger>
           </TabsList>
 
@@ -233,6 +239,11 @@ export default function Settings() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* OKR Settings Tab */}
+          <TabsContent value="okr" className="mt-6">
+            <OkrSettingsPanel />
           </TabsContent>
         </Tabs>
 
