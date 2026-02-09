@@ -34,7 +34,7 @@ import { ProgressBarStatus } from "./ProgressBarStatus";
 import { StatusBadge } from "./StatusBadge";
 import { OverdueBadge } from "./OverdueBadge";
 import { AuditHistory } from "./AuditHistory";
-import { ObjectiveWithDetails, ObjectiveType } from "@/hooks/useObjectives";
+import { ObjectiveWithDetails, ObjectiveType, usePeriods } from "@/hooks/useObjectives";
 import { useCheckins } from "@/hooks/useCheckins";
 import { useActions, useCreateAction, Action, formatWeekLabel, getWeekBucket } from "@/hooks/useActions";
 import { useAuth } from "@/contexts/AuthContext";
@@ -255,6 +255,8 @@ function OperationalContent({
   const allKrIds = objective.key_results.map((kr) => kr.id);
   const firstKrId = allKrIds[0];
   const { data: checkins = [] } = useCheckins(firstKrId);
+  const { data: periods = [] } = usePeriods();
+  const period = objective.period_id ? periods.find((p) => p.id === objective.period_id) : null;
 
   const keyResults: KeyResult[] = objective.key_results.map((kr) => ({
     id: kr.id,
@@ -385,6 +387,8 @@ function OperationalContent({
               initialValue={Number((objective.key_results[0] as any)?.initial_value || 0)}
               expectedProgress={Number((objective as any).expected_progress || 0)}
               unit={objective.key_results[0]?.unit}
+              periodStart={period?.start_date}
+              periodEnd={period?.end_date}
             />
           ) : (
             <Card className="border-dashed">
