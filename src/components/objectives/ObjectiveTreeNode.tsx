@@ -198,9 +198,12 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
           </div>
 
           {/* Content */}
-          <div className="flex-1 min-w-0">
+          <div
+            className="flex-1 min-w-0 cursor-pointer"
+            onClick={() => onSelectObjective?.(objective)}
+          >
             <div className="flex items-center gap-2">
-              <span className="font-medium text-sm text-foreground truncate">
+              <span className="font-medium text-sm text-foreground truncate hover:text-primary transition-colors">
                 {objective.title}
               </span>
               <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 shrink-0", type.bgColor)}>
@@ -259,6 +262,18 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
           {objective.due_date && (
             <span className="text-xs text-muted-foreground shrink-0">
               {format(new Date(objective.due_date), "dd MMM", { locale: ptBR })}
+            </span>
+          )}
+
+          {/* Alerts */}
+          {isCheckinOverdue && (
+            <span title="Check-in atrasado">
+              <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+            </span>
+          )}
+          {hasNoKRWarning && (
+            <span title="Sem Key Results">
+              <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
             </span>
           )}
 
@@ -347,6 +362,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
                 objective={child}
                 depth={depth + 1}
                 onCreateChild={onCreateChild}
+                onSelectObjective={onSelectObjective}
               />
             ))}
           </div>
