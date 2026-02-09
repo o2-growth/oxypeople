@@ -14,12 +14,15 @@ import {
   Clock,
   Plus,
   BarChart3,
+  ListTodo,
 } from "lucide-react";
 import { CheckinDialog } from "./CheckinDialog";
 import { ProgressBarStatus } from "./ProgressBarStatus";
 import { OverdueBadge } from "./OverdueBadge";
 import { ProgressChart } from "./ProgressChart";
 import { useCheckins } from "@/hooks/useCheckins";
+import { useActions, useCreateAction, getWeekBucket, formatWeekLabel } from "@/hooks/useActions";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -43,6 +46,8 @@ export interface KeyResult {
     avatar_url: string | null;
     email: string;
   } | null;
+  periodStart?: string;
+  periodEnd?: string;
 }
 
 interface KeyResultItemProps {
@@ -79,7 +84,6 @@ export function KeyResultItem({ keyResult, canEdit = false, expandable = true }:
       <div className="rounded-lg border bg-card/50 overflow-hidden">
         {/* KR Row */}
         <div className="flex items-center gap-3 p-3">
-          {/* Expand toggle */}
           {expandable && (
             <button
               onClick={() => setExpanded(!expanded)}
@@ -93,7 +97,6 @@ export function KeyResultItem({ keyResult, canEdit = false, expandable = true }:
             </button>
           )}
 
-          {/* Status icon */}
           <div className="shrink-0">
             {isComplete ? (
               <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -102,7 +105,6 @@ export function KeyResultItem({ keyResult, canEdit = false, expandable = true }:
             )}
           </div>
 
-          {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-foreground truncate">{keyResult.title}</span>
@@ -115,12 +117,10 @@ export function KeyResultItem({ keyResult, canEdit = false, expandable = true }:
             </div>
           </div>
 
-          {/* Progress */}
           <div className="w-28 shrink-0">
             <ProgressBarStatus value={progress} showValue={false} size="sm" />
           </div>
 
-          {/* Value */}
           <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
             {keyResult.current_value} / {keyResult.target_value} {keyResult.unit || ""}
           </span>
@@ -132,7 +132,6 @@ export function KeyResultItem({ keyResult, canEdit = false, expandable = true }:
             {Math.round(progress)}%
           </span>
 
-          {/* Owner avatar */}
           {keyResult.owner && (
             <Avatar className="h-5 w-5 shrink-0">
               <AvatarImage src={keyResult.owner.avatar_url || ""} />
@@ -142,7 +141,6 @@ export function KeyResultItem({ keyResult, canEdit = false, expandable = true }:
             </Avatar>
           )}
 
-          {/* Check-in CTA */}
           {canEdit && keyResult.objective_id && (
             <Button
               size="sm"
@@ -156,7 +154,6 @@ export function KeyResultItem({ keyResult, canEdit = false, expandable = true }:
           )}
         </div>
 
-        {/* Expanded: Tabs */}
         {expanded && expandable && (
           <KeyResultDetailPanel krId={keyResult.id} kr={keyResult} />
         )}
@@ -183,15 +180,34 @@ export function KeyResultItem({ keyResult, canEdit = false, expandable = true }:
 
 function KeyResultDetailPanel({ krId, kr }: { krId: string; kr: KeyResult }) {
   const { data: checkins = [], isLoading } = useCheckins(krId);
+  const { data: allActions = [] } = useActions();
+  const { user } = useAuth();
+  const [showCreateAction, setShowCreateAction] = useState(false);
 
   const supportsChart = kr.kr_type !== "binary";
+  const krActions = allActions.filter((a) => a.key_result_id === krId);
+  const currentWeek = getWeekBucket(new Date());
+
+  const statusColors: Record<string, string> = {
+    todo: "bg-muted text-muted-foreground",
+    doing: "bg-blue-500/10 text-blue-500 border-blue-500/30",
+    done: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
+    blocked: "bg-red-500/10 text-red-500 border-red-500/30",
+  };
+  const statusLabels: Record<string, string> = {
+    todo: "A Fazer",
+    doing: "Fazendo",
+    done: "Feito",
+    blocked: "Bloqueado",
+  };
 
   return (
     <div className="px-3 pb-3 border-t">
       <Tabs defaultValue="checkins" className="w-full mt-2">
-        <TabsList className="w-full grid grid-cols-2 h-7">
+        <TabsList className="w-full grid grid-cols-3 h-7">
           <TabsTrigger value="checkins" className="text-xs">Check-ins</TabsTrigger>
           <TabsTrigger value="tracking" className="text-xs">Acompanhamento</TabsTrigger>
+          <TabsTrigger value="actions" className="text-xs">Ações ({krActions.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="checkins" className="mt-2">
@@ -251,6 +267,8 @@ function KeyResultDetailPanel({ krId, kr }: { krId: string; kr: KeyResult }) {
               targetValue={kr.target_value}
               initialValue={kr.initial_value || 0}
               unit={kr.unit}
+              periodStart={kr.periodStart}
+              periodEnd={kr.periodEnd}
             />
           ) : (
             <Card className="border-dashed">
@@ -263,7 +281,106 @@ function KeyResultDetailPanel({ krId, kr }: { krId: string; kr: KeyResult }) {
             </Card>
           )}
         </TabsContent>
+
+        <TabsContent value="actions" className="mt-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-medium">Ações vinculadas</h4>
+              <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 px-2" onClick={() => setShowCreateAction(true)}>
+                <Plus className="h-3 w-3" />
+                Nova Ação
+              </Button>
+            </div>
+
+            {krActions.length === 0 ? (
+              <div className="text-center py-3">
+                <ListTodo className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
+                <p className="text-[10px] text-muted-foreground">Nenhuma ação vinculada a este KR.</p>
+              </div>
+            ) : (
+              krActions.map((action) => (
+                <div key={action.id} className="p-2 rounded-lg border space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-medium truncate flex-1">{action.title}</span>
+                    <Badge variant="outline" className={cn("text-[9px] ml-2", statusColors[action.status])}>
+                      {statusLabels[action.status] || action.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
+                    {action.owner && (
+                      <span>{action.owner.full_name || action.owner.email}</span>
+                    )}
+                    <span>{formatWeekLabel(action.week_bucket)}</span>
+                  </div>
+                </div>
+              ))
+            )}
+
+            {showCreateAction && kr.objective_id && (
+              <KRCreateActionInline
+                objectiveId={kr.objective_id}
+                keyResultId={krId}
+                weekBucket={currentWeek}
+                onClose={() => setShowCreateAction(false)}
+              />
+            )}
+          </div>
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function KRCreateActionInline({
+  objectiveId,
+  keyResultId,
+  weekBucket,
+  onClose,
+}: {
+  objectiveId: string;
+  keyResultId: string;
+  weekBucket: string;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const createAction = useCreateAction();
+  const { user } = useAuth();
+
+  const handleCreate = async () => {
+    if (!title.trim() || !user?.id) return;
+    try {
+      await createAction.mutateAsync({
+        title: title.trim(),
+        objective_id: objectiveId,
+        key_result_id: keyResultId,
+        owner_user_id: user.id,
+        week_bucket: weekBucket,
+        status: "todo",
+      });
+      onClose();
+    } catch {
+      // handled
+    }
+  };
+
+  return (
+    <div className="p-2 rounded-lg border border-primary/30 bg-primary/5 space-y-1.5">
+      <input
+        className="w-full text-[11px] bg-transparent border-b border-border focus:border-primary outline-none pb-1"
+        placeholder="Título da ação..."
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+        autoFocus
+      />
+      <div className="flex items-center gap-2">
+        <Button size="sm" className="h-5 text-[10px] px-2" onClick={handleCreate} disabled={!title.trim() || createAction.isPending}>
+          Criar
+        </Button>
+        <Button size="sm" variant="ghost" className="h-5 text-[10px] px-2" onClick={onClose}>
+          Cancelar
+        </Button>
+      </div>
     </div>
   );
 }

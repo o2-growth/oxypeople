@@ -92,10 +92,22 @@ export function useCreateCheckin() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["checkins", variables.key_result_id] });
       queryClient.invalidateQueries({ queryKey: ["objectives"] });
       queryClient.invalidateQueries({ queryKey: ["objectives-filtered"] });
+
+      // Send Slack notification (fire-and-forget)
+      try {
+        await supabase.functions.invoke("send-slack-message", {
+          body: {
+            channel: "#general",
+            text: `📊 *Check-in realizado*\n• KR: check-in atualizado de ${variables.previous_value} → ${variables.new_value}\n• Comentário: ${variables.comment}\n• Risco: ${variables.perceived_risk === "green" ? "🟢" : variables.perceived_risk === "yellow" ? "🟡" : "🔴"}${variables.has_blocker ? "\n• ⚠️ Bloqueio reportado" : ""}`,
+          },
+        });
+      } catch (e) {
+        console.warn("Slack notification failed:", e);
+      }
     },
   });
 }
