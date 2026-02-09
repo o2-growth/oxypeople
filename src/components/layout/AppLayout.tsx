@@ -1,8 +1,7 @@
 import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Search, Command } from "lucide-react";
 import { PendingFeedbackBanner } from "@/components/people/PendingFeedbackBanner";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 
@@ -16,17 +15,16 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <SidebarInset className="flex flex-1 flex-col">
-          {/* Top Header */}
-          <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur-md px-4 lg:px-6">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger className="h-9 w-9" />
-              <div className="relative hidden md:block">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Buscar pessoas, posts, objetivos..."
-                  className="w-80 pl-10 bg-secondary/50 border-transparent focus:border-primary/30 focus:bg-background transition-all"
-                />
+          {/* Command Bar Header */}
+          <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border/60 bg-background/90 backdrop-blur-xl px-4 lg:px-6">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="h-8 w-8" />
+              <div className="hidden md:flex items-center gap-2 rounded-lg bg-secondary/60 border border-border/40 px-3 py-1.5 text-sm text-muted-foreground cursor-pointer hover:bg-secondary hover:border-border/60 transition-all w-72">
+                <Search className="h-3.5 w-3.5 shrink-0" />
+                <span className="flex-1 text-left">Buscar pessoas, posts, objetivos...</span>
+                <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border border-border/60 bg-background/80 px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
+                  <Command className="h-2.5 w-2.5" />K
+                </kbd>
               </div>
             </div>
             

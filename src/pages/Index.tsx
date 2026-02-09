@@ -2,9 +2,9 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { Users, Trophy, Target, TrendingUp, MessageSquare, CheckCircle2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useQuarterGoals } from "@/hooks/useQuarterGoals";
 import { useUser } from "@/hooks/useUser";
@@ -69,11 +69,11 @@ const Index = () => {
     <AppLayout>
       <div className="space-y-8">
         {/* Welcome Section */}
-        <div className="space-y-2">
+        <div className="space-y-1">
           <h1 className="text-3xl font-heading font-bold tracking-tight">
             {getGreeting()}{userName ? `, ${userName}` : ""}! 👋
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Aqui está um resumo do que está acontecendo na sua empresa.
           </p>
         </div>
@@ -107,80 +107,89 @@ const Index = () => {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
           {/* Activity Feed */}
-          <div className="lg:col-span-2">
+          <div>
             <RecentActivity />
           </div>
 
-          {/* Quick Stats & Goals */}
-          <div className="space-y-6">
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-heading">Hoje</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isLoading ? (
-                  Array.from({ length: 2 }).map((_, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="h-9 w-9 rounded-lg" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                      <Skeleton className="h-6 w-8" />
-                    </div>
-                  ))
-                ) : (
-                  quickStatsData.map((stat) => (
-                    <div key={stat.label} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
-                          {stat.icon}
-                        </div>
-                        <span className="text-sm text-muted-foreground">{stat.label}</span>
-                      </div>
-                      <span className="text-xl font-bold">{stat.value}</span>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
+          {/* Right Insights Panel */}
+          <aside className="hidden lg:block">
+            <div className="floating-panel sticky top-20 p-0 overflow-hidden">
+              {/* Panel Header */}
+              <div className="px-5 py-4">
+                <h2 className="text-sm font-heading font-semibold uppercase tracking-wider text-muted-foreground">
+                  Insights
+                </h2>
+              </div>
 
-            {/* Goals Progress */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-heading">Metas do Trimestre</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isLoadingGoals ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-8" />
+              <Separator className="bg-border/40" />
+
+              {/* Quick Stats Section */}
+              <div className="px-5 py-4">
+                <h3 className="text-sm font-semibold mb-3">Hoje</h3>
+                <div className="space-y-3">
+                  {isLoading ? (
+                    Array.from({ length: 2 }).map((_, i) => (
+                      <div key={i} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-8 w-8 rounded-lg" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                        <Skeleton className="h-5 w-8" />
                       </div>
-                      <Skeleton className="h-2 w-full" />
-                    </div>
-                  ))
-                ) : quarterGoals && quarterGoals.length > 0 ? (
-                  quarterGoals.map((goal) => (
-                    <div key={goal.label} className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{goal.label}</span>
-                        <span className="font-medium">{goal.value}%</span>
+                    ))
+                  ) : (
+                    quickStatsData.map((stat) => (
+                      <div key={stat.label} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+                            {stat.icon}
+                          </div>
+                          <span className="text-sm text-muted-foreground">{stat.label}</span>
+                        </div>
+                        <span className="text-lg font-bold">{stat.value}</span>
                       </div>
-                      <Progress value={goal.value} className="h-2" />
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-2">
-                    Nenhum objetivo ativo
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <Separator className="bg-border/40" />
+
+              {/* Goals Progress Section */}
+              <div className="px-5 py-4">
+                <h3 className="text-sm font-semibold mb-3">Metas do Trimestre</h3>
+                <div className="space-y-3">
+                  {isLoadingGoals ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Skeleton className="h-3 w-20" />
+                          <Skeleton className="h-3 w-8" />
+                        </div>
+                        <Skeleton className="h-1.5 w-full" />
+                      </div>
+                    ))
+                  ) : quarterGoals && quarterGoals.length > 0 ? (
+                    quarterGoals.map((goal) => (
+                      <div key={goal.label} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground text-xs">{goal.label}</span>
+                          <span className="font-medium text-xs">{goal.value}%</span>
+                        </div>
+                        <Progress value={goal.value} className="h-1.5" />
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground py-2">
+                      Nenhum objetivo ativo
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     </AppLayout>
