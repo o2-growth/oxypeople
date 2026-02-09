@@ -68,12 +68,12 @@ const Index = () => {
   return (
     <AppLayout>
       <div className="space-y-8">
-        {/* Welcome Section */}
-        <div className="space-y-1">
-          <h1 className="text-3xl font-heading font-bold tracking-tight">
+        {/* Hero Welcome */}
+        <div className="hero-header">
+          <h1 className="text-3xl lg:text-4xl font-heading font-bold text-white">
             {getGreeting()}{userName ? `, ${userName}` : ""}! 👋
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-white/70 mt-2 text-base">
             Aqui está um resumo do que está acontecendo na sua empresa.
           </p>
         </div>

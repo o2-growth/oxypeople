@@ -8,13 +8,6 @@ interface ProgressBarStatusProps {
   className?: string;
 }
 
-function getProgressColor(value: number): string {
-  if (value >= 75) return "bg-emerald-500";
-  if (value >= 50) return "bg-yellow-500";
-  if (value >= 25) return "bg-orange-500";
-  return "bg-red-500";
-}
-
 export function ProgressBarStatus({
   value,
   expectedValue,
@@ -23,20 +16,23 @@ export function ProgressBarStatus({
   className,
 }: ProgressBarStatusProps) {
   const clamped = Math.min(Math.max(0, value), 100);
-  const heightClass = size === "lg" ? "h-2.5" : size === "md" ? "h-2" : "h-1.5";
+  const heightClass = size === "lg" ? "h-3" : size === "md" ? "h-2" : "h-1.5";
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <div className="flex-1 relative">
-        <div className={cn("bg-muted rounded-full overflow-hidden", heightClass)}>
+        <div className={cn("bg-secondary rounded-full overflow-hidden", heightClass)}>
           <div
-            className={cn("h-full rounded-full transition-all", getProgressColor(clamped))}
-            style={{ width: `${clamped}%` }}
+            className={cn("h-full rounded-full transition-all duration-500 ease-out")}
+            style={{
+              width: `${clamped}%`,
+              backgroundImage: "var(--gradient-progress)",
+            }}
           />
         </div>
         {expectedValue != null && expectedValue > 0 && (
           <div
-            className={cn("absolute top-0 w-0.5 bg-foreground/40", heightClass)}
+            className={cn("absolute top-0 w-0.5 bg-foreground/30", heightClass)}
             style={{ left: `${Math.min(expectedValue, 100)}%` }}
             title={`Esperado: ${Math.round(expectedValue)}%`}
           />

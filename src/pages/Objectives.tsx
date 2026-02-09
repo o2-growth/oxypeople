@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CreateObjectiveDialog } from "@/components/objectives/CreateObjectiveDialog";
 import { ObjectivesContextBar } from "@/components/objectives/ObjectivesContextBar";
@@ -152,53 +153,67 @@ export default function Objectives() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-heading font-bold text-foreground">
-              Gestão de Objetivos
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              OKRs hierárquicos — Estratégico → Tático → Operacional → KRs
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* Display mode toggle */}
-            <div className="flex items-center border rounded-lg overflow-hidden">
-              <Button
-                variant={displayMode === "tree" ? "default" : "ghost"}
-                size="sm"
-                className="rounded-none h-9 px-3 gap-1.5"
-                onClick={() => setDisplayMode("tree")}
+      <div className="space-y-8">
+        {/* Hero Header */}
+        <div className="hero-header">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl lg:text-4xl font-heading font-bold text-white">
+                Gestão de Objetivos
+              </h1>
+              <p className="text-white/70 mt-2 text-base">
+                OKRs hierárquicos — Estratégico → Tático → Operacional → KRs
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Display mode toggle */}
+              <div className="flex items-center border border-white/20 rounded-xl overflow-hidden bg-white/10 backdrop-blur-sm">
+                <Button
+                  variant={displayMode === "tree" ? "default" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "rounded-none h-9 px-3 gap-1.5",
+                    displayMode === "tree" ? "bg-white text-foreground hover:bg-white/90" : "text-white hover:bg-white/20"
+                  )}
+                  onClick={() => setDisplayMode("tree")}
+                >
+                  <List className="h-4 w-4" />
+                  Lista
+                </Button>
+                <Button
+                  variant={displayMode === "map" ? "default" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "rounded-none h-9 px-3 gap-1.5",
+                    displayMode === "map" ? "bg-white text-foreground hover:bg-white/90" : "text-white hover:bg-white/20"
+                  )}
+                  onClick={() => setDisplayMode("map")}
+                >
+                  <Map className="h-4 w-4" />
+                  Mapa
+                </Button>
+                <Button
+                  variant={displayMode === "actions" ? "default" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "rounded-none h-9 px-3 gap-1.5",
+                    displayMode === "actions" ? "bg-white text-foreground hover:bg-white/90" : "text-white hover:bg-white/20"
+                  )}
+                  onClick={() => setDisplayMode("actions")}
+                >
+                  <Zap className="h-4 w-4" />
+                  Ações
+                </Button>
+              </div>
+              <ObjectivesExport objectives={filteredObjectives} />
+              <Button 
+                className="gap-2 bg-white text-foreground hover:bg-white/90 shadow-lg"
+                onClick={handleNewObjective}
               >
-                <List className="h-4 w-4" />
-                Lista
-              </Button>
-              <Button
-                variant={displayMode === "map" ? "default" : "ghost"}
-                size="sm"
-                className="rounded-none h-9 px-3 gap-1.5"
-                onClick={() => setDisplayMode("map")}
-              >
-                <Map className="h-4 w-4" />
-                Mapa
-              </Button>
-              <Button
-                variant={displayMode === "actions" ? "default" : "ghost"}
-                size="sm"
-                className="rounded-none h-9 px-3 gap-1.5"
-                onClick={() => setDisplayMode("actions")}
-              >
-                <Zap className="h-4 w-4" />
-                Ações
+                <Plus className="h-4 w-4" />
+                Novo Objetivo
               </Button>
             </div>
-            <ObjectivesExport objectives={filteredObjectives} />
-            <Button className="gap-2" onClick={handleNewObjective}>
-              <Plus className="h-4 w-4" />
-              Novo Objetivo
-            </Button>
           </div>
         </div>
 

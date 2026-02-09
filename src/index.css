@@ -2,113 +2,113 @@
 @tailwind components;
 @tailwind utilities;
 
-/* People Hub Design System
- * Modern HR platform with warm, approachable aesthetics
- * Primary: Deep blue (trust/professionalism)
- * Accent: Vibrant teal (growth/connection)
- * Success: Fresh green (positive feedback)
- * Warm accents for engagement
+/* People Hub — Premium SaaS Design System
+ * Inspired by Ticto, Linear, Stripe, Vercel
+ * Indigo-Violet primary palette with cyan accents
+ * Clean, premium, trustworthy
  */
 
 @layer base {
   :root {
-    /* Core surfaces */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 9%;
+    /* Core surfaces — warm off-whites */
+    --background: 225 20% 97%;
+    --foreground: 222 47% 11%;
     
-    /* Cards and elevated surfaces */
+    /* Cards — pure white for float effect */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 222 47% 11%;
     
-    /* Popovers and dropdowns */
+    /* Popovers */
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover-foreground: 222 47% 11%;
     
-    /* Primary - O2 Neon Green */
-    --primary: 142 71% 45%;
+    /* Primary — Indigo */
+    --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
     
-    /* Secondary - Soft gray */
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 9%;
+    /* Secondary — cool gray surfaces */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
     
-    /* Muted - Subtle backgrounds */
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    /* Muted */
+    --muted: 220 14% 96%;
+    --muted-foreground: 215 16% 47%;
     
-    /* Accent - Lime Green */
-    --accent: 142 76% 45%;
+    /* Accent — Violet */
+    --accent: 263 70% 50%;
     --accent-foreground: 0 0% 100%;
     
     /* Destructive */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     
-    /* Success - Fresh green */
+    /* Success */
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
     
-    /* Warning - Warm amber */
+    /* Warning */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
     
-    /* Borders and inputs */
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 142 71% 45%;
+    /* Borders */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 239 84% 67%;
     
     --radius: 0.75rem;
     
-    /* Sidebar - Deep black O2 style */
-    --sidebar-background: 0 0% 7%;
-    --sidebar-foreground: 0 0% 96%;
-    --sidebar-primary: 142 71% 50%;
+    /* Sidebar — deep dark */
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 239 84% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 12%;
-    --sidebar-accent-foreground: 0 0% 96%;
-    --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 142 71% 50%;
+    --sidebar-accent: 222 30% 14%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 222 20% 15%;
+    --sidebar-ring: 239 84% 67%;
     
-    /* Custom gradients - O2 Green */
-    --gradient-primary: linear-gradient(135deg, hsl(142 71% 40%) 0%, hsl(142 76% 50%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(155 75% 50%) 100%);
-    --gradient-warm: linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(25 95% 53%) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(158 64% 52%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(0 0% 5%) 0%, hsl(142 30% 15%) 50%, hsl(142 40% 20%) 100%);
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(239 84% 67%) 0%, hsl(263 70% 50%) 50%, hsl(187 92% 53%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(263 70% 50%) 0%, hsl(239 84% 67%) 100%);
+    --gradient-warm: linear-gradient(135deg, hsl(15 95% 55%) 0%, hsl(38 92% 50%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(187 92% 53%) 0%, hsl(239 84% 67%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(239 84% 67%) 0%, hsl(263 70% 50%) 50%, hsl(187 92% 53%) 100%);
     --gradient-glass: linear-gradient(135deg, hsla(0, 0%, 100%, 0.1) 0%, hsla(0, 0%, 100%, 0.05) 100%);
+    --gradient-progress: linear-gradient(90deg, hsl(187 92% 53%), hsl(239 84% 67%));
+    --gradient-page: linear-gradient(135deg, hsl(225 20% 97%) 0%, hsl(226 50% 96%) 100%);
     
-    /* Shadows - O2 Green Glow */
-    --shadow-sm: 0 1px 2px 0 hsla(0, 0%, 9%, 0.05);
-    --shadow-md: 0 4px 6px -1px hsla(0, 0%, 9%, 0.1), 0 2px 4px -2px hsla(0, 0%, 9%, 0.1);
-    --shadow-lg: 0 10px 15px -3px hsla(0, 0%, 9%, 0.1), 0 4px 6px -4px hsla(0, 0%, 9%, 0.1);
-    --shadow-xl: 0 20px 25px -5px hsla(0, 0%, 9%, 0.1), 0 8px 10px -6px hsla(0, 0%, 9%, 0.1);
-    --shadow-glow: 0 0 20px hsla(142, 71%, 45%, 0.3);
-    --shadow-accent-glow: 0 0 20px hsla(142, 76%, 50%, 0.4);
+    /* Shadows — soft, layered depth */
+    --shadow-sm: 0 1px 2px 0 hsla(222, 47%, 11%, 0.04);
+    --shadow-md: 0 4px 12px -2px hsla(222, 47%, 11%, 0.08);
+    --shadow-lg: 0 8px 24px -4px hsla(222, 47%, 11%, 0.08);
+    --shadow-xl: 0 20px 40px -8px hsla(222, 47%, 11%, 0.1);
+    --shadow-glow: 0 0 24px hsla(239, 84%, 67%, 0.25);
+    --shadow-accent-glow: 0 0 24px hsla(263, 70%, 50%, 0.3);
   }
 
   .dark {
-    /* Layered dark grays — no pure black */
-    --background: 220 14% 10%;
+    /* Layered dark grays */
+    --background: 222 47% 7%;
     --foreground: 210 20% 95%;
     
-    --card: 220 13% 13%;
+    --card: 222 35% 11%;
     --card-foreground: 210 20% 95%;
     
-    --popover: 220 13% 14%;
+    --popover: 222 35% 12%;
     --popover-foreground: 210 20% 95%;
     
-    /* Green reserved for primary actions */
-    --primary: 142 71% 48%;
+    /* Primary — slightly brighter in dark */
+    --primary: 239 84% 70%;
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 220 12% 17%;
+    --secondary: 222 25% 15%;
     --secondary-foreground: 210 15% 88%;
     
-    --muted: 220 12% 16%;
-    --muted-foreground: 215 10% 55%;
+    --muted: 222 25% 14%;
+    --muted-foreground: 215 12% 55%;
     
-    /* Accent uses subtle neutral instead of green */
-    --accent: 220 12% 19%;
+    /* Accent — neutral in dark to avoid overuse */
+    --accent: 222 25% 17%;
     --accent-foreground: 210 15% 90%;
     
     --destructive: 0 62% 50%;
@@ -120,18 +120,20 @@
     --warning: 38 92% 55%;
     --warning-foreground: 0 0% 100%;
     
-    --border: 220 12% 18%;
-    --input: 220 12% 18%;
-    --ring: 142 71% 48%;
+    --border: 222 20% 18%;
+    --input: 222 20% 18%;
+    --ring: 239 84% 70%;
     
-    --sidebar-background: 220 15% 8%;
+    --sidebar-background: 222 47% 5%;
     --sidebar-foreground: 210 15% 90%;
-    --sidebar-primary: 142 71% 48%;
+    --sidebar-primary: 239 84% 70%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 13% 14%;
+    --sidebar-accent: 222 30% 12%;
     --sidebar-accent-foreground: 210 15% 90%;
-    --sidebar-border: 220 12% 15%;
-    --sidebar-ring: 142 71% 48%;
+    --sidebar-border: 222 20% 13%;
+    --sidebar-ring: 239 84% 70%;
+    
+    --gradient-page: linear-gradient(135deg, hsl(222 47% 7%) 0%, hsl(222 35% 9%) 100%);
   }
 }
 
@@ -141,20 +143,23 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased text-sm leading-relaxed;
+    @apply bg-background text-foreground antialiased text-base leading-relaxed;
     font-feature-settings: "rlig" 1, "calt" 1;
+    background-image: var(--gradient-page);
+    background-attachment: fixed;
+    min-height: 100vh;
   }
   
   h1 {
-    @apply font-heading font-bold tracking-tight text-3xl lg:text-4xl;
+    @apply font-heading font-bold tracking-tight text-4xl lg:text-5xl;
   }
   
   h2 {
-    @apply font-heading font-semibold tracking-tight text-xl lg:text-2xl;
+    @apply font-heading font-semibold tracking-tight text-2xl lg:text-3xl;
   }
   
   h3 {
-    @apply font-heading font-semibold tracking-tight text-lg;
+    @apply font-heading font-semibold tracking-tight text-xl;
   }
   
   h4, h5, h6 {
@@ -173,18 +178,14 @@
 }
 
 @layer components {
-  /* Glass morphism card - floating panel effect */
+  /* Glass morphism card */
   .glass-card {
     @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg;
   }
   
-  /* Elevated floating panel */
+  /* Floating panel */
   .floating-panel {
-    @apply bg-card/90 backdrop-blur-md border border-border/40 shadow-xl rounded-xl;
-    box-shadow: 
-      0 4px 6px -1px hsla(220, 14%, 4%, 0.3),
-      0 10px 20px -5px hsla(220, 14%, 4%, 0.2),
-      0 0 0 1px hsla(210, 15%, 90%, 0.03);
+    @apply bg-card border border-border/50 shadow-xl rounded-2xl;
   }
   
   /* Gradient text */
@@ -198,41 +199,44 @@
     background-image: var(--gradient-accent);
   }
   
-  /* Stats card - floating panel with hover lift + green border */
+  /* Hero header — gradient background */
+  .hero-header {
+    @apply relative overflow-hidden rounded-2xl p-8 lg:p-10;
+    background-image: var(--gradient-hero);
+  }
+  
+  .hero-header * {
+    @apply relative z-10;
+  }
+  
+  .hero-header::before {
+    content: '';
+    @apply absolute inset-0;
+    background: radial-gradient(ellipse at 30% 50%, hsla(0, 0%, 100%, 0.1) 0%, transparent 60%);
+  }
+  
+  /* Stats card — white card with hover lift */
   .stat-card {
-    @apply relative overflow-hidden rounded-xl bg-card/85 backdrop-blur-sm p-6 shadow-lg border border-border/30;
+    @apply relative overflow-hidden rounded-2xl bg-card p-6 shadow-md border border-border/40;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .stat-card:hover {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
     box-shadow: 
-      0 12px 24px -8px hsla(220, 14%, 4%, 0.35),
-      0 0 0 1px hsla(142, 71%, 48%, 0.15);
+      0 12px 32px -8px hsla(222, 47%, 11%, 0.12),
+      0 0 0 1px hsla(239, 84%, 67%, 0.08);
   }
   
-  .stat-card::before {
-    content: '';
-    @apply absolute inset-0 opacity-0;
-    transition: opacity 0.3s ease;
-    background: linear-gradient(135deg, hsla(142, 71%, 48%, 0.03) 0%, transparent 60%);
-  }
-  
-  .stat-card:hover::before {
-    @apply opacity-100;
-  }
-  
-  /* Feed post card - floating panel with hover lift */
+  /* Feed post card */
   .feed-card {
-    @apply bg-card/85 backdrop-blur-sm rounded-xl border border-border/30 p-4 shadow-lg;
+    @apply bg-card rounded-2xl border border-border/40 p-5 shadow-md;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .feed-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 
-      0 12px 24px -8px hsla(220, 14%, 4%, 0.35),
-      0 0 0 1px hsla(142, 71%, 48%, 0.12);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 32px -8px hsla(222, 47%, 11%, 0.12);
   }
   
   /* Avatar with status indicator */
@@ -247,7 +251,7 @@
   
   /* Interactive list item */
   .list-item-interactive {
-    @apply flex items-center gap-3 rounded-lg p-3 transition-colors duration-150 hover:bg-accent/50 cursor-pointer;
+    @apply flex items-center gap-3 rounded-xl p-3 transition-colors duration-150 hover:bg-secondary cursor-pointer;
   }
   
   /* Badge variants */
@@ -295,50 +299,26 @@
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes pulseSoft {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 @keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
