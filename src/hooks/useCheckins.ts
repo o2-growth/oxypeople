@@ -101,8 +101,8 @@ export function useCreateCheckin() {
       try {
         await supabase.functions.invoke("send-slack-message", {
           body: {
-            channel: "#general",
-            text: `📊 *Check-in realizado*\n• KR: check-in atualizado de ${variables.previous_value} → ${variables.new_value}\n• Comentário: ${variables.comment}\n• Risco: ${variables.perceived_risk === "green" ? "🟢" : variables.perceived_risk === "yellow" ? "🟡" : "🔴"}${variables.has_blocker ? "\n• ⚠️ Bloqueio reportado" : ""}`,
+            channel_name: "general",
+            message: `📊 *Check-in realizado*\n• KR: check-in atualizado de ${variables.previous_value} → ${variables.new_value}\n• Comentário: ${variables.comment}\n• Risco: ${variables.perceived_risk === "green" ? "🟢" : variables.perceived_risk === "yellow" ? "🟡" : "🔴"}${variables.has_blocker ? "\n• ⚠️ Bloqueio reportado" : ""}`,
           },
         });
       } catch (e) {
