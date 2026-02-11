@@ -241,15 +241,17 @@ export default function Objectives() {
         />
 
         {/* Content based on display mode */}
-        {displayMode === "tree" && renderTree()}
-        {displayMode === "map" && (
-          <ObjectivesMap
-            tree={filteredTree}
-            isLoading={isLoading}
-            onSelectObjective={setSelectedObjective}
-          />
-        )}
-        {displayMode === "actions" && <ActionsKanban />}
+        <div className="bg-card rounded-xl p-4 border border-border/40 shadow-sm">
+          {displayMode === "tree" && renderTree()}
+          {displayMode === "map" && (
+            <ObjectivesMap
+              tree={filteredTree}
+              isLoading={isLoading}
+              onSelectObjective={setSelectedObjective}
+            />
+          )}
+          {displayMode === "actions" && <ActionsKanban />}
+        </div>
       </div>
 
       {/* Create Dialog */}
