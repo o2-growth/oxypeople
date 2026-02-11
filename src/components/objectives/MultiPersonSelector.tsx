@@ -33,6 +33,8 @@ interface MultiPersonSelectorProps {
   onValueChange: (ids: string[]) => void;
   placeholder?: string;
   excludeIds?: string[];
+  filterByDepartmentIds?: string[];
+  filterByTeamIds?: string[];
 }
 
 export function MultiPersonSelector({
@@ -40,17 +42,78 @@ export function MultiPersonSelector({
   onValueChange,
   placeholder = "Selecione pessoas",
   excludeIds = [],
+  filterByDepartmentIds = [],
+  filterByTeamIds = [],
 }: MultiPersonSelectorProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const { profile } = useUser();
   const companyId = profile?.primary_company_id;
 
+  const hasFilters = filterByDepartmentIds.length > 0 || filterByTeamIds.length > 0;
+
   const { data: people, isLoading } = useQuery({
-    queryKey: ["people-multi-selector", companyId],
+    queryKey: ["people-multi-selector", companyId, filterByDepartmentIds, filterByTeamIds],
     queryFn: async (): Promise<Person[]> => {
       if (!companyId) return [];
 
+      // If we have department/team filters, fetch filtered users
+      if (hasFilters) {
+        const userIdSet = new Set<string>();
+        const usersMap = new Map<string, Person>();
+
+        // Fetch users from selected departments
+        if (filterByDepartmentIds.length > 0) {
+          const { data: deptMembers } = await supabase
+            .from("company_memberships")
+            .select(`
+              user_id,
+              users:user_id(id, full_name, email, avatar_url)
+            `)
+            .eq("company_id", companyId)
+            .eq("status", "active")
+            .in("department_id", filterByDepartmentIds);
+
+          (deptMembers || []).forEach((m: any) => {
+            if (m.users) {
+              userIdSet.add(m.users.id);
+              usersMap.set(m.users.id, {
+                id: m.users.id,
+                full_name: m.users.full_name,
+                email: m.users.email,
+                avatar_url: m.users.avatar_url,
+              });
+            }
+          });
+        }
+
+        // Fetch users from selected teams
+        if (filterByTeamIds.length > 0) {
+          const { data: teamMembers } = await supabase
+            .from("team_members")
+            .select(`
+              user_id,
+              users:user_id(id, full_name, email, avatar_url)
+            `)
+            .in("team_id", filterByTeamIds);
+
+          (teamMembers || []).forEach((m: any) => {
+            if (m.users) {
+              userIdSet.add(m.users.id);
+              usersMap.set(m.users.id, {
+                id: m.users.id,
+                full_name: m.users.full_name,
+                email: m.users.email,
+                avatar_url: m.users.avatar_url,
+              });
+            }
+          });
+        }
+
+        return Array.from(usersMap.values());
+      }
+
+      // No filters: fetch all company members
       const { data, error } = await supabase
         .from("company_memberships")
         .select(`
