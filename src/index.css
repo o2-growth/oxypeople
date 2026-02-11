@@ -266,11 +266,11 @@
   
   /* Objectives page gradient background */
   .objectives-page-bg {
-    background: linear-gradient(180deg, hsl(160 30% 12%) 0%, hsl(152 35% 16%) 25%, hsl(150 10% 97%) 55%);
+    background: linear-gradient(180deg, hsl(150 10% 97%) 0%, hsl(152 35% 16%) 75%, hsl(160 30% 12%) 100%);
   }
   
   .dark .objectives-page-bg {
-    background: linear-gradient(180deg, hsl(160 25% 8%) 0%, hsl(152 25% 12%) 25%, hsl(160 20% 7%) 55%);
+    background: linear-gradient(180deg, hsl(160 20% 7%) 0%, hsl(152 25% 12%) 75%, hsl(160 25% 8%) 100%);
   }
 }
 
