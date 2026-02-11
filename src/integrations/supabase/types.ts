@@ -870,6 +870,7 @@ export type Database = {
           created_at: string
           current_value: number
           data_source: string | null
+          deleted_at: string | null
           direction: string
           id: string
           initial_value: number
@@ -890,6 +891,7 @@ export type Database = {
           created_at?: string
           current_value?: number
           data_source?: string | null
+          deleted_at?: string | null
           direction?: string
           id?: string
           initial_value?: number
@@ -910,6 +912,7 @@ export type Database = {
           created_at?: string
           current_value?: number
           data_source?: string | null
+          deleted_at?: string | null
           direction?: string
           id?: string
           initial_value?: number
@@ -1189,6 +1192,7 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string
+          deleted_at: string | null
           department: string | null
           description: string | null
           due_date: string | null
@@ -1215,6 +1219,7 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by: string
+          deleted_at?: string | null
           department?: string | null
           description?: string | null
           due_date?: string | null
@@ -1241,6 +1246,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
           department?: string | null
           description?: string | null
           due_date?: string | null
