@@ -1,66 +1,55 @@
 
 
-## Correcao: Indicadores do Dashboard Zerados
+## Indicadores Clicaveis no Dashboard
 
-### Causa Raiz
-
-O problema e que o usuario logado (`joao.victor@o2inc.co.br`) tem `primary_company_id = null` na tabela `users` e nao possui nenhum registro na tabela `company_memberships`. Como **todos os hooks do dashboard** (e de praticamente todas as 44+ paginas do sistema) dependem de `primary_company_id` para buscar dados, tudo retorna zero.
-
-A empresa "Minha Empresa" existe no banco e tem 40 membros, mas este usuario nao esta vinculado a ela.
-
-### Solucao
-
-A correcao envolve duas frentes:
+Cada um dos 4 cards de indicadores (Total de Colaboradores, Reconhecimentos, Objetivos Concluidos, Engajamento) se tornara clicavel e abrira um modal/dialog com informacoes detalhadas.
 
 ---
 
-### 1. Correcao Imediata (Dados)
+### Conteudo de cada Modal
 
-Inserir o usuario na `company_memberships` e atualizar seu `primary_company_id` via migracao SQL:
+**1. Total de Colaboradores**
+- Lista dos colaboradores ativos com avatar, nome e cargo
+- Mini-stats: total ativos, novos este mes, por departamento (top 5)
+- Barra de distribuicao por departamento (Progress bars)
+- Botao "Ver todos" que navega para `/people`
 
-- Inserir registro em `company_memberships` com `status = 'active'` e `role = 'owner'` (ja que e o criador/admin da plataforma)
-- Atualizar `users.primary_company_id` para apontar para a empresa existente
+**2. Reconhecimentos**
+- Resumo: total do mes, comparacao com mes anterior
+- Top 5 mais reconhecidos do mes (avatar + nome + contagem)
+- Top 5 badges mais utilizados (emoji + nome + contagem)
+- Ultimos 5 reconhecimentos recentes (remetente, destinatario, badge)
+- Botao "Ver todos" que navega para `/recognition`
 
----
+**3. Objetivos Concluidos**
+- Resumo: taxa de conclusao, total de objetivos ativos vs concluidos
+- Distribuicao por status (on_track, attention, risk, completed) com barras coloridas
+- Top 5 objetivos concluidos recentemente (titulo + responsavel + data)
+- Objetivos em risco (top 3, se houver)
+- Botao "Ver todos" que navega para `/objectives`
 
-### 2. Prevencao Futura (Codigo)
-
-Adicionar logica automatica no `AuthContext.tsx` para que, apos o login bem-sucedido, o sistema:
-
-1. Busque o perfil do usuario na tabela `users`
-2. Se `primary_company_id` for `null`, busque se o usuario tem alguma `company_membership` ativa
-3. Se encontrar, atualize o `primary_company_id` automaticamente
-4. Se nao encontrar membership, busque a empresa pelo dominio do email (ex: `@o2inc.co.br` -> empresa com esse dominio) e crie a membership automaticamente
-
-Alternativamente, de forma mais simples e segura:
-
-- No hook `useUser`, apos carregar o perfil, se `primary_company_id` for null, verificar se existe membership e associar automaticamente
-- Criar um hook `useEnsureCompanyMembership` que roda uma unica vez apos login
-
----
-
-### Arquivos Modificados
-
-1. **Migracao SQL** - Inserir membership e atualizar `primary_company_id` para o usuario atual
-2. **`src/hooks/useUser.ts`** - Adicionar logica de auto-deteccao de empresa quando `primary_company_id` for null: buscar na `company_memberships` e, se encontrar, atualizar o campo automaticamente
+**4. Engajamento**
+- Resumo: taxa atual, posts este mes, reconhecimentos este mes
+- Grafico de barras simples com engajamento por semana (ultimas 4 semanas)
+- Top 5 usuarios mais engajados (posts + reconhecimentos + comentarios)
+- Botao "Ver detalhes" que navega para `/feed`
 
 ---
 
-### Detalhes Tecnicos
+### Implementacao Tecnica
 
-**Migracao SQL:**
-```sql
--- Associar usuario existente a empresa
-INSERT INTO company_memberships (user_id, company_id, status, role)
-VALUES ('5f03dc08-...', 'a1b2c3d4-...', 'active', 'owner')
-ON CONFLICT DO NOTHING;
+**Arquivos novos:**
+- `src/components/dashboard/CollaboratorsDetailDialog.tsx` - Modal de colaboradores
+- `src/components/dashboard/RecognitionsDetailDialog.tsx` - Modal de reconhecimentos
+- `src/components/dashboard/ObjectivesDetailDialog.tsx` - Modal de objetivos
+- `src/components/dashboard/EngagementDetailDialog.tsx` - Modal de engajamento
+- `src/hooks/useDashboardDetails.ts` - Hook com queries detalhadas para cada modal (colaboradores por departamento, top reconhecidos, objetivos por status, engajamento semanal)
 
--- Definir primary_company_id
-UPDATE users 
-SET primary_company_id = 'a1b2c3d4-...'
-WHERE id = '5f03dc08-...' AND primary_company_id IS NULL;
-```
+**Arquivos modificados:**
+- `src/components/dashboard/StatCard.tsx` - Adicionar prop `onClick` e estilo `cursor-pointer` com hover effect
+- `src/pages/Index.tsx` - Adicionar estado para controlar qual modal esta aberto e passar `onClick` para cada StatCard
 
-**useUser.ts - Auto-fix logic:**
-Apos carregar o perfil, se `primary_company_id` for null, executar uma query para encontrar membership ativa e atualizar o campo. Isso previne que futuros usuarios fiquem na mesma situacao (caso sejam convidados via `company_memberships` mas o campo `primary_company_id` nao tenha sido preenchido).
+**Dados do banco:** Todas as queries utilizarao tabelas existentes (`company_memberships`, `recognitions`, `objectives`, `posts`, `comments`, `users`) filtradas por `company_id`. Nao sera necessario criar tabelas novas.
+
+**Componente base:** Todos os modals usarao o `Dialog` do shadcn/ui ja instalado, com `ScrollArea` para listas longas.
 
