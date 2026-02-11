@@ -1,6 +1,11 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
+import { QuickActions } from "@/components/dashboard/QuickActions";
+import { EngagementChart } from "@/components/dashboard/EngagementChart";
+import { BirthdaysWidget } from "@/components/dashboard/BirthdaysWidget";
+import { TopRecognizedWidget } from "@/components/dashboard/TopRecognizedWidget";
+import { ShortcutCards } from "@/components/dashboard/ShortcutCards";
 import { Users, Trophy, Target, TrendingUp, MessageSquare, CheckCircle2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -67,7 +72,7 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Hero Welcome */}
         <div className="hero-header">
           <h1 className="text-3xl lg:text-4xl font-heading font-bold text-white">
@@ -77,6 +82,9 @@ const Index = () => {
             Aqui está um resumo do que está acontecendo na sua empresa.
           </p>
         </div>
+
+        {/* Quick Actions */}
+        <QuickActions />
 
         {/* Stats Grid */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -106,10 +114,14 @@ const Index = () => {
           )}
         </div>
 
+        {/* Shortcut Cards */}
+        <ShortcutCards />
+
         {/* Main Content Grid */}
-        <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-          {/* Activity Feed */}
-          <div>
+        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+          {/* Left Column */}
+          <div className="space-y-6">
+            <EngagementChart />
             <RecentActivity />
           </div>
 
@@ -153,6 +165,20 @@ const Index = () => {
                     ))
                   )}
                 </div>
+              </div>
+
+              <Separator className="bg-border/40" />
+
+              {/* Top Recognized */}
+              <div className="px-5 py-4">
+                <TopRecognizedWidget />
+              </div>
+
+              <Separator className="bg-border/40" />
+
+              {/* Birthdays */}
+              <div className="px-5 py-4">
+                <BirthdaysWidget />
               </div>
 
               <Separator className="bg-border/40" />
