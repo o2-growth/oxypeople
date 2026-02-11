@@ -7,6 +7,8 @@ export interface HierarchyNode {
   type: "company" | "department" | "team" | "member";
   name: string;
   role: string;
+  position?: string;
+  department?: string;
   avatarUrl?: string;
   color?: string;
   email?: string;
@@ -45,6 +47,7 @@ interface TeamData {
 interface MembershipData {
   user_id: string;
   department_id: string | null;
+  position: string | null;
   user: {
     id: string;
     full_name: string | null;
@@ -113,6 +116,7 @@ export function useOrganizationHierarchy() {
         .select(`
           user_id,
           department_id,
+          position,
           user:users!company_memberships_user_id_fkey(id, full_name, avatar_url, email)
         `)
         .eq("company_id", companyId)
@@ -143,6 +147,12 @@ function buildHierarchy(
   teams: TeamData[],
   memberships: MembershipData[]
 ): HierarchyNode {
+  // Build a position lookup from memberships
+  const positionByUserId = new Map<string, string>();
+  memberships?.forEach((m) => {
+    if (m.position) positionByUserId.set(m.user_id, m.position);
+  });
+
   // Get all users who are team members
   const teamMemberUserIds = new Set<string>();
   teams?.forEach((team) => {
@@ -161,6 +171,7 @@ function buildHierarchy(
       type: "member" as const,
       name: member.user?.full_name || "Sem nome",
       role: "Membro",
+      position: "",
       avatarUrl: member.user?.avatar_url || undefined,
       email: member.user?.email,
       children: [],
@@ -199,16 +210,21 @@ function buildHierarchy(
       type: "member" as const,
       name: m.user?.full_name || "Sem nome",
       role: "Membro",
+      position: m.position || "",
+      department: dept.name,
       avatarUrl: m.user?.avatar_url || undefined,
       email: m.user?.email,
       children: [],
     }));
+
+    const leaderPosition = dept.leader_id ? positionByUserId.get(dept.leader_id) : undefined;
 
     return {
       id: `dept-${dept.id}`,
       type: "department" as const,
       name: dept.name,
       role: dept.leader?.full_name || "Sem líder",
+      position: leaderPosition || "",
       avatarUrl: dept.leader?.avatar_url || undefined,
       color: dept.color || undefined,
       email: dept.leader?.email,
@@ -235,17 +251,21 @@ function buildHierarchy(
     type: "member" as const,
     name: m.user?.full_name || "Sem nome",
     role: "Membro",
+    position: m.position || "",
     avatarUrl: m.user?.avatar_url || undefined,
     email: m.user?.email,
     children: [],
   }));
+
+  const ownerPosition = company.owner_id ? positionByUserId.get(company.owner_id) : undefined;
 
   // Build root node (company owner)
   return {
     id: `company-${company.id}`,
     type: "company",
     name: company.owner?.full_name || company.name,
-    role: "Owner",
+    role: "Sócio e CEO",
+    position: ownerPosition || "CEO",
     avatarUrl: company.owner?.avatar_url || undefined,
     email: company.owner?.email,
     children: [...departmentNodes, ...orphanTeamNodes, ...unassignedMemberNodes],
