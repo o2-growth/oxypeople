@@ -1,88 +1,138 @@
 
-## Transformar Feed em Mural (Layout Pinterest)
 
-Trocar o layout de feed vertical tradicional por um mural estilo Pinterest/Masonry, com cards de tamanhos variados organizados em colunas, criando uma experiencia visual mais dinamica e moderna.
+## Mural Corporativo - Redesign Completo
 
----
-
-### O que muda visualmente
-
-- **Layout**: De lista vertical unica para grid masonry com 2-3 colunas (responsivo: 1 coluna mobile, 2 tablet, 3 desktop)
-- **Cards**: Tamanhos variados conforme o conteudo (posts com imagem ficam maiores, posts curtos ficam compactos, reconhecimentos e celebracoes ganham destaque visual)
-- **Header**: Titulo muda de "Feed" para "Mural" com subtitulo atualizado
-- **Sidebar**: Muda de painel lateral fixo para uma barra horizontal de filtros/categorias acima do mural
-- **Navegacao**: Nome no sidebar muda de "Feed" para "Mural"
-- **Criar post**: Fica como card flutuante no topo ou acessivel via botao FAB (floating action button)
+Transformar a pagina atual do Mural (Feed) em um painel de informativos da empresa, centralizado em eventos, comunicados, reconhecimentos e calendario. Layout visual rico com secoes bem definidas.
 
 ---
 
-### Categorias visuais dos cards
-
-Cada tipo de conteudo tera um estilo de card diferente no mural:
-
-1. **Post simples** (texto) - Card compacto, altura minima
-2. **Post com imagem** - Card maior, imagem em destaque ocupando mais espaco
-3. **Celebracao** (com mencoes) - Card com borda colorida e banner gradiente
-4. **Reconhecimento** - Card com destaque visual (emoji/badge proeminente)
-
----
-
-### Implementacao Tecnica
-
-**Arquivos modificados:**
-
-1. **`src/pages/Feed.tsx`** - Reestruturar layout:
-   - Remover grid `lg:grid-cols-[1fr_320px]` e sidebar lateral
-   - Titulo "Feed" vira "Mural"
-   - Adicionar barra de filtros horizontal (Todos, Celebracoes, Reconhecimentos, Com Imagens)
-   - Mover widgets "Em Alta" e "Destaque do Mes" para cards dentro do proprio mural
-   - Implementar grid masonry com CSS columns (`columns-1 sm:columns-2 lg:columns-3` com `break-inside-avoid`)
-
-2. **`src/components/feed/FeedPost.tsx`** - Adaptar para card de mural:
-   - Remover animacao `animate-slide-up`
-   - Adicionar `break-inside-avoid mb-4` para funcionar no masonry
-   - Ajustar tamanho das imagens para preencher o card de forma proporcional
-   - Compactar footer de acoes (reacao, comentario) para caber em cards menores
-
-3. **`src/components/feed/CreatePost.tsx`** - Compactar para caber como primeiro card do mural ou manter como secao fixa acima do grid
-
-4. **`src/components/layout/AppSidebar.tsx`** - Renomear item "Feed" para "Mural" na navegacao
-
-**Nenhum arquivo novo necessario** - A implementacao usa CSS columns nativo, sem necessidade de biblioteca extra de masonry.
-
-**Nenhuma alteracao no banco de dados** - Os mesmos hooks e queries existentes continuam funcionando.
-
----
-
-### Detalhes do layout masonry com CSS
+### Estrutura Visual da Pagina
 
 ```text
-+------------------------------------------+
-|  Mural                                   |
-|  [Todos] [Celebracoes] [Reconhec.] [Img] |
-+------------------------------------------+
-|  Col 1      |  Col 2      |  Col 3       |
-|  +--------+ |  +--------+ |  +--------+  |
-|  | Criar  | |  | Post c/| |  | Em Alta|  |
-|  | Post   | |  | imagem | |  | widget |  |
-|  +--------+ |  |        | |  +--------+  |
-|  +--------+ |  |        | |  +--------+  |
-|  | Post   | |  +--------+ |  | Post   |  |
-|  | texto  | |  +--------+ |  | celebr.|  |
-|  +--------+ |  | Reconh.| |  |        |  |
-|  +--------+ |  +--------+ |  +--------+  |
-|  | Destaqu| |             |              |
-|  | do Mes | |             |              |
-|  +--------+ |             |              |
-+------------------------------------------+
++---------------------------------------------------------------+
+|  Mural da Empresa                              [+ Novo Evento] |
++---------------------------------------------------------------+
+|                                                                 |
+|  [Proximos Eventos]  cards horizontais com scroll               |
+|  | 15 Fev - Monthly | 20 Fev - Happy Hour | 28 Fev - Town... | |
+|                                                                 |
++---------------------------------------------------------------+
+|                                                                 |
+|  Col Esquerda (2/3)              |  Col Direita (1/3)           |
+|  +-----------------------------+ |  +------------------------+  |
+|  | Avisos Fixados (pinned)     | |  | Mini Calendario        |  |
+|  | - Aviso urgente...          | |  | Fev 2026               |  |
+|  | - Comunicado importante...  | |  | [dias com eventos      |  |
+|  +-----------------------------+ |  |  destacados]            |  |
+|  +-----------------------------+ |  +------------------------+  |
+|  | Feed de Atividades          | |  +------------------------+  |
+|  | (posts + reconhecimentos    | |  | Aniversariantes do Mes |  |
+|  |  + celebracoes misturados)  | |  | - Joao (15/02)         |  |
+|  | [Criar Post inline]         | |  | - Maria (22/02)        |  |
+|  | [Post 1...]                 | |  +------------------------+  |
+|  | [Post 2...]                 | |  +------------------------+  |
+|  | [Reconhecimento...]         | |  | Destaques do Mes       |  |
+|  +-----------------------------+ |  | Top 3 reconhecidos     |  |
+|                                  |  +------------------------+  |
++---------------------------------------------------------------+
 ```
 
-A tecnica `CSS columns` com `break-inside: avoid` distribui os cards automaticamente entre as colunas, sem JavaScript, mantendo performance otima. Cards com mais conteudo (imagens, celebracoes) naturalmente ocupam mais espaco vertical, criando o efeito Pinterest.
+---
 
-### Filtros
+### Nova Tabela: `company_events`
 
-Os filtros na barra horizontal usarao o array de posts ja carregado, filtrando no cliente:
-- **Todos**: mostra tudo
-- **Celebracoes**: posts com `metadata.mentions`
-- **Reconhecimentos**: posts com `metadata.type === "recognition"`
-- **Com Imagens**: posts com `metadata.images.length > 0`
+Para armazenar eventos da empresa (monthly, happy hour, town hall, treinamentos, etc.):
+
+- `id` UUID PK
+- `company_id` UUID FK
+- `created_by` UUID (autor)
+- `title` TEXT
+- `description` TEXT
+- `event_date` TIMESTAMPTZ (data/hora do evento)
+- `end_date` TIMESTAMPTZ (opcional, fim do evento)
+- `location` TEXT (local ou link de reuniao)
+- `event_type` TEXT (monthly, happy_hour, training, town_hall, celebration, other)
+- `color` TEXT (cor do card/indicador no calendario)
+- `is_recurring` BOOLEAN default false
+- `metadata` JSONB (dados extras)
+- `created_at` TIMESTAMPTZ
+- `updated_at` TIMESTAMPTZ
+
+RLS: membros da empresa podem ver; admins podem criar/editar/excluir.
+
+---
+
+### Componentes da Pagina
+
+**1. Carrossel de Proximos Eventos** (topo)
+- Cards horizontais com scroll dos proximos eventos (da tabela `company_events`)
+- Cada card mostra: data, titulo, tipo (badge colorido), local
+- Clique abre detalhes em dialog
+
+**2. Avisos Fixados**
+- Busca da tabela `announcements` onde `is_pinned = true`
+- Cards compactos com tipo, titulo e preview do conteudo
+- Maximo de 3 exibidos, com "ver mais" para pagina de automacao
+
+**3. Feed de Atividades** (coluna principal)
+- Mantem o CreatePost existente no topo
+- Lista os posts, reconhecimentos e celebracoes em ordem cronologica (como ja funciona)
+- Remove o layout masonry, volta a lista vertical na coluna principal
+
+**4. Mini Calendario** (sidebar direita)
+- Calendario visual do mes atual (usa `react-day-picker` ja instalado)
+- Dias com eventos marcados com pontos coloridos
+- Dados: combina `company_events` + aniversarios do `useHRCalendar`
+- Clique no dia mostra lista dos eventos daquele dia
+
+**5. Aniversariantes do Mes** (sidebar direita)
+- Lista de colaboradores que fazem aniversario no mes atual
+- Avatar, nome e data
+- Dados: reutiliza logica do `useHRCalendar` filtrado por `birthday`
+
+**6. Destaques do Mes** (sidebar direita)
+- Top 3 reconhecidos (reutiliza `useTopRecognized`)
+- Em Alta / trending topics (reutiliza `useTrendingTopics`)
+
+**7. Dialog "Criar Evento"**
+- Formulario com: titulo, descricao, data/hora, local, tipo, cor
+- Visivel apenas para admins/managers
+- Salva na tabela `company_events`
+
+---
+
+### Arquivos Novos
+
+| Arquivo | Descricao |
+|---------|-----------|
+| `src/components/mural/UpcomingEventsCarousel.tsx` | Carrossel horizontal de proximos eventos |
+| `src/components/mural/PinnedAnnouncements.tsx` | Secao de avisos fixados |
+| `src/components/mural/MiniCalendar.tsx` | Calendario lateral com indicadores de eventos |
+| `src/components/mural/BirthdaysList.tsx` | Lista de aniversariantes do mes |
+| `src/components/mural/MonthHighlights.tsx` | Destaques: top reconhecidos + trending |
+| `src/components/mural/CreateEventDialog.tsx` | Dialog para criar novo evento |
+| `src/components/mural/EventDetailDialog.tsx` | Dialog de detalhes do evento |
+| `src/hooks/useCompanyEvents.ts` | Hook CRUD para a tabela `company_events` |
+
+### Arquivos Modificados
+
+| Arquivo | Mudanca |
+|---------|---------|
+| `src/pages/Feed.tsx` | Reescrever completamente com o novo layout de Mural |
+| `src/components/layout/AppSidebar.tsx` | Ja esta como "Mural" (manter) |
+
+### Dependencias
+
+Nenhuma nova. Usa `react-day-picker` (ja instalado), `date-fns`, `lucide-react` e componentes shadcn/ui existentes.
+
+---
+
+### Sequencia de Implementacao
+
+1. Criar tabela `company_events` com RLS (migracao SQL)
+2. Criar hook `useCompanyEvents` (CRUD)
+3. Criar componentes do mural (carrossel, calendario, aniversarios, avisos, eventos)
+4. Criar dialogs (criar evento, detalhes do evento)
+5. Reescrever `Feed.tsx` montando o layout completo
+6. Ajustar permissoes (botao de criar evento so para admins)
+
