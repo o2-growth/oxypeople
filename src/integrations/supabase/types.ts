@@ -711,6 +711,108 @@ export type Database = {
           },
         ]
       }
+      gptw_responses: {
+        Row: {
+          answers: Json
+          comment: string | null
+          created_at: string
+          enps_score: number
+          id: string
+          survey_id: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          comment?: string | null
+          created_at?: string
+          enps_score: number
+          id?: string
+          survey_id: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          comment?: string | null
+          created_at?: string
+          enps_score?: number
+          id?: string
+          survey_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gptw_responses_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "gptw_surveys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gptw_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gptw_surveys: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          end_date: string
+          id: string
+          status: string
+          target_all: boolean | null
+          target_departments: string[] | null
+          target_teams: string[] | null
+          target_users: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          end_date: string
+          id?: string
+          status?: string
+          target_all?: boolean | null
+          target_departments?: string[] | null
+          target_teams?: string[] | null
+          target_users?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          end_date?: string
+          id?: string
+          status?: string
+          target_all?: boolean | null
+          target_departments?: string[] | null
+          target_teams?: string[] | null
+          target_users?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gptw_surveys_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gptw_surveys_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invites: {
         Row: {
           accepted_at: string | null
