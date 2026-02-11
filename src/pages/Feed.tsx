@@ -47,16 +47,14 @@ const Feed = () => {
           />
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-          <div className="space-y-6">
-            <PinnedAnnouncements />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <PinnedAnnouncements />
+          <MiniCalendar events={events || []} hrEvents={hrEvents || []} />
+        </div>
 
-          <aside className="space-y-4">
-            <MiniCalendar events={events || []} hrEvents={hrEvents || []} />
-            <BirthdaysList birthdays={birthdays} isLoading={loadingHR} />
-            <MonthHighlights />
-          </aside>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <BirthdaysList birthdays={birthdays} isLoading={loadingHR} />
+          <MonthHighlights />
         </div>
       </div>
 
