@@ -8,6 +8,7 @@ interface StatCardProps {
   changeLabel?: string;
   icon: React.ReactNode;
   colorClass?: string;
+  onClick?: () => void;
 }
 
 export function StatCard({
@@ -17,6 +18,7 @@ export function StatCard({
   changeLabel,
   icon,
   colorClass = "bg-primary",
+  onClick,
 }: StatCardProps) {
   const getTrendIcon = () => {
     if (change === undefined) return null;
@@ -33,7 +35,7 @@ export function StatCard({
   };
 
   return (
-    <div className="stat-card group">
+    <div className={cn("stat-card group", onClick && "cursor-pointer")} onClick={onClick}>
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>

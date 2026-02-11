@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
@@ -6,6 +7,10 @@ import { EngagementChart } from "@/components/dashboard/EngagementChart";
 import { BirthdaysWidget } from "@/components/dashboard/BirthdaysWidget";
 import { TopRecognizedWidget } from "@/components/dashboard/TopRecognizedWidget";
 import { ShortcutCards } from "@/components/dashboard/ShortcutCards";
+import { CollaboratorsDetailDialog } from "@/components/dashboard/CollaboratorsDetailDialog";
+import { RecognitionsDetailDialog } from "@/components/dashboard/RecognitionsDetailDialog";
+import { ObjectivesDetailDialog } from "@/components/dashboard/ObjectivesDetailDialog";
+import { EngagementDetailDialog } from "@/components/dashboard/EngagementDetailDialog";
 import { Users, Trophy, Target, TrendingUp, MessageSquare, CheckCircle2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +23,7 @@ const Index = () => {
   const { profile, isLoading: isLoadingUser } = useUser();
   const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
   const { data: quarterGoals, isLoading: isLoadingGoals } = useQuarterGoals();
+  const [openDialog, setOpenDialog] = useState<string | null>(null);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -36,6 +42,7 @@ const Index = () => {
       changeLabel: "este mês",
       icon: <Users className="h-6 w-6" />,
       colorClass: "bg-gradient-primary",
+      dialogKey: "collaborators",
     },
     {
       title: "Reconhecimentos",
@@ -44,6 +51,7 @@ const Index = () => {
       changeLabel: "vs último mês",
       icon: <Trophy className="h-6 w-6" />,
       colorClass: "bg-gradient-accent",
+      dialogKey: "recognitions",
     },
     {
       title: "Objetivos Concluídos",
@@ -52,6 +60,7 @@ const Index = () => {
       changeLabel: "vs último trimestre",
       icon: <Target className="h-6 w-6" />,
       colorClass: "bg-gradient-warm",
+      dialogKey: "objectives",
     },
     {
       title: "Engajamento",
@@ -60,6 +69,7 @@ const Index = () => {
       changeLabel: "vs último mês",
       icon: <TrendingUp className="h-6 w-6" />,
       colorClass: "bg-gradient-success",
+      dialogKey: "engagement",
     },
   ];
 
@@ -108,7 +118,7 @@ const Index = () => {
                 className="animate-slide-up opacity-0"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <StatCard {...stat} />
+                <StatCard {...stat} onClick={() => setOpenDialog(stat.dialogKey)} />
               </div>
             ))
           )}
@@ -217,6 +227,11 @@ const Index = () => {
             </div>
           </aside>
         </div>
+      {/* Detail Dialogs */}
+      <CollaboratorsDetailDialog open={openDialog === "collaborators"} onOpenChange={(v) => !v && setOpenDialog(null)} />
+      <RecognitionsDetailDialog open={openDialog === "recognitions"} onOpenChange={(v) => !v && setOpenDialog(null)} />
+      <ObjectivesDetailDialog open={openDialog === "objectives"} onOpenChange={(v) => !v && setOpenDialog(null)} />
+      <EngagementDetailDialog open={openDialog === "engagement"} onOpenChange={(v) => !v && setOpenDialog(null)} />
       </div>
     </AppLayout>
   );
