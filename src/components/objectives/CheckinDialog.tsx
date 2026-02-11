@@ -21,8 +21,11 @@ import {
   Clock,
   MessageSquare,
   TrendingUp,
+  Paperclip,
 } from "lucide-react";
 import { useCreateCheckin, useCheckins, useOkrSettings } from "@/hooks/useCheckins";
+import { useUploadCheckinAttachments } from "@/hooks/useCheckinAttachments";
+import { AttachmentUploader } from "./AttachmentUploader";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -54,8 +57,10 @@ export function CheckinDialog({ open, onOpenChange, keyResult }: CheckinDialogPr
   const [perceivedRisk, setPerceivedRisk] = useState<"green" | "yellow" | "red">("green");
   const [hasBlocker, setHasBlocker] = useState(false);
   const [blockerDescription, setBlockerDescription] = useState("");
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
 
   const createCheckin = useCreateCheckin();
+  const uploadAttachments = useUploadCheckinAttachments();
   const { data: checkins = [] } = useCheckins(keyResult.id);
   const { data: settings } = useOkrSettings();
 
@@ -73,7 +78,7 @@ export function CheckinDialog({ open, onOpenChange, keyResult }: CheckinDialogPr
     }
 
     try {
-      await createCheckin.mutateAsync({
+      const checkin = await createCheckin.mutateAsync({
         key_result_id: keyResult.id,
         objective_id: keyResult.objective_id,
         previous_value: keyResult.current_value,
@@ -84,11 +89,24 @@ export function CheckinDialog({ open, onOpenChange, keyResult }: CheckinDialogPr
         blocker_description: hasBlocker ? blockerDescription : undefined,
       });
 
+      // Upload attachments if any
+      if (attachmentFiles.length > 0) {
+        try {
+          await uploadAttachments.mutateAsync({
+            checkinId: checkin.id,
+            files: attachmentFiles,
+          });
+        } catch {
+          toast.warning("Check-in salvo, mas houve erro ao enviar anexos");
+        }
+      }
+
       toast.success("Check-in registrado!");
       setComment("");
       setPerceivedRisk("green");
       setHasBlocker(false);
       setBlockerDescription("");
+      setAttachmentFiles([]);
       onOpenChange(false);
     } catch {
       toast.error("Erro ao registrar check-in");
@@ -198,6 +216,9 @@ export function CheckinDialog({ open, onOpenChange, keyResult }: CheckinDialogPr
               />
             )}
           </div>
+
+          {/* Attachments */}
+          <AttachmentUploader files={attachmentFiles} onChange={setAttachmentFiles} />
 
           <Button
             className="w-full"

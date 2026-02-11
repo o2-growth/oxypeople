@@ -332,6 +332,44 @@ export type Database = {
           },
         ]
       }
+      checkin_attachments: {
+        Row: {
+          checkin_id: string
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          mime_type: string | null
+        }
+        Insert: {
+          checkin_id: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          mime_type?: string | null
+        }
+        Update: {
+          checkin_id?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          mime_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkin_attachments_checkin_id_fkey"
+            columns: ["checkin_id"]
+            isOneToOne: false
+            referencedRelation: "okr_checkins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           author_id: string
@@ -1386,6 +1424,7 @@ export type Database = {
           comment: string
           company_id: string
           created_at: string
+          deleted_at: string | null
           has_blocker: boolean
           id: string
           key_result_id: string
@@ -1400,6 +1439,7 @@ export type Database = {
           comment: string
           company_id: string
           created_at?: string
+          deleted_at?: string | null
           has_blocker?: boolean
           id?: string
           key_result_id: string
@@ -1414,6 +1454,7 @@ export type Database = {
           comment?: string
           company_id?: string
           created_at?: string
+          deleted_at?: string | null
           has_blocker?: boolean
           id?: string
           key_result_id?: string
