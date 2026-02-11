@@ -23,7 +23,7 @@ const actions = [
   {
     label: "Ver Equipe",
     icon: Users,
-    path: "/people",
+    path: "/hr",
     gradient: "from-destructive/80 to-destructive/60",
   },
 ];

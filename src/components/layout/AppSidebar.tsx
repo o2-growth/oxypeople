@@ -57,7 +57,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Mural", url: "/feed", icon: MessageSquare },
-  { title: "Pessoas", url: "/people", icon: Users },
+  
   { title: "Automação", url: "/automation", icon: Zap },
 ];
 

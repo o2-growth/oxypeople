@@ -8,7 +8,7 @@ export function ShortcutCards() {
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {/* Com quem eu falo? */}
       <button
-        onClick={() => navigate("/people")}
+        onClick={() => navigate("/hr")}
         className="group flex items-center gap-4 rounded-2xl border border-border/40 bg-card p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 text-left"
       >
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-white shadow-lg transition-transform duration-300 group-hover:scale-110">
