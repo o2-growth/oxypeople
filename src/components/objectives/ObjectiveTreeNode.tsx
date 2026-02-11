@@ -127,7 +127,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
   return (
     <>
       <div className={cn(
-        "group border rounded-lg transition-all",
+        "group border rounded-lg transition-all bg-card shadow-sm",
         depth === 0 && "border-border/60",
         depth === 1 && "border-border/40 ml-6",
         depth >= 2 && "border-border/30 ml-6",
