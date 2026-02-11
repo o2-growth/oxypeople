@@ -1,127 +1,66 @@
 
 
-## Expansao Completa do Modulo de RH
+## Correcao: Indicadores do Dashboard Zerados
 
-A pagina de RH atualmente tem apenas estatisticas basicas e sincronizacao Pipefy. Vamos transforma-la em um hub completo de gestao de recursos humanos com abas dedicadas.
+### Causa Raiz
 
----
+O problema e que o usuario logado (`joao.victor@o2inc.co.br`) tem `primary_company_id = null` na tabela `users` e nao possui nenhum registro na tabela `company_memberships`. Como **todos os hooks do dashboard** (e de praticamente todas as 44+ paginas do sistema) dependem de `primary_company_id` para buscar dados, tudo retorna zero.
 
-### Estrutura de Abas
+A empresa "Minha Empresa" existe no banco e tem 40 membros, mas este usuario nao esta vinculado a ela.
 
-A pagina `/hr` passara a ter as seguintes abas:
+### Solucao
 
-1. **Visao Geral** (atual) - Stats + Pipefy Sync
-2. **Colaboradores** - Quadro completo com tabela, filtros e cards
-3. **Turnover** - Dashboard com graficos de rotatividade
-4. **Calendario** - Eventos de RH (aniversarios, experiencia, contratos)
-5. **Relatorios** - Exportacao CSV de dados de RH
+A correcao envolve duas frentes:
 
 ---
 
-### 1. Aba Colaboradores (Quadro de Colaboradores)
+### 1. Correcao Imediata (Dados)
 
-Reutilizando a logica ja existente na pagina Pessoas (`src/pages/People.tsx`), criaremos um componente dedicado:
+Inserir o usuario na `company_memberships` e atualizar seu `primary_company_id` via migracao SQL:
 
-**Novo arquivo: `src/components/hr/HRCollaboratorsTab.tsx`**
-- Tabela pesquisavel com filtros por departamento, status e tipo de contratacao (CLT, PJ, Estagio, etc.)
-- Visualizacao alternativa em cards (como na pagina Pessoas)
-- Colunas: Nome, Cargo, Departamento, Tipo Contratacao, Data Admissao, Status
-- Acoes de admin: ativar/desativar colaborador
-- Reutiliza hooks `usePeopleList`, `usePeopleStats`, `useDepartmentOptions`
-
-**Novo arquivo: `src/components/hr/HRCollaboratorsFilters.tsx`**
-- Filtros especificos de RH: departamento, status, tipo de contratacao, busca textual
+- Inserir registro em `company_memberships` com `status = 'active'` e `role = 'owner'` (ja que e o criador/admin da plataforma)
+- Atualizar `users.primary_company_id` para apontar para a empresa existente
 
 ---
 
-### 2. Aba Turnover (Dashboard de Rotatividade)
+### 2. Prevencao Futura (Codigo)
 
-**Novo arquivo: `src/components/hr/HRTurnoverTab.tsx`**
-- Cards de metricas: taxa de turnover mensal, tempo medio de permanencia, admissoes vs desligamentos
-- Grafico de linha (Recharts) mostrando evolucao mensal de admissoes e desligamentos
-- Grafico de barras por departamento
-- Dados calculados a partir de `company_memberships` (campos `hire_date`, `status`, `joined_at`)
+Adicionar logica automatica no `AuthContext.tsx` para que, apos o login bem-sucedido, o sistema:
 
-**Novo hook: `src/hooks/useHRTurnover.ts`**
-- Consulta `company_memberships` agrupando por mes: contagem de `hire_date` (admissoes) e membros com `status = 'inactive'` (desligamentos)
-- Calculo de taxa de turnover: `(desligamentos / total ativos) * 100`
-- Tempo medio de permanencia baseado na diferenca entre `hire_date` e data atual (ou data de inativacao)
+1. Busque o perfil do usuario na tabela `users`
+2. Se `primary_company_id` for `null`, busque se o usuario tem alguma `company_membership` ativa
+3. Se encontrar, atualize o `primary_company_id` automaticamente
+4. Se nao encontrar membership, busque a empresa pelo dominio do email (ex: `@o2inc.co.br` -> empresa com esse dominio) e crie a membership automaticamente
 
----
+Alternativamente, de forma mais simples e segura:
 
-### 3. Aba Calendario de Eventos
-
-**Novo arquivo: `src/components/hr/HRCalendarTab.tsx`**
-- Lista cronologica dos proximos eventos de RH
-- Tipos de evento com icones coloridos:
-  - Aniversarios (dados de `users.birth_date`)
-  - Fim de periodo de experiencia (90 dias apos `hire_date`)
-  - Vencimento de contratos temporarios (baseado em `employment_type = 'Temporario'`)
-- Filtro por tipo de evento e periodo (proxima semana, proximo mes)
-- Visual em timeline/lista agrupada por data
-
-**Novo hook: `src/hooks/useHRCalendar.ts`**
-- Combina dados de `users.birth_date` e `company_memberships.hire_date`
-- Calcula datas de fim de experiencia (hire_date + 90 dias)
-- Ordena todos os eventos cronologicamente
+- No hook `useUser`, apos carregar o perfil, se `primary_company_id` for null, verificar se existe membership e associar automaticamente
+- Criar um hook `useEnsureCompanyMembership` que roda uma unica vez apos login
 
 ---
 
-### 4. Aba Relatorios e Exportacao
+### Arquivos Modificados
 
-**Novo arquivo: `src/components/hr/HRReportsTab.tsx`**
-- Cards de relatorios disponiveis:
-  - **Headcount por Departamento**: tabela + exportacao CSV
-  - **Admissoes e Desligamentos**: por periodo selecionavel
-  - **Dados Demograficos**: distribuicao por tipo de contratacao
-- Botao de exportacao CSV para cada relatorio
-- Funcao utilitaria para gerar CSV no client-side
-
-**Novo arquivo: `src/lib/csvExport.ts`**
-- Funcao generica para converter array de objetos em CSV e disparar download
-
----
-
-### 5. Alteracao na Pagina Principal
-
-**Arquivo: `src/pages/HR.tsx`**
-- Adicionar sistema de abas (`Tabs` do shadcn)
-- Aba "Visao Geral": conteudo atual (HRStats + PipefySyncCard + SyncHistoryList)
-- Aba "Colaboradores": `HRCollaboratorsTab`
-- Aba "Turnover": `HRTurnoverTab`
-- Aba "Calendario": `HRCalendarTab`
-- Aba "Relatorios": `HRReportsTab`
+1. **Migracao SQL** - Inserir membership e atualizar `primary_company_id` para o usuario atual
+2. **`src/hooks/useUser.ts`** - Adicionar logica de auto-deteccao de empresa quando `primary_company_id` for null: buscar na `company_memberships` e, se encontrar, atualizar o campo automaticamente
 
 ---
 
 ### Detalhes Tecnicos
 
-**Banco de dados**: Nenhuma alteracao necessaria. Todos os dados ja existem nas tabelas `company_memberships`, `users` e `departments`.
+**Migracao SQL:**
+```sql
+-- Associar usuario existente a empresa
+INSERT INTO company_memberships (user_id, company_id, status, role)
+VALUES ('5f03dc08-...', 'a1b2c3d4-...', 'active', 'owner')
+ON CONFLICT DO NOTHING;
 
-**Hooks reutilizados**:
-- `usePeopleList` / `usePeopleStats` - lista e estatisticas de colaboradores
-- `useDepartmentOptions` - lista de departamentos
-- `useUserBirthdays` - datas de aniversario
+-- Definir primary_company_id
+UPDATE users 
+SET primary_company_id = 'a1b2c3d4-...'
+WHERE id = '5f03dc08-...' AND primary_company_id IS NULL;
+```
 
-**Novos hooks**:
-- `useHRTurnover` - metricas de rotatividade
-- `useHRCalendar` - eventos proximos de RH
-
-**Bibliotecas ja instaladas utilizadas**:
-- `recharts` para graficos de turnover
-- `date-fns` para calculos de datas
-- shadcn/ui (`Tabs`, `Table`, `Card`, `Badge`, `Button`, `Select`)
-
-**Arquivos criados** (8 novos):
-1. `src/components/hr/HRCollaboratorsTab.tsx`
-2. `src/components/hr/HRCollaboratorsFilters.tsx`
-3. `src/components/hr/HRTurnoverTab.tsx`
-4. `src/components/hr/HRCalendarTab.tsx`
-5. `src/components/hr/HRReportsTab.tsx`
-6. `src/hooks/useHRTurnover.ts`
-7. `src/hooks/useHRCalendar.ts`
-8. `src/lib/csvExport.ts`
-
-**Arquivos modificados** (1):
-1. `src/pages/HR.tsx` - reestruturacao com abas
+**useUser.ts - Auto-fix logic:**
+Apos carregar o perfil, se `primary_company_id` for null, executar uma query para encontrar membership ativa e atualizar o campo. Isso previne que futuros usuarios fiquem na mesma situacao (caso sejam convidados via `company_memberships` mas o campo `primary_company_id` nao tenha sido preenchido).
 
