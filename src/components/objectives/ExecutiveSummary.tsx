@@ -151,24 +151,20 @@ export function ExecutiveSummary({
         </Card>
       )}
 
-      {/* Type breakdown row */}
-      <div className="grid gap-3 grid-cols-3">
+      {/* Type breakdown inline */}
+      <div className="flex items-center gap-3 px-1">
         {[
           { label: "Estratégicos", value: stats.strategic, icon: Crosshair, color: "text-violet-400", bg: "bg-violet-500/10" },
           { label: "Táticos", value: stats.tactical, icon: Layers, color: "text-blue-400", bg: "bg-blue-500/10" },
           { label: "Operacionais", value: stats.operational, icon: Zap, color: "text-emerald-400", bg: "bg-emerald-500/10" },
         ].map((s) => (
-          <Card key={s.label}>
-            <CardContent className="flex items-center gap-2 p-3">
-              <div className={cn("p-1.5 rounded", s.bg)}>
-                <s.icon className={cn("h-3.5 w-3.5", s.color)} />
-              </div>
-              <div>
-                <p className="text-lg font-bold">{s.value}</p>
-                <p className="text-[10px] text-muted-foreground">{s.label}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <Badge key={s.label} variant="outline" className="gap-1.5 py-1 text-xs font-medium">
+            <div className={cn("p-1 rounded", s.bg)}>
+              <s.icon className={cn("h-3 w-3", s.color)} />
+            </div>
+            <span className="font-bold">{s.value}</span>
+            <span className="text-muted-foreground">{s.label}</span>
+          </Badge>
         ))}
       </div>
     </div>
