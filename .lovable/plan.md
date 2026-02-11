@@ -1,43 +1,26 @@
 
-## Mapa de Objetivos - Layout Vertical
 
-### Problema
-Atualmente o mapa renderiza os objetivos de forma **horizontal** (pai a esquerda, filhos a direita). A solicitacao e mudar para um layout **vertical** (pai em cima, filhos embaixo), como um organograma classico.
+## Remover notificacoes Slack automaticas dos OKRs
 
-### Mudancas
+### Contexto
+As mensagens "Escalonamento OKR" no Slack (screenshot) vem de duas fontes:
+1. **Edge Function `okr-escalation`** — envia para o Slack quando objetivos estao "Em Risco" ou "Atrasado" (linhas 143-160)
+2. **Hook `useCheckins.ts`** — envia para o Slack a cada check-in realizado (linhas 100-110)
 
-**Arquivo: `src/components/objectives/ObjectiveMapNode.tsx`**
+Ambas enviam automaticamente sem controle do usuario. O pedido e remover essas notificacoes Slack dos OKRs, mantendo apenas as do modulo de Automacao (que tem botao liga/desliga).
 
-Refatorar o componente `ObjectiveMapNode` para usar layout vertical:
+### Alteracoes
 
-- Trocar o container principal de `flex items-start` (horizontal) para `flex flex-col items-center` (vertical)
-- O conector entre pai e filhos passa de **horizontal** (`w-8 h-px`) para **vertical** (`h-8 w-px`)
-- Os filhos passam a ser dispostos em `flex flex-row` (lado a lado, abaixo do pai) em vez de `flex flex-col`
-- Conectores de branch mudam de linhas horizontais para verticais (de cima para baixo)
-- A linha que conecta os irmaos passa de vertical para **horizontal** (ligando os filhos entre si na mesma linha)
+**1. `supabase/functions/okr-escalation/index.ts`**
+- Remover todo o bloco de envio ao Slack (linhas ~143-160) que usa `SLACK_BOT_TOKEN` para postar no `#general`
+- Remover a leitura da variavel `SLACK_BOT_TOKEN` (linha 18)
+- Manter as notificacoes internas (tabela `notifications`) — essas aparecem apenas dentro da plataforma
 
-**Arquivo: `src/components/objectives/ObjectivesMap.tsx`**
+**2. `src/hooks/useCheckins.ts`**
+- Remover o bloco "Send Slack notification (fire-and-forget)" no `onSuccess` da mutation `useCreateCheckin` (linhas 100-110)
+- Check-ins continuarao funcionando normalmente, apenas sem disparar mensagem no Slack
 
-- Ajustar o container interno de `flex flex-col gap-10` para `flex flex-row gap-10` ou manter `flex-col` com alinhamento centralizado, para que multiplas arvores raiz fiquem organizadas verticalmente uma abaixo da outra com os nos centralizados
-
-### Resultado Visual
-
-```text
-        [Estrategico]
-             |
-      ───────┼───────
-      |             |
-  [Tatico 1]   [Tatico 2]
-      |
-  ──────────
-  |        |
-[Op 1]  [Op 2]
-```
-
-### Detalhes Tecnicos
-
-- Container do no: `flex flex-col items-center`
-- Conector pai-filhos: `w-px h-8 bg-border` (linha vertical para baixo)
-- Filhos agrupados em: `flex flex-row items-start gap-6`
-- Linha horizontal conectando irmaos: `h-px bg-border` posicionada absolutamente no topo dos filhos
-- Cada branch filho tem um conector vertical curto (`w-px h-4`) antes do seu card
+### O que permanece
+- Notificacoes internas na plataforma (sino) continuam funcionando para OKRs
+- Automacoes do modulo de Automacao (aniversarios, tempo de empresa, etc.) continuam enviando ao Slack **quando o botao estiver ligado**
+- Feed de avisos continua funcionando normalmente
