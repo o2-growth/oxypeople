@@ -153,7 +153,7 @@ export default function Objectives() {
 
   return (
     <AppLayout>
-      <div className="space-y-8">
+      <div className="objectives-page-bg space-y-8 -m-6 lg:-m-8 p-6 lg:p-8 min-h-full">
         {/* Hero Header */}
         <div className="hero-header">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
