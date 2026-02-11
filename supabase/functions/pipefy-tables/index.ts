@@ -115,15 +115,66 @@ async function fetchPipefyTables(token: string, organizationId: string) {
   };
 }
 
+async function fetchTableById(token: string, tableId: string) {
+  const query = `
+    query($tableId: ID!) {
+      table(id: $tableId) {
+        id
+        name
+        table_fields {
+          id
+          label
+          type
+          required
+        }
+      }
+    }
+  `;
+
+  const response = await fetch('https://api.pipefy.com/graphql', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ query, variables: { tableId } }),
+  });
+
+  const data = await response.json();
+  if (data.errors) {
+    throw new Error(`GraphQL error: ${JSON.stringify(data.errors)}`);
+  }
+
+  return data.data?.table || null;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { organizationId } = await req.json().catch(() => ({}));
+    const { organizationId, tableId } = await req.json().catch(() => ({}));
     
     const token = await getPipefyToken();
+
+    // If a specific tableId is provided, fetch just that table's fields
+    if (tableId) {
+      const table = await fetchTableById(token, tableId);
+      if (!table) {
+        return new Response(JSON.stringify({ error: 'Table not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({
+        organizations: [],
+        currentOrganization: null,
+        tables: [table],
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
     // First get organizations
     const organizations = await fetchPipefyOrganizations(token);
