@@ -104,7 +104,7 @@ export function CollaboratorsDetailDialog({ open, onOpenChange }: Props) {
           className="w-full mt-2"
           onClick={() => {
             onOpenChange(false);
-            navigate("/people");
+            navigate("/hr");
           }}
         >
           Ver todos

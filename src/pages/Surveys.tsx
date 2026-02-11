@@ -158,7 +158,7 @@ export default function Surveys() {
                     showAdminActions
                     onViewResults={() => {
                       // Navigate to People > NPS tab would be better
-                      window.location.href = "/people";
+                      window.location.href = "/hr";
                     }}
                   />
                 ))}

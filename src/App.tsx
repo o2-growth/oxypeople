@@ -8,7 +8,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Feed from "./pages/Feed";
-import People from "./pages/People";
+
 import Auth from "./pages/Auth";
 import Recognition from "./pages/Recognition";
 import Objectives from "./pages/Objectives";
@@ -36,7 +36,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
-              <Route path="/people" element={<ProtectedRoute><People /></ProtectedRoute>} />
+              
               <Route path="/recognition" element={<ProtectedRoute><Recognition /></ProtectedRoute>} />
               <Route path="/objectives" element={<ProtectedRoute><Objectives /></ProtectedRoute>} />
               <Route path="/surveys" element={<ProtectedRoute><Surveys /></ProtectedRoute>} />
