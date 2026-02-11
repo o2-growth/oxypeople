@@ -4,7 +4,12 @@ import { HRStats } from "@/components/hr/HRStats";
 import { PipefySyncCard } from "@/components/hr/PipefySyncCard";
 import { SyncHistoryList } from "@/components/hr/SyncHistoryList";
 import { PipefyConfigDialog } from "@/components/hr/PipefyConfigDialog";
-import { Briefcase } from "lucide-react";
+import { HRCollaboratorsTab } from "@/components/hr/HRCollaboratorsTab";
+import { HRTurnoverTab } from "@/components/hr/HRTurnoverTab";
+import { HRCalendarTab } from "@/components/hr/HRCalendarTab";
+import { HRReportsTab } from "@/components/hr/HRReportsTab";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Briefcase, LayoutDashboard, Users, TrendingDown, CalendarDays, FileBarChart } from "lucide-react";
 
 export default function HR() {
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -22,19 +27,60 @@ export default function HR() {
               Recursos Humanos
             </h1>
             <p className="text-muted-foreground mt-1">
-              Gestão de colaboradores integrada ao Pipefy
+              Hub completo de gestão de recursos humanos
             </p>
           </div>
         </div>
 
-        {/* Stats */}
-        <HRStats />
+        {/* Tabs */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="flex-wrap h-auto gap-1">
+            <TabsTrigger value="overview" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="collaborators" className="gap-2">
+              <Users className="h-4 w-4" />
+              Colaboradores
+            </TabsTrigger>
+            <TabsTrigger value="turnover" className="gap-2">
+              <TrendingDown className="h-4 w-4" />
+              Turnover
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="gap-2">
+              <CalendarDays className="h-4 w-4" />
+              Calendário
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="gap-2">
+              <FileBarChart className="h-4 w-4" />
+              Relatórios
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Sync Section */}
-        <div className="grid gap-6 md:grid-cols-2">
-          <PipefySyncCard onConfigure={() => setConfigDialogOpen(true)} />
-          <SyncHistoryList />
-        </div>
+          <TabsContent value="overview" className="space-y-6">
+            <HRStats />
+            <div className="grid gap-6 md:grid-cols-2">
+              <PipefySyncCard onConfigure={() => setConfigDialogOpen(true)} />
+              <SyncHistoryList />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="collaborators">
+            <HRCollaboratorsTab />
+          </TabsContent>
+
+          <TabsContent value="turnover">
+            <HRTurnoverTab />
+          </TabsContent>
+
+          <TabsContent value="calendar">
+            <HRCalendarTab />
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <HRReportsTab />
+          </TabsContent>
+        </Tabs>
 
         {/* Config Dialog */}
         <PipefyConfigDialog
