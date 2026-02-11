@@ -27,6 +27,7 @@ import {
   Users,
   Target,
   Search,
+  ClipboardList,
 } from "lucide-react";
 import { KeyResultItem, KeyResult } from "./KeyResultItem";
 import { ProgressChart } from "./ProgressChart";
@@ -37,6 +38,8 @@ import { AuditHistory } from "./AuditHistory";
 import { ObjectiveWithDetails, ObjectiveType, usePeriods } from "@/hooks/useObjectives";
 import { CreateKeyResultDialog } from "./CreateKeyResultDialog";
 import { useCheckins } from "@/hooks/useCheckins";
+import { useRealtimeObjective } from "@/hooks/useRealtimeObjective";
+import { BulkCheckinDialog } from "./BulkCheckinDialog";
 import { useActions, useCreateAction, Action, formatWeekLabel, getWeekBucket } from "@/hooks/useActions";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -254,8 +257,10 @@ function OperationalContent({
 }) {
   const [krSearch, setKrSearch] = useState("");
   const [isCreateKROpen, setIsCreateKROpen] = useState(false);
+  const [isBulkCheckinOpen, setIsBulkCheckinOpen] = useState(false);
   const allKrIds = objective.key_results.map((kr) => kr.id);
   const firstKrId = allKrIds[0];
+  useRealtimeObjective(objective.id);
   const { data: checkins = [] } = useCheckins(firstKrId);
   const { data: periods = [] } = usePeriods();
   const period = objective.period_id ? periods.find((p) => p.id === objective.period_id) : null;
@@ -370,9 +375,22 @@ function OperationalContent({
             </div>
           )}
 
-          <h4 className="text-sm font-medium">
-            Key Results ({filteredKRs.length})
-          </h4>
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium">
+              Key Results ({filteredKRs.length})
+            </h4>
+            {keyResults.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs h-7"
+                onClick={() => setIsBulkCheckinOpen(true)}
+              >
+                <ClipboardList className="h-3 w-3" />
+                Check-in em massa
+              </Button>
+            )}
+          </div>
           {filteredKRs.length > 0 ? (
             <div className="space-y-2">
               {filteredKRs.map((kr) => (
@@ -417,6 +435,24 @@ function OperationalContent({
           <AuditHistory entityId={objective.id} />
         </TabsContent>
       </Tabs>
+
+      {/* Bulk Check-in Dialog */}
+      {keyResults.length > 0 && (
+        <BulkCheckinDialog
+          open={isBulkCheckinOpen}
+          onOpenChange={setIsBulkCheckinOpen}
+          objectiveTitle={objective.title}
+          keyResults={keyResults.map((kr) => ({
+            id: kr.id,
+            title: kr.title,
+            current_value: kr.current_value,
+            target_value: kr.target_value,
+            initial_value: kr.initial_value,
+            unit: kr.unit,
+            objective_id: objective.id,
+          }))}
+        />
+      )}
     </div>
   );
 }
