@@ -237,6 +237,8 @@ export function CreateNPSSurveyCard() {
                   value={selectedUsers}
                   onValueChange={setSelectedUsers}
                   placeholder="Selecione colaboradores"
+                  filterByDepartmentIds={selectedDepartments}
+                  filterByTeamIds={selectedTeams}
                 />
               </div>
             </div>
