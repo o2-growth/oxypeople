@@ -114,7 +114,7 @@ export function ObjectivesContextBar({
   };
 
   return (
-    <div className="space-y-3 bg-card rounded-xl p-4 border border-border/40 shadow-sm">
+    <div className="space-y-3 bg-muted/30 backdrop-blur-sm rounded-xl p-4">
       {/* Row 1: View mode tabs + Period + Search */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="shrink-0">
