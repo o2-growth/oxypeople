@@ -22,7 +22,7 @@ export function ShortcutCards() {
 
       {/* Enxoval O2 */}
       <a
-        href="https://notion.so"
+        href="https://www.notion.so/o2inc/2e89cde5b15a412495aea817e6d9e4c0?v=6b29ec15973c425ca3ecc08df1a5d312"
         target="_blank"
         rel="noopener noreferrer"
         className="group flex items-center gap-4 rounded-2xl border border-border/40 bg-card p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 text-left"
