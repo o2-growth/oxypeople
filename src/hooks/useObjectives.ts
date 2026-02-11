@@ -102,6 +102,7 @@ export function useObjectives() {
           key_results(*)
         `)
         .eq("company_id", companyId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -293,7 +294,7 @@ export function useDeleteObjective() {
     mutationFn: async (objectiveId: string) => {
       const { error } = await supabase
         .from("objectives")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() } as any)
         .eq("id", objectiveId);
 
       if (error) throw error;
