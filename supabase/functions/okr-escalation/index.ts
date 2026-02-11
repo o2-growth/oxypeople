@@ -13,7 +13,7 @@ serve(async (req) => {
 
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
   const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const SLACK_BOT_TOKEN = Deno.env.get('SLACK_BOT_TOKEN');
+  
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
@@ -140,26 +140,6 @@ serve(async (req) => {
           totalEscalations++;
         }
 
-        // Send Slack notification if configured
-        if (SLACK_BOT_TOKEN) {
-          try {
-            await fetch('https://slack.com/api/chat.postMessage', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${SLACK_BOT_TOKEN}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                channel: '#general',
-                text: `🎯 *Escalonamento OKR*\n${message}`,
-                username: 'OKR Bot',
-                icon_emoji: ':dart:',
-              }),
-            });
-          } catch (slackErr) {
-            console.error('Slack notification failed:', slackErr);
-          }
-        }
       }
     }
 
