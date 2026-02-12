@@ -10,10 +10,13 @@ import { ObjectiveDetailPanel } from "@/components/objectives/ObjectiveDetailPan
 import { BreakdownObjectiveDialog } from "@/components/objectives/BreakdownObjectiveDialog";
 import { ObjectivesMap } from "@/components/objectives/ObjectivesMap";
 import { ActionsKanban } from "@/components/actions/ActionsKanban";
+import { DeletedItemsDialog } from "@/components/objectives/DeletedItemsDialog";
+import { AuditLogDialog } from "@/components/objectives/AuditLogDialog";
+import { SavedFiltersMenu } from "@/components/objectives/SavedFiltersMenu";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Target, List, Map, Zap, Building2 } from "lucide-react";
+import { Plus, Target, List, Map, Zap, Building2, History, Trash2 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { useObjectivesFilters } from "@/hooks/useObjectivesFilters";
@@ -31,6 +34,8 @@ export default function Objectives() {
 
   const [selectedObjective, setSelectedObjective] = useState<ObjectiveWithDetails | null>(null);
   const [breakdownObjective, setBreakdownObjective] = useState<ObjectiveWithDetails | null>(null);
+  const [isDeletedOpen, setIsDeletedOpen] = useState(false);
+  const [isAuditOpen, setIsAuditOpen] = useState(false);
 
   const {
     filters,
@@ -205,6 +210,24 @@ export default function Objectives() {
                   Ações
                 </Button>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-white/80 hover:text-white hover:bg-white/10"
+                onClick={() => setIsAuditOpen(true)}
+              >
+                <History className="h-4 w-4" />
+                Logs
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-white/80 hover:text-white hover:bg-white/10"
+                onClick={() => setIsDeletedOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Deletados
+              </Button>
               <ObjectivesExport objectives={filteredObjectives} />
               <Button 
                 className="gap-2 bg-white text-foreground hover:bg-white/90 shadow-lg"
@@ -227,18 +250,27 @@ export default function Objectives() {
           onFilterNoKR={() => setFilters((p) => ({ ...p, noKR: !p.noKR }))}
         />
 
-        {/* Context Bar (view mode + period + filters) */}
-        <ObjectivesContextBar
-          filters={filters}
-          setFilters={setFilters}
-          clearFilters={clearFilters}
-          hasActiveFilters={hasActiveFilters}
-          departments={departments}
-          responsibleUsers={responsibleUsers}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          stats={stats}
-        />
+        {/* Context Bar (view mode + period + filters + saved filters) */}
+        <div className="space-y-3">
+          <ObjectivesContextBar
+            filters={filters}
+            setFilters={setFilters}
+            clearFilters={clearFilters}
+            hasActiveFilters={hasActiveFilters}
+            departments={departments}
+            responsibleUsers={responsibleUsers}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            stats={stats}
+          />
+          <div className="flex items-center gap-2 px-1">
+            <SavedFiltersMenu
+              currentFilters={filters}
+              onApplyFilter={setFilters}
+              hasActiveFilters={hasActiveFilters}
+            />
+          </div>
+        </div>
 
         {/* Content based on display mode */}
         <div className="bg-card rounded-xl p-4 border border-border/40 shadow-sm">
@@ -283,6 +315,12 @@ export default function Objectives() {
           parentObjective={breakdownObjective}
         />
       )}
+
+      {/* Deleted Items Dialog */}
+      <DeletedItemsDialog open={isDeletedOpen} onOpenChange={setIsDeletedOpen} />
+
+      {/* Audit Log Dialog */}
+      <AuditLogDialog open={isAuditOpen} onOpenChange={setIsAuditOpen} />
     </AppLayout>
   );
 }
