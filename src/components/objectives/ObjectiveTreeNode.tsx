@@ -23,8 +23,7 @@ import {
 import {
   ChevronDown,
   ChevronRight,
-  Target,
-  MoreVertical,
+  MoreHorizontal,
   Trash2,
   Plus,
   Crosshair,
@@ -34,7 +33,6 @@ import {
   Users,
 } from "lucide-react";
 import { KeyResultItem, KeyResult } from "./KeyResultItem";
-import { ProgressBarStatus } from "./ProgressBarStatus";
 import { StatusBadge } from "./StatusBadge";
 import { OverdueBadge } from "./OverdueBadge";
 import { BreakdownObjectiveDialog } from "./BreakdownObjectiveDialog";
@@ -53,10 +51,10 @@ interface ObjectiveTreeNodeProps {
   onSelectObjective?: (objective: ObjectiveWithDetails) => void;
 }
 
-const typeConfig: Record<ObjectiveType, { label: string; icon: typeof Target; color: string; bgColor: string }> = {
-  strategic: { label: "Estratégico", icon: Crosshair, color: "text-violet-400", bgColor: "bg-violet-500/10 border-violet-500/30" },
-  tactical: { label: "Tático", icon: Layers, color: "text-blue-400", bgColor: "bg-blue-500/10 border-blue-500/30" },
-  operational: { label: "Operacional", icon: Zap, color: "text-emerald-400", bgColor: "bg-emerald-500/10 border-emerald-500/30" },
+const typeConfig: Record<ObjectiveType, { label: string; icon: typeof Crosshair; color: string; bgColor: string; dotColor: string }> = {
+  strategic: { label: "Estratégico", icon: Crosshair, color: "text-violet-400", bgColor: "bg-violet-500/15 text-violet-400 border-violet-500/30", dotColor: "bg-violet-400" },
+  tactical: { label: "Tático", icon: Layers, color: "text-sky-400", bgColor: "bg-sky-500/15 text-sky-400 border-sky-500/30", dotColor: "bg-sky-400" },
+  operational: { label: "Operacional", icon: Zap, color: "text-emerald-400", bgColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", dotColor: "bg-emerald-400" },
 };
 
 const childTypeMap: Record<ObjectiveType, ObjectiveType | null> = {
@@ -126,131 +124,183 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
     direction: (kr as any).direction,
   }));
 
+  const progress = Math.round(Math.min(Math.max(0, objective.progress), 100));
+
   return (
     <>
       <div className={cn(
-        "group rounded-lg transition-all",
-        depth === 0 && "border border-border/60 bg-card shadow-sm",
-        depth === 1 && "ml-6 hover:bg-muted/30",
-        depth >= 2 && "ml-6 hover:bg-muted/30",
+        "group transition-all",
+        depth === 0 && "rounded-lg border border-border/60 bg-card overflow-hidden",
+        depth > 0 && "border-l-2 border-border/40 ml-5",
       )}>
-        {/* Main row */}
-        <div className="flex items-center gap-3 p-3">
-          {/* Expand */}
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className={cn(
-              "shrink-0 p-0.5 rounded hover:bg-muted transition-colors",
-              !hasChildren && !hasKRs && "invisible"
-            )}
-          >
-            {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-          </button>
+        {/* Main Row — Monday-style */}
+        <div
+          className={cn(
+            "flex items-center h-11 hover:bg-accent/50 transition-colors cursor-pointer",
+            depth === 0 && "border-b border-border/30 last:border-b-0",
+          )}
+        >
+          {/* Left: Expand + Icon + Title */}
+          <div className="flex items-center gap-1.5 flex-1 min-w-0 px-3">
+            {/* Expand toggle */}
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+              className={cn(
+                "shrink-0 p-0.5 rounded hover:bg-muted transition-colors",
+                !hasChildren && !hasKRs && "invisible"
+              )}
+            >
+              {isExpanded
+                ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+              }
+            </button>
 
-          {/* Type icon */}
-          <div className={cn("shrink-0 p-1.5 rounded-md", type.bgColor)}>
-            <TypeIcon className={cn("h-4 w-4", type.color)} />
+            {/* Type dot indicator */}
+            <div className={cn("shrink-0 h-5 w-5 rounded-md flex items-center justify-center", type.bgColor)}>
+              <TypeIcon className={cn("h-3 w-3", type.color)} />
+            </div>
+
+            {/* Title */}
+            <span
+              className="text-sm font-medium text-foreground truncate hover:text-primary transition-colors"
+              onClick={() => navigate(`/objectives/${objective.id}`)}
+            >
+              {objective.title}
+            </span>
+
+            {/* Derivado de (for children) */}
+            {depth > 0 && objective.parent_id && (
+              <span className="text-[10px] text-muted-foreground shrink-0 hidden lg:inline">
+                Derivado de: {objective.parent_id.slice(0, 8)}…
+              </span>
+            )}
           </div>
 
-          {/* Content — clickable */}
-          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/objectives/${objective.id}`)}>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium text-sm text-foreground truncate hover:text-primary transition-colors">
-                {objective.title}
-              </span>
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 shrink-0", type.bgColor)}>
+          {/* Right columns — fixed width, Monday-style cells */}
+          <div className="flex items-center shrink-0">
+            {/* Type badge */}
+            <div className="w-[100px] flex items-center justify-center px-1">
+              <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 h-5 font-semibold rounded-sm border", type.bgColor)}>
                 {type.label}
               </Badge>
+            </div>
+
+            {/* Status badge */}
+            <div className="w-[100px] flex items-center justify-center px-1">
               <StatusBadge status={autoStatus} />
+            </div>
+
+            {/* Warning badges */}
+            <div className="w-[90px] flex items-center justify-center gap-1 px-1">
               <OverdueBadge overdue={isCheckinOverdue} label="Atrasado" />
               {hasNoKRWarning && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 shrink-0 bg-orange-500/10 text-orange-500 border-orange-500/30">
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 shrink-0 bg-warning/10 text-warning border-warning/30 rounded-sm">
                   Sem KR
                 </Badge>
               )}
             </div>
-            {objective.description && (
-              <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-md">
-                {objective.description}
-              </p>
-            )}
+
+            {/* Progress bar */}
+            <div className="w-[130px] flex items-center gap-2 px-3">
+              <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500 ease-out"
+                  style={{
+                    width: `${progress}%`,
+                    backgroundImage: "var(--gradient-progress)",
+                  }}
+                />
+              </div>
+              <span className="text-[11px] font-semibold text-muted-foreground w-8 text-right tabular-nums">
+                {progress}%
+              </span>
+            </div>
+
+            {/* Owner avatar */}
+            <div className="w-[44px] flex items-center justify-center">
+              {objective.owner ? (
+                <Avatar className="h-6 w-6 ring-1 ring-border">
+                  <AvatarImage src={objective.owner.avatar_url || ""} />
+                  <AvatarFallback className="text-[9px] font-bold bg-primary/10 text-primary">
+                    {getInitials(objective.owner.full_name, objective.owner.email)}
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <div className="h-6 w-6 rounded-full bg-muted" />
+              )}
+            </div>
+
+            {/* KR count */}
+            <div className="w-[50px] flex items-center justify-center">
+              {hasKRs && (
+                <span className="text-[11px] font-semibold text-muted-foreground">
+                  {objective.key_results.length} KR
+                </span>
+              )}
+              {hasChildren && !hasKRs && (
+                <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
+                  <Users className="h-3 w-3" />{objective.children!.length}
+                </span>
+              )}
+            </div>
+
+            {/* Due date */}
+            <div className="w-[60px] flex items-center justify-center">
+              {objective.due_date && (
+                <span className="text-[11px] text-muted-foreground tabular-nums">
+                  {format(new Date(objective.due_date), "dd MMM", { locale: ptBR })}
+                </span>
+              )}
+            </div>
+
+            {/* Menu */}
+            <div className="w-[36px] flex items-center justify-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {canAddChild && onCreateChild && (
+                    <DropdownMenuItem onClick={() => onCreateChild(objective.id, childTypeMap[objective.type]!)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Criar {typeConfig[childTypeMap[objective.type]!]?.label}
+                    </DropdownMenuItem>
+                  )}
+                  {canAddChild && canEdit && (
+                    <DropdownMenuItem onClick={() => setShowBreakdown(true)}>
+                      <GitBranchPlus className="h-4 w-4 mr-2" />
+                      Quebrar em filhos
+                    </DropdownMenuItem>
+                  )}
+                  {(canAddChild || canDelete) && <DropdownMenuSeparator />}
+                  {canDelete && (
+                    <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Excluir
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-
-          {/* Progress */}
-          <div className="w-36 shrink-0">
-            <ProgressBarStatus
-              value={objective.progress}
-              expectedValue={Number((objective as any).expected_progress || 0)}
-              size="sm"
-            />
-          </div>
-
-          {/* Owner */}
-          {objective.owner && (
-            <Avatar className="h-7 w-7 shrink-0">
-              <AvatarImage src={objective.owner.avatar_url || ""} />
-              <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                {getInitials(objective.owner.full_name, objective.owner.email)}
-              </AvatarFallback>
-            </Avatar>
-          )}
-
-          {/* Children indicator */}
-          {hasChildren && (
-            <Badge variant="secondary" className="text-[10px] shrink-0 gap-0.5">
-              <Users className="h-2.5 w-2.5" />
-              {objective.children!.length}
-            </Badge>
-          )}
-
-          {/* KR count */}
-          {hasKRs && (
-            <Badge variant="secondary" className="text-[10px] shrink-0">
-              {objective.key_results.length} KR
-            </Badge>
-          )}
-
-          {/* Due date */}
-          {objective.due_date && (
-            <span className="text-xs text-muted-foreground shrink-0">
-              {format(new Date(objective.due_date), "dd MMM", { locale: ptBR })}
-            </span>
-          )}
-
-          {/* Menu ⋯ */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                <MoreVertical className="h-3.5 w-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {canAddChild && onCreateChild && (
-                <DropdownMenuItem onClick={() => onCreateChild(objective.id, childTypeMap[objective.type]!)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar {typeConfig[childTypeMap[objective.type]!]?.label}
-                </DropdownMenuItem>
-              )}
-              {canAddChild && canEdit && (
-                <DropdownMenuItem onClick={() => setShowBreakdown(true)}>
-                  <GitBranchPlus className="h-4 w-4 mr-2" />
-                  Quebrar em filhos
-                </DropdownMenuItem>
-              )}
-              {(canAddChild || canDelete) && <DropdownMenuSeparator />}
-              {canDelete && (
-                <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Excluir
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
 
-        {/* Expanded: KRs */}
+        {/* Expanded: Weight editor */}
+        {isExpanded && hasChildren && (
+          <ChildWeightEditor parentId={objective.id} children={objective.children!} canEdit={canEdit} />
+        )}
+
+        {/* Expanded: KRs toggle */}
         {isExpanded && hasKRs && (
-          <div className="px-3 pb-3 pl-12 space-y-2">
+          <div className="px-3 pb-2 pl-10">
             <button
               onClick={() => setShowKRs(!showKRs)}
               className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
@@ -259,7 +309,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
               {showKRs ? "Ocultar" : "Ver"} Key Results ({objective.key_results.length})
             </button>
             {showKRs && (
-              <div className="space-y-2 mt-2">
+              <div className="space-y-1.5 mt-2">
                 {keyResults.map((kr) => (
                   <KeyResultItem key={kr.id} keyResult={kr} canEdit={canEdit} expandable />
                 ))}
@@ -268,14 +318,9 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
           </div>
         )}
 
-        {/* Child weight editor */}
-        {isExpanded && hasChildren && (
-          <ChildWeightEditor parentId={objective.id} children={objective.children!} canEdit={canEdit} />
-        )}
-
         {/* Children */}
         {isExpanded && hasChildren && (
-          <div className="pb-2 px-2 space-y-2">
+          <div className="pb-1 space-y-0">
             {objective.children!.map((child) => (
               <ObjectiveTreeNode
                 key={child.id}
