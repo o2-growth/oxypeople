@@ -12,6 +12,7 @@ import Feed from "./pages/Feed";
 import Auth from "./pages/Auth";
 import Recognition from "./pages/Recognition";
 import Objectives from "./pages/Objectives";
+import ObjectiveDetail from "./pages/ObjectiveDetail";
 import Surveys from "./pages/Surveys";
 import Company from "./pages/Company";
 import Settings from "./pages/Settings";
@@ -39,6 +40,7 @@ const App = () => (
               
               <Route path="/recognition" element={<ProtectedRoute><Recognition /></ProtectedRoute>} />
               <Route path="/objectives" element={<ProtectedRoute><Objectives /></ProtectedRoute>} />
+              <Route path="/objectives/:id" element={<ProtectedRoute><ObjectiveDetail /></ProtectedRoute>} />
               <Route path="/surveys" element={<ProtectedRoute><Surveys /></ProtectedRoute>} />
               <Route path="/company" element={<ProtectedRoute><Company /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
