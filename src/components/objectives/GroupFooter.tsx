@@ -21,16 +21,13 @@ export function GroupFooter({ objectives, onAddItem }: GroupFooterProps) {
         Adicionar
       </button>
       <div className="flex-1" />
-      {/* Aggregation columns aligned with progress column */}
+      <div className="w-[55px]" />
       <div className="w-[100px]" />
       <div className="w-[100px]" />
       <div className="w-[90px]" />
       <div className="w-[130px] flex items-center gap-2 px-3">
         <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full bg-[#00c875]"
-            style={{ width: `${avgProgress}%` }}
-          />
+          <div className="h-full rounded-full bg-[#00c875]" style={{ width: `${avgProgress}%` }} />
         </div>
         <span className="text-[10px] font-semibold text-muted-foreground w-8 text-right tabular-nums">
           {avgProgress}%

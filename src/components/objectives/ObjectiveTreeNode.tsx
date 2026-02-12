@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,14 +28,18 @@ import {
   Plus,
   GitBranchPlus,
   Users,
+  Scale,
+  Check,
+  X,
 } from "lucide-react";
 import { KeyResultItem, KeyResult } from "./KeyResultItem";
 import { StatusBadge } from "./StatusBadge";
 import { OverdueBadge } from "./OverdueBadge";
 import { BreakdownObjectiveDialog } from "./BreakdownObjectiveDialog";
-import { ChildWeightEditor } from "./ChildWeightEditor";
 import { ObjectiveWithDetails, useDeleteObjective, ObjectiveType } from "@/hooks/useObjectives";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -46,6 +50,8 @@ interface ObjectiveTreeNodeProps {
   depth?: number;
   onCreateChild?: (parentId: string, parentType: ObjectiveType) => void;
   onSelectObjective?: (objective: ObjectiveWithDetails) => void;
+  /** Weight percentage passed from parent */
+  weightPercentage?: number;
 }
 
 const typeConfig: Record<ObjectiveType, { label: string; bg: string; borderColor: string }> = {
@@ -60,14 +66,53 @@ const childTypeMap: Record<ObjectiveType, ObjectiveType | null> = {
   operational: null,
 };
 
-export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelectObjective }: ObjectiveTreeNodeProps) {
+export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelectObjective, weightPercentage }: ObjectiveTreeNodeProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isExpanded, setIsExpanded] = useState(depth < 2);
   const [showKRs, setShowKRs] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const { canEditObjective, canDeleteObjective } = useUserPermissions();
   const deleteObjective = useDeleteObjective();
+
+  // Child weights state
+  const [childWeights, setChildWeights] = useState<Record<string, number>>({});
+  const [isEditingWeights, setIsEditingWeights] = useState(false);
+  const [editWeights, setEditWeights] = useState<Record<string, number>>({});
+  const [isSavingWeights, setIsSavingWeights] = useState(false);
+
+  const hasChildren = objective.children && objective.children.length > 0;
+  const hasKRs = objective.key_results.length > 0;
+
+  // Load child weights
+  useEffect(() => {
+    if (!hasChildren) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from("objective_relations")
+        .select("child_objective_id, weight_percentage")
+        .eq("parent_objective_id", objective.id);
+
+      const w: Record<string, number> = {};
+      objective.children!.forEach((c) => {
+        const rel = data?.find((r) => r.child_objective_id === c.id);
+        w[c.id] = rel ? Number(rel.weight_percentage) : 0;
+      });
+
+      // Distribute evenly if all zero
+      const total = Object.values(w).reduce((s, v) => s + v, 0);
+      if (total === 0 && objective.children!.length > 0) {
+        const base = Math.floor(100 / objective.children!.length);
+        const remainder = 100 - base * objective.children!.length;
+        objective.children!.forEach((c, i) => {
+          w[c.id] = base + (i < remainder ? 1 : 0);
+        });
+      }
+      setChildWeights(w);
+    };
+    load();
+  }, [objective.id, hasChildren, objective.children]);
 
   const isCheckinOverdue = objective.type === "operational" && objective.key_results.length > 0 &&
     objective.key_results.some((kr) => {
@@ -79,8 +124,6 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
 
   const hasNoKRWarning = objective.type === "operational" && objective.key_results.length === 0;
   const type = typeConfig[objective.type] || typeConfig.operational;
-  const hasChildren = objective.children && objective.children.length > 0;
-  const hasKRs = objective.key_results.length > 0;
   const canAddChild = childTypeMap[objective.type] !== null;
   const autoStatus = (objective as any).auto_status || "no_data";
 
@@ -106,6 +149,37 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
     }
   };
 
+  const startEditWeights = () => {
+    setEditWeights({ ...childWeights });
+    setIsEditingWeights(true);
+  };
+
+  const saveWeights = async () => {
+    const total = Object.values(editWeights).reduce((s, v) => s + v, 0);
+    if (total !== 100) {
+      toast.error(`A soma dos pesos deve ser 100% (atual: ${total}%)`);
+      return;
+    }
+    setIsSavingWeights(true);
+    try {
+      for (const child of objective.children!) {
+        await supabase
+          .from("objective_relations")
+          .update({ weight_percentage: editWeights[child.id] || 0 })
+          .eq("parent_objective_id", objective.id)
+          .eq("child_objective_id", child.id);
+      }
+      setChildWeights({ ...editWeights });
+      setIsEditingWeights(false);
+      queryClient.invalidateQueries({ queryKey: ["objectives"] });
+      toast.success("Pesos atualizados!");
+    } catch {
+      toast.error("Erro ao atualizar pesos");
+    } finally {
+      setIsSavingWeights(false);
+    }
+  };
+
   const keyResults: KeyResult[] = objective.key_results.map((kr) => ({
     id: kr.id,
     title: kr.title,
@@ -121,15 +195,12 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
   }));
 
   const progress = Math.round(Math.min(Math.max(0, objective.progress), 100));
-
   const progressColor = progress >= 70 ? "#00c875" : progress >= 40 ? "#fdab3d" : "#e2445c";
 
   return (
     <>
-      <div className={cn(
-        depth > 0 && "ml-6",
-      )}>
-        {/* Main Row — Monday.com style */}
+      <div className={cn(depth > 0 && "ml-6")}>
+        {/* Main Row */}
         <div
           className={cn(
             "group flex items-center h-10 hover:bg-accent/60 transition-colors border-b border-border/30",
@@ -160,16 +231,25 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
             </span>
           </div>
 
-          {/* Right columns — fixed width Monday cells */}
+          {/* Right columns */}
           <div className="flex items-center shrink-0">
-            {/* Type cell — solid colored */}
+            {/* Peso column — shows weight from parent */}
+            <div className="w-[55px] flex items-center justify-center px-1">
+              {weightPercentage !== undefined && (
+                <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+                  {weightPercentage}%
+                </span>
+              )}
+            </div>
+
+            {/* Type cell */}
             <div className="w-[100px] flex items-center justify-center px-1">
               <div className={cn("inline-flex items-center justify-center px-2.5 py-0.5 rounded-sm text-[10px] font-semibold text-white min-w-[75px] text-center", type.bg)}>
                 {type.label}
               </div>
             </div>
 
-            {/* Status cell — solid colored */}
+            {/* Status cell */}
             <div className="w-[100px] flex items-center justify-center px-1">
               <StatusBadge status={autoStatus} />
             </div>
@@ -184,15 +264,12 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
               )}
             </div>
 
-            {/* Progress bar — thicker */}
+            {/* Progress bar */}
             <div className="w-[130px] flex items-center gap-2 px-3">
               <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500 ease-out"
-                  style={{
-                    width: `${progress}%`,
-                    backgroundColor: progressColor,
-                  }}
+                  style={{ width: `${progress}%`, backgroundColor: progressColor }}
                 />
               </div>
               <span className="text-[11px] font-bold text-muted-foreground w-8 text-right tabular-nums">
@@ -237,7 +314,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
               )}
             </div>
 
-            {/* Menu — always visible */}
+            {/* Menu */}
             <div className="w-[36px] flex items-center justify-center">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -263,6 +340,12 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
                       Quebrar em filhos
                     </DropdownMenuItem>
                   )}
+                  {hasChildren && canEdit && (
+                    <DropdownMenuItem onClick={startEditWeights}>
+                      <Scale className="h-4 w-4 mr-2" />
+                      Editar pesos
+                    </DropdownMenuItem>
+                  )}
                   {(canAddChild || canDelete) && <DropdownMenuSeparator />}
                   {canDelete && (
                     <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-destructive">
@@ -276,12 +359,49 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
           </div>
         </div>
 
-        {/* Expanded: Weight editor */}
-        {isExpanded && hasChildren && (
-          <ChildWeightEditor parentId={objective.id} children={objective.children!} canEdit={canEdit} />
+        {/* Inline weight editing row */}
+        {isEditingWeights && hasChildren && (
+          <div className="px-3 py-2 bg-muted/30 border-b border-border/30 space-y-1.5">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium flex items-center gap-1.5">
+                <Scale className="h-3.5 w-3.5 text-muted-foreground" />
+                Editar pesos dos filhos
+                <span className={cn(
+                  "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                  Object.values(editWeights).reduce((s, v) => s + v, 0) === 100
+                    ? "bg-[#00c875]/20 text-[#00c875]"
+                    : "bg-destructive/20 text-destructive"
+                )}>
+                  {Object.values(editWeights).reduce((s, v) => s + v, 0)}%
+                </span>
+              </span>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={() => setIsEditingWeights(false)}>
+                  <X className="h-3 w-3 mr-1" />Cancelar
+                </Button>
+                <Button size="sm" className="h-6 text-[10px] px-2 gap-1 bg-[#00c875] hover:bg-[#00b461] text-white" onClick={saveWeights} disabled={isSavingWeights}>
+                  <Check className="h-3 w-3" />Salvar
+                </Button>
+              </div>
+            </div>
+            {objective.children!.map((child) => (
+              <div key={child.id} className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground flex-1 truncate">{child.title}</span>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={editWeights[child.id] || 0}
+                  onChange={(e) => setEditWeights((prev) => ({ ...prev, [child.id]: Number(e.target.value) }))}
+                  className="h-7 w-16 text-xs"
+                />
+                <span className="text-xs text-muted-foreground">%</span>
+              </div>
+            ))}
+          </div>
         )}
 
-        {/* Expanded: KRs toggle */}
+        {/* KRs toggle */}
         {isExpanded && hasKRs && (
           <div className="px-3 pb-2 pl-10">
             <button
@@ -301,7 +421,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
           </div>
         )}
 
-        {/* Children */}
+        {/* Children — pass weight from parent */}
         {isExpanded && hasChildren && (
           <div className="space-y-0">
             {objective.children!.map((child) => (
@@ -311,6 +431,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
                 depth={depth + 1}
                 onCreateChild={onCreateChild}
                 onSelectObjective={onSelectObjective}
+                weightPercentage={childWeights[child.id]}
               />
             ))}
           </div>
