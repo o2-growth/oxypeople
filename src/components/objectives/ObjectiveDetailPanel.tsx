@@ -13,6 +13,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Crosshair,
   Layers,
   Zap,
@@ -28,6 +34,9 @@ import {
   Target,
   Search,
   ClipboardList,
+  MoreHorizontal,
+  Copy,
+  Link,
 } from "lucide-react";
 import { KeyResultItem, KeyResult } from "./KeyResultItem";
 import { ProgressChart } from "./ProgressChart";
@@ -40,11 +49,13 @@ import { CreateKeyResultDialog } from "./CreateKeyResultDialog";
 import { useCheckins } from "@/hooks/useCheckins";
 import { useRealtimeObjective } from "@/hooks/useRealtimeObjective";
 import { BulkCheckinDialog } from "./BulkCheckinDialog";
+import { useDuplicateObjective } from "@/hooks/useDuplicateObjective";
 import { useActions, useCreateAction, Action, formatWeekLabel, getWeekBucket } from "@/hooks/useActions";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface ObjectiveDetailPanelProps {
   open: boolean;
@@ -97,8 +108,15 @@ export function ObjectiveDetailPanel({
   const hasKRs = objective.key_results.length > 0;
   const isOperational = objective.type === "operational";
   const childType = childTypeMap[objective.type];
+  const duplicateObjective = useDuplicateObjective();
 
   const breadcrumb = allObjectives.length > 0 ? buildBreadcrumb(objective, allObjectives) : [objective];
+
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}/objectives?id=${objective.id}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link copiado!");
+  };
 
   // Metric cards data
   const daysRemaining = objective.due_date
@@ -168,7 +186,26 @@ export function ObjectiveDetailPanel({
             <StatusBadge status={autoStatus} />
           </div>
 
-          <SheetTitle className="text-left text-lg">{objective.title}</SheetTitle>
+          <div className="flex items-center justify-between gap-2">
+            <SheetTitle className="text-left text-lg flex-1">{objective.title}</SheetTitle>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => duplicateObjective.mutate(objective)}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Duplicar Objetivo
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCopyLink}>
+                  <Link className="h-4 w-4 mr-2" />
+                  Copiar Link
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           {objective.description && (
             <p className="text-sm text-muted-foreground">{objective.description}</p>
           )}
