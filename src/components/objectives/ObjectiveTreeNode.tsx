@@ -26,9 +26,6 @@ import {
   MoreHorizontal,
   Trash2,
   Plus,
-  Crosshair,
-  Layers,
-  Zap,
   GitBranchPlus,
   Users,
 } from "lucide-react";
@@ -51,10 +48,10 @@ interface ObjectiveTreeNodeProps {
   onSelectObjective?: (objective: ObjectiveWithDetails) => void;
 }
 
-const typeConfig: Record<ObjectiveType, { label: string; icon: typeof Crosshair; color: string; bgColor: string; dotColor: string }> = {
-  strategic: { label: "Estratégico", icon: Crosshair, color: "text-violet-400", bgColor: "bg-violet-500/15 text-violet-400 border-violet-500/30", dotColor: "bg-violet-400" },
-  tactical: { label: "Tático", icon: Layers, color: "text-sky-400", bgColor: "bg-sky-500/15 text-sky-400 border-sky-500/30", dotColor: "bg-sky-400" },
-  operational: { label: "Operacional", icon: Zap, color: "text-emerald-400", bgColor: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", dotColor: "bg-emerald-400" },
+const typeConfig: Record<ObjectiveType, { label: string; bg: string; borderColor: string }> = {
+  strategic: { label: "Estratégico", bg: "bg-[#a25ddc]", borderColor: "border-l-[#a25ddc]" },
+  tactical: { label: "Tático", bg: "bg-[#579bfc]", borderColor: "border-l-[#579bfc]" },
+  operational: { label: "Operacional", bg: "bg-[#00c875]", borderColor: "border-l-[#00c875]" },
 };
 
 const childTypeMap: Record<ObjectiveType, ObjectiveType | null> = {
@@ -82,7 +79,6 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
 
   const hasNoKRWarning = objective.type === "operational" && objective.key_results.length === 0;
   const type = typeConfig[objective.type] || typeConfig.operational;
-  const TypeIcon = type.icon;
   const hasChildren = objective.children && objective.children.length > 0;
   const hasKRs = objective.key_results.length > 0;
   const canAddChild = childTypeMap[objective.type] !== null;
@@ -126,23 +122,23 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
 
   const progress = Math.round(Math.min(Math.max(0, objective.progress), 100));
 
+  const progressColor = progress >= 70 ? "#00c875" : progress >= 40 ? "#fdab3d" : "#e2445c";
+
   return (
     <>
       <div className={cn(
-        "group transition-all",
-        depth === 0 && "rounded-lg border border-border/60 bg-card overflow-hidden",
-        depth > 0 && "border-l-2 border-border/40 ml-5",
+        depth > 0 && "ml-6",
       )}>
-        {/* Main Row — Monday-style */}
+        {/* Main Row — Monday.com style */}
         <div
           className={cn(
-            "flex items-center h-11 hover:bg-accent/50 transition-colors cursor-pointer",
-            depth === 0 && "border-b border-border/30 last:border-b-0",
+            "group flex items-center h-10 hover:bg-accent/60 transition-colors border-b border-border/30",
+            depth === 0 && "border-l-4",
+            depth === 0 && type.borderColor,
           )}
         >
-          {/* Left: Expand + Icon + Title */}
+          {/* Left: Expand + Title */}
           <div className="flex items-center gap-1.5 flex-1 min-w-0 px-3">
-            {/* Expand toggle */}
             <button
               onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
               className={cn(
@@ -156,37 +152,24 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
               }
             </button>
 
-            {/* Type dot indicator */}
-            <div className={cn("shrink-0 h-5 w-5 rounded-md flex items-center justify-center", type.bgColor)}>
-              <TypeIcon className={cn("h-3 w-3", type.color)} />
-            </div>
-
-            {/* Title */}
             <span
-              className="text-sm font-medium text-foreground truncate hover:text-primary transition-colors"
+              className="text-sm text-foreground truncate cursor-pointer hover:text-primary transition-colors"
               onClick={() => navigate(`/objectives/${objective.id}`)}
             >
               {objective.title}
             </span>
-
-            {/* Derivado de (for children) */}
-            {depth > 0 && objective.parent_id && (
-              <span className="text-[10px] text-muted-foreground shrink-0 hidden lg:inline">
-                Derivado de: {objective.parent_id.slice(0, 8)}…
-              </span>
-            )}
           </div>
 
-          {/* Right columns — fixed width, Monday-style cells */}
+          {/* Right columns — fixed width Monday cells */}
           <div className="flex items-center shrink-0">
-            {/* Type badge */}
+            {/* Type cell — solid colored */}
             <div className="w-[100px] flex items-center justify-center px-1">
-              <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 h-5 font-semibold rounded-sm border", type.bgColor)}>
+              <div className={cn("inline-flex items-center justify-center px-2.5 py-0.5 rounded-sm text-[10px] font-semibold text-white min-w-[75px] text-center", type.bg)}>
                 {type.label}
-              </Badge>
+              </div>
             </div>
 
-            {/* Status badge */}
+            {/* Status cell — solid colored */}
             <div className="w-[100px] flex items-center justify-center px-1">
               <StatusBadge status={autoStatus} />
             </div>
@@ -195,24 +178,24 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
             <div className="w-[90px] flex items-center justify-center gap-1 px-1">
               <OverdueBadge overdue={isCheckinOverdue} label="Atrasado" />
               {hasNoKRWarning && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 shrink-0 bg-warning/10 text-warning border-warning/30 rounded-sm">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-[#fdab3d] text-white font-semibold">
                   Sem KR
-                </Badge>
+                </span>
               )}
             </div>
 
-            {/* Progress bar */}
+            {/* Progress bar — thicker */}
             <div className="w-[130px] flex items-center gap-2 px-3">
-              <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
+              <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500 ease-out"
                   style={{
                     width: `${progress}%`,
-                    backgroundImage: "var(--gradient-progress)",
+                    backgroundColor: progressColor,
                   }}
                 />
               </div>
-              <span className="text-[11px] font-semibold text-muted-foreground w-8 text-right tabular-nums">
+              <span className="text-[11px] font-bold text-muted-foreground w-8 text-right tabular-nums">
                 {progress}%
               </span>
             </div>
@@ -220,18 +203,18 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
             {/* Owner avatar */}
             <div className="w-[44px] flex items-center justify-center">
               {objective.owner ? (
-                <Avatar className="h-6 w-6 ring-1 ring-border">
+                <Avatar className="h-7 w-7 ring-2 ring-background">
                   <AvatarImage src={objective.owner.avatar_url || ""} />
                   <AvatarFallback className="text-[9px] font-bold bg-primary/10 text-primary">
                     {getInitials(objective.owner.full_name, objective.owner.email)}
                   </AvatarFallback>
                 </Avatar>
               ) : (
-                <div className="h-6 w-6 rounded-full bg-muted" />
+                <div className="h-7 w-7 rounded-full bg-muted" />
               )}
             </div>
 
-            {/* KR count */}
+            {/* KR / children count */}
             <div className="w-[50px] flex items-center justify-center">
               {hasKRs && (
                 <span className="text-[11px] font-semibold text-muted-foreground">
@@ -254,14 +237,14 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
               )}
             </div>
 
-            {/* Menu */}
+            {/* Menu — always visible */}
             <div className="w-[36px] flex items-center justify-center">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="h-6 w-6 text-muted-foreground hover:text-foreground"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="h-3.5 w-3.5" />
@@ -320,7 +303,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
 
         {/* Children */}
         {isExpanded && hasChildren && (
-          <div className="pb-1 space-y-0">
+          <div className="space-y-0">
             {objective.children!.map((child) => (
               <ObjectiveTreeNode
                 key={child.id}
