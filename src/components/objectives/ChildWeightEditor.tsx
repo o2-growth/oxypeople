@@ -97,8 +97,9 @@ export function ChildWeightEditor({ parentId, children, canEdit }: ChildWeightEd
         <Scale className="h-3.5 w-3.5 text-muted-foreground" />
         <div className="flex items-center gap-1.5 flex-wrap">
           {children.map((child) => (
-            <Badge key={child.id} variant="outline" className="text-[10px] px-1.5 py-0 h-5">
-              {child.title.substring(0, 20)}{child.title.length > 20 ? "…" : ""}: {weights[child.id] || 0}%
+            <Badge key={child.id} variant="outline" className="text-[10px] px-1.5 py-0 h-5 gap-1">
+              <span className="truncate max-w-[120px]">{child.title}</span>
+              <span className="font-bold text-primary">{weights[child.id] || 0}%</span>
             </Badge>
           ))}
         </div>
