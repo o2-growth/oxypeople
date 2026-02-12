@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,7 @@ const childTypeMap: Record<ObjectiveType, ObjectiveType | null> = {
 };
 
 export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelectObjective }: ObjectiveTreeNodeProps) {
+  const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(depth < 2);
   const [showKRs, setShowKRs] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -151,7 +153,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
           </div>
 
           {/* Content — clickable */}
-          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onSelectObjective?.(objective)}>
+          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/objectives/${objective.id}`)}>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-medium text-sm text-foreground truncate hover:text-primary transition-colors">
                 {objective.title}
