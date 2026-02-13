@@ -65,13 +65,13 @@ const engagementItems = [
   { title: "Reconhecimentos", url: "/recognition", icon: Trophy },
   { title: "Objetivos", url: "/objectives", icon: Target },
   { title: "Desempenho", url: "/performance", icon: ClipboardCheck },
-  { title: "Pesquisas", url: "/surveys", icon: BarChart3 },
   { title: "Gamificação", url: "/gamification", icon: Gamepad2 },
 ];
 
 const managementItems = [
   { title: "Empresa", url: "/company", icon: Building2 },
   { title: "RH", url: "/hr", icon: Briefcase },
+  { title: "Pesquisas", url: "/surveys", icon: BarChart3 },
   { title: "Equipes", url: "/teams", icon: UsersRound },
   { title: "Oxy VE", url: "https://oxyve.lovable.app", icon: MonitorPlay, external: true },
   { title: "Configurações", url: "/settings", icon: Settings },
