@@ -5,6 +5,7 @@ import { PipefySyncCard } from "@/components/hr/PipefySyncCard";
 import { SyncHistoryList } from "@/components/hr/SyncHistoryList";
 import { PipefyConfigDialog } from "@/components/hr/PipefyConfigDialog";
 import { useHRTurnover } from "@/hooks/useHRTurnover";
+import { useHeadcountAnalytics } from "@/hooks/useHeadcountAnalytics";
 import { HRCalendarTab } from "@/components/hr/HRCalendarTab";
 import { HRReportsTab } from "@/components/hr/HRReportsTab";
 import { OrganizationChart } from "@/components/people/OrganizationChart";
@@ -29,10 +30,11 @@ import {
   Briefcase, LayoutDashboard, Users, CalendarDays,
   FileBarChart, Network, ClipboardList, BarChart3, UserPlus,
   MoreHorizontal, Loader2, UserX, UserCheck, Mail, TrendingDown, Clock, TrendingUp,
+  ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-  BarChart, Bar,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
+  BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell,
 } from "recharts";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import {
@@ -118,7 +120,7 @@ function TurnoverOverviewCards() {
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="month" className="text-xs" />
                 <YAxis className="text-xs" allowDecimals={false} />
-                <Tooltip />
+                <RechartsTooltip />
                 <Legend />
                 <Line type="monotone" dataKey="admissions" name="Admissões" stroke="hsl(var(--success))" strokeWidth={2} dot={{ r: 4 }} />
                 <Line type="monotone" dataKey="departures" name="Desligamentos" stroke="hsl(var(--destructive))" strokeWidth={2} dot={{ r: 4 }} />
@@ -137,7 +139,7 @@ function TurnoverOverviewCards() {
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis type="number" allowDecimals={false} className="text-xs" />
                 <YAxis type="category" dataKey="department" width={120} className="text-xs" />
-                <Tooltip />
+                <RechartsTooltip />
                 <Legend />
                 <Bar dataKey="active" name="Ativos" fill="hsl(var(--success))" radius={[0, 4, 4, 0]} />
                 <Bar dataKey="inactive" name="Inativos" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} />
@@ -147,6 +149,191 @@ function TurnoverOverviewCards() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function HeadcountEvolutionChart() {
+  const { data, isLoading } = useHeadcountAnalytics();
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data || data.monthlyHeadcount.length === 0) return null;
+
+  const growthBadges = [
+    { label: "6 meses", value: data.growth6m },
+    { label: "1 ano", value: data.growth1y },
+    { label: "2 anos", value: data.growth2y },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <CardTitle className="text-lg">Evolução do Headcount</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Total de colaboradores nos últimos 24 meses • Mediana de tempo de casa: <span className="font-semibold text-foreground">{data.medianTenureMonths} meses</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {growthBadges.map(b => (
+              <div key={b.label} className="text-center">
+                <p className="text-xs text-muted-foreground mb-1">{b.label}</p>
+                <Badge variant="outline" className={b.value >= 0 ? "text-success border-success/30 bg-success/10" : "text-destructive border-destructive/30 bg-destructive/10"}>
+                  {b.value >= 0 ? <ArrowUpRight className="h-3 w-3 mr-1" /> : <ArrowDownRight className="h-3 w-3 mr-1" />}
+                  {b.value >= 0 ? "+" : ""}{b.value}%
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={data.monthlyHeadcount}>
+            <defs>
+              <linearGradient id="headcountGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <XAxis dataKey="label" className="text-xs" interval={2} />
+            <YAxis className="text-xs" allowDecimals={false} />
+            <RechartsTooltip
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0].payload;
+                return (
+                  <div className="rounded-lg border bg-background p-3 shadow-lg text-sm">
+                    <p className="font-semibold">{label}</p>
+                    <p className="text-foreground">{d.count} colaboradores</p>
+                    {d.changePercent !== null && (
+                      <p className={d.changePercent >= 0 ? "text-success" : "text-destructive"}>
+                        {d.changePercent >= 0 ? "+" : ""}{d.changePercent}% vs mês anterior
+                      </p>
+                    )}
+                  </div>
+                );
+              }}
+            />
+            <Area type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2.5} fill="url(#headcountGradient)" dot={false} activeDot={{ r: 5 }} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DepartmentDistributionChart() {
+  const { data, isLoading } = useHeadcountAnalytics();
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data || data.departmentDistribution.length === 0) return null;
+
+  const total = data.departmentDistribution.reduce((s, d) => s + d.count, 0);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Distribuição por Departamento</CardTitle>
+        <p className="text-sm text-muted-foreground">Distribuição atual e crescimento do headcount</p>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Donut Chart */}
+          <div className="flex items-center justify-center">
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={data.departmentDistribution}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={110}
+                  paddingAngle={3}
+                  dataKey="count"
+                  nameKey="name"
+                >
+                  {data.departmentDistribution.map((entry, index) => (
+                    <Cell key={index} fill={entry.color} />
+                  ))}
+                </Pie>
+                <RechartsTooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const d = payload[0].payload;
+                    return (
+                      <div className="rounded-lg border bg-background p-3 shadow-lg text-sm">
+                        <p className="font-semibold" style={{ color: d.color }}>{d.name}</p>
+                        <p>{d.count} colaboradores ({Math.round((d.count / total) * 100)}%)</p>
+                      </div>
+                    );
+                  }}
+                />
+                {/* Center label */}
+                <text x="50%" y="48%" textAnchor="middle" className="fill-foreground text-2xl font-bold">{total}</text>
+                <text x="50%" y="58%" textAnchor="middle" className="fill-muted-foreground text-xs">total</text>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Growth Table */}
+          <div className="overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Departamento</TableHead>
+                  <TableHead className="text-right">Atual</TableHead>
+                  <TableHead className="text-right">6m</TableHead>
+                  <TableHead className="text-right">1 ano</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.departmentDistribution.map(dept => (
+                  <TableRow key={dept.name}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: dept.color }} />
+                        <span className="text-sm font-medium truncate">{dept.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">{dept.count}</TableCell>
+                    <TableCell className="text-right">
+                      <span className={dept.growth6m >= 0 ? "text-success" : "text-destructive"}>
+                        {dept.growth6m >= 0 ? "+" : ""}{dept.growth6m}%
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className={dept.growth1y >= 0 ? "text-success" : "text-destructive"}>
+                        {dept.growth1y >= 0 ? "+" : ""}{dept.growth1y}%
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -299,6 +486,8 @@ export default function HR() {
           <TabsContent value="overview" className="space-y-6">
             <HRStats />
             <TurnoverOverviewCards />
+            <HeadcountEvolutionChart />
+            <DepartmentDistributionChart />
             <div className="grid gap-6 md:grid-cols-2">
               <PipefySyncCard onConfigure={() => setConfigDialogOpen(true)} />
               <SyncHistoryList />
