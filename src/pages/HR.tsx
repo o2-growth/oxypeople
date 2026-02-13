@@ -4,7 +4,7 @@ import { HRStats } from "@/components/hr/HRStats";
 import { PipefySyncCard } from "@/components/hr/PipefySyncCard";
 import { SyncHistoryList } from "@/components/hr/SyncHistoryList";
 import { PipefyConfigDialog } from "@/components/hr/PipefyConfigDialog";
-import { HRTurnoverTab } from "@/components/hr/HRTurnoverTab";
+import { useHRTurnover } from "@/hooks/useHRTurnover";
 import { HRCalendarTab } from "@/components/hr/HRCalendarTab";
 import { HRReportsTab } from "@/components/hr/HRReportsTab";
 import { OrganizationChart } from "@/components/people/OrganizationChart";
@@ -26,9 +26,9 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Briefcase, LayoutDashboard, Users, TrendingDown, CalendarDays,
+  Briefcase, LayoutDashboard, Users, CalendarDays,
   FileBarChart, Network, ClipboardList, BarChart3, UserPlus,
-  MoreHorizontal, Loader2, UserX, UserCheck, Mail,
+  MoreHorizontal, Loader2, UserX, UserCheck, Mail, TrendingDown, Clock,
 } from "lucide-react";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import {
@@ -60,6 +60,39 @@ const roleLabels: Record<string, string> = {
   manager: "Gestor",
   member: "Membro",
 };
+
+function TurnoverOverviewCards() {
+  const { data, isLoading } = useHRTurnover();
+
+  if (isLoading) return null;
+
+  const items = [
+    { title: "Taxa de Turnover", value: `${data?.turnoverRate || 0}%`, icon: TrendingDown, bg: "bg-destructive/10", color: "text-destructive" },
+    { title: "Tempo Médio (meses)", value: data?.avgTenureMonths || 0, icon: Clock, bg: "bg-primary/10", color: "text-primary" },
+    { title: "Total Admissões", value: data?.totalAdmissions || 0, icon: UserCheck, bg: "bg-success/10", color: "text-success" },
+    { title: "Total Desligamentos", value: data?.totalDepartures || 0, icon: UserX, bg: "bg-warning/10", color: "text-warning" },
+  ];
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {items.map((item) => (
+        <Card key={item.title}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">{item.title}</p>
+                <p className="text-2xl font-bold">{item.value}</p>
+              </div>
+              <div className={`h-10 w-10 rounded-lg ${item.bg} flex items-center justify-center`}>
+                <item.icon className={`h-5 w-5 ${item.color}`} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
 export default function HR() {
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -197,10 +230,6 @@ export default function HR() {
                 </TabsTrigger>
               </>
             )}
-            <TabsTrigger value="turnover" className="gap-2">
-              <TrendingDown className="h-4 w-4" />
-              Turnover
-            </TabsTrigger>
             <TabsTrigger value="calendar" className="gap-2">
               <CalendarDays className="h-4 w-4" />
               Calendário
@@ -213,6 +242,7 @@ export default function HR() {
 
           <TabsContent value="overview" className="space-y-6">
             <HRStats />
+            <TurnoverOverviewCards />
             <div className="grid gap-6 md:grid-cols-2">
               <PipefySyncCard onConfigure={() => setConfigDialogOpen(true)} />
               <SyncHistoryList />
@@ -432,9 +462,6 @@ export default function HR() {
             {isAdmin && <NPSTab />}
           </TabsContent>
 
-          <TabsContent value="turnover">
-            <HRTurnoverTab />
-          </TabsContent>
 
           <TabsContent value="calendar">
             <HRCalendarTab />
