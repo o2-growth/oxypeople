@@ -28,8 +28,12 @@ import {
 import {
   Briefcase, LayoutDashboard, Users, CalendarDays,
   FileBarChart, Network, ClipboardList, BarChart3, UserPlus,
-  MoreHorizontal, Loader2, UserX, UserCheck, Mail, TrendingDown, Clock,
+  MoreHorizontal, Loader2, UserX, UserCheck, Mail, TrendingDown, Clock, TrendingUp,
 } from "lucide-react";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  BarChart, Bar,
+} from "recharts";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import {
   usePeopleList, usePeopleStats, useInviteMember, useUpdateMemberStatus,
@@ -64,32 +68,84 @@ const roleLabels: Record<string, string> = {
 function TurnoverOverviewCards() {
   const { data, isLoading } = useHRTurnover();
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!data) return null;
 
   const items = [
-    { title: "Taxa de Turnover", value: `${data?.turnoverRate || 0}%`, icon: TrendingDown, bg: "bg-destructive/10", color: "text-destructive" },
-    { title: "Tempo Médio (meses)", value: data?.avgTenureMonths || 0, icon: Clock, bg: "bg-primary/10", color: "text-primary" },
-    { title: "Total Admissões", value: data?.totalAdmissions || 0, icon: UserCheck, bg: "bg-success/10", color: "text-success" },
-    { title: "Total Desligamentos", value: data?.totalDepartures || 0, icon: UserX, bg: "bg-warning/10", color: "text-warning" },
+    { title: "Taxa de Turnover", value: `${data.turnoverRate}%`, icon: TrendingDown, bg: "bg-destructive/10", color: "text-destructive" },
+    { title: "Tempo Médio (meses)", value: data.avgTenureMonths, icon: Clock, bg: "bg-primary/10", color: "text-primary" },
+    { title: "Total Admissões", value: data.totalAdmissions, icon: TrendingUp, bg: "bg-success/10", color: "text-success" },
+    { title: "Total Desligamentos", value: data.totalDepartures, icon: UserX, bg: "bg-warning/10", color: "text-warning" },
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {items.map((item) => (
-        <Card key={item.title}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{item.title}</p>
-                <p className="text-2xl font-bold">{item.value}</p>
+    <div className="space-y-6">
+      {/* Metric Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {items.map((item) => (
+          <Card key={item.title}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">{item.title}</p>
+                  <p className="text-2xl font-bold">{item.value}</p>
+                </div>
+                <div className={`h-10 w-10 rounded-lg ${item.bg} flex items-center justify-center`}>
+                  <item.icon className={`h-5 w-5 ${item.color}`} />
+                </div>
               </div>
-              <div className={`h-10 w-10 rounded-lg ${item.bg} flex items-center justify-center`}>
-                <item.icon className={`h-5 w-5 ${item.color}`} />
-              </div>
-            </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Charts */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Evolução Mensal</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={data.monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="month" className="text-xs" />
+                <YAxis className="text-xs" allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="admissions" name="Admissões" stroke="hsl(var(--success))" strokeWidth={2} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="departures" name="Desligamentos" stroke="hsl(var(--destructive))" strokeWidth={2} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
-      ))}
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Por Departamento</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={data.departmentData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis type="number" allowDecimals={false} className="text-xs" />
+                <YAxis type="category" dataKey="department" width={120} className="text-xs" />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="active" name="Ativos" fill="hsl(var(--success))" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="inactive" name="Inativos" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
