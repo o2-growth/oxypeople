@@ -1,36 +1,48 @@
 
-# Integrar Turnover Completo na Visao Geral do RH
+# Adicionar Graficos LinkedIn-style na Visao Geral do RH
 
-## O que muda
+## Novos Graficos
 
-### 1. Visao Geral (tab "overview") - Nova estrutura
+Baseado nas imagens do LinkedIn, vou adicionar 2 novas visualizacoes na Visao Geral, usando dados reais do banco de dados:
 
-A aba Visao Geral passara a ter tudo do antigo Turnover integrado, com o layout reorganizado:
+### 1. Evolucao do Headcount (Total de Colaboradores ao Longo do Tempo)
+- AreaChart com linha suave mostrando a contagem de colaboradores nos ultimos 24 meses
+- Indicadores de crescimento: 6 meses, 1 ano e 2 anos (com setas verde/vermelha)
+- Mediana do tempo de casa exibida abaixo do grafico
+- Tooltip ao passar o mouse mostrando quantidade e variacao percentual vs mes anterior
 
-1. **HRStats** (mantido no topo como esta)
-2. **Cards de Turnover** (4 cards: Taxa Turnover, Tempo Medio, Admissoes, Desligamentos - ja existem)
-3. **Graficos de Turnover** (2 graficos lado a lado):
-   - Grafico de linhas "Evolucao Mensal" (admissoes vs desligamentos nos ultimos 6 meses)
-   - Grafico de barras horizontal "Por Departamento" (ativos vs inativos por departamento)
-4. **Sincronizacao Pipefy** (os 2 cards de PipefySyncCard + SyncHistoryList lado a lado, abaixo dos graficos)
+### 2. Distribuicao por Departamento e Crescimento do Headcount
+- Donut chart mostrando a distribuicao atual por departamento (com total no centro)
+- Tabela lateral com nome do departamento, crescimento em 6m e 1 ano
+- Filtro de departamentos (dropdown multi-select) para selecionar quais exibir
 
-### 2. Componente TurnoverOverviewCards
+## Layout da Visao Geral (ordem final)
 
-Sera expandido para incluir tambem os 2 graficos (LineChart de evolucao mensal e BarChart por departamento) que existiam no HRTurnoverTab, alem dos 4 cards de metricas.
+1. HRStats (cards existentes)
+2. Cards de Turnover (4 cards existentes)
+3. **NOVO** - Evolucao do Headcount (card full-width com AreaChart)
+4. **NOVO** - Distribuicao por Departamento (card com donut + tabela de crescimento)
+5. Graficos existentes (Evolucao Mensal + Por Departamento - admissoes/desligamentos)
+6. Sincronizacao Pipefy
 
 ## Detalhes Tecnicos
 
-### Arquivo modificado: `src/pages/HR.tsx`
+### Novo hook: `src/hooks/useHeadcountAnalytics.ts`
+- Query `company_memberships` com `hire_date` e `status`
+- Calcula headcount mensal retroativo (ultimos 24 meses) contando membros ativos em cada ponto no tempo
+- Calcula crescimento percentual em 6m, 1a, 2a
+- Calcula mediana do tempo de casa
+- Agrupa por departamento para o donut chart com crescimento por periodo
 
-- Expandir o componente `TurnoverOverviewCards` para renderizar:
-  - Os 4 cards de metricas (ja existem)
-  - Os 2 graficos do recharts (LineChart + BarChart) que estavam no `HRTurnoverTab`
-- A ordem na tab "overview" fica:
-  1. `<HRStats />`
-  2. `<TurnoverOverviewCards />` (cards + graficos)
-  3. Grid com `<PipefySyncCard />` + `<SyncHistoryList />`
+### Modificacao: `src/pages/HR.tsx`
+- Adicionar 2 novos componentes internos:
+  - `HeadcountEvolutionChart` - AreaChart com badges de crescimento
+  - `DepartmentDistributionChart` - PieChart (donut) + tabela de crescimento
+- Inserir entre os cards de turnover e os graficos de evolucao mensal existentes
+- Importar `AreaChart, Area, PieChart, Pie, Cell` do recharts
 
-### Sem mudancas em:
-- Hooks, dados, backend
-- Outras abas (Colaboradores, Organograma, etc.)
-- `HRTurnoverTab.tsx` (pode ficar como referencia, nao e mais usado)
+### Dados utilizados (todos reais do banco)
+- `company_memberships.hire_date` para calcular quando cada pessoa entrou
+- `company_memberships.status` + `updated_at` para saber quem saiu e quando
+- `departments.name` e `departments.color` para o donut chart
+- Calculo retroativo: para cada mes, contar quantos membros estavam ativos naquele ponto
