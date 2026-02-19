@@ -1,88 +1,128 @@
 
-# Dashboard Completo - Dados de Toda a Plataforma
+# Melhorias Visuais UI/UX - Toda a Plataforma
 
 ## Objetivo
-Transformar o Dashboard em um painel executivo completo, puxando dados relevantes de todos os modulos da plataforma: RH, OKRs, Performance, Pesquisas (NPS/GPTW), Gamificacao, Acoes e Reconhecimentos.
+Aplicar padroes modernos de UI/UX inspirados em shadcn/ui, Tailwind CSS, Linear, Vercel e Stripe para elevar a qualidade visual de toda a plataforma Oxy People.
 
-## Novo Layout do Dashboard
+## Melhorias Planejadas
 
-### Estrutura final (de cima para baixo):
+### 1. Transicoes e Micro-interacoes Globais
+- Adicionar `transition-colors duration-150` em todos os elementos interativos que ainda nao tem
+- Melhorar hover states dos cards com `hover:border-primary/30` sutil
+- Adicionar `focus-visible` rings consistentes em todos os botoes e inputs
+- Suavizar animacoes de entrada nas paginas com stagger delays
 
-1. **Hero Welcome + Quick Actions** (ja existem, mantidos)
-2. **4 Stat Cards clicaveis** (ja existem, mantidos)
-3. **Shortcut Cards** (ja existem, mantidos)
-4. **NOVO - Resumo de OKRs por Status** (card com mini barras de progresso por status: on_track, attention, risk, overdue + total de objetivos)
-5. **NOVO - Performance e Pesquisas (grid 2 colunas)**:
-   - Card NPS Score (gauge visual com score atual, promotores/detratores/passivos)
-   - Card Performance (ciclos ativos, avaliacoes pendentes, taxa de conclusao)
-6. **Engajamento Mensal** (grafico existente, mantido)
-7. **NOVO - Acoes da Semana** (card com resumo do kanban: quantas todo/doing/done/blocked desta semana)
-8. **NOVO - Headcount Resumido** (mini sparkline com evolucao dos ultimos 12 meses + indicador de crescimento)
-9. **Atividade Recente** (existente, mantido)
-10. **Painel lateral Insights** (existente, mantido com adicionais)
-    - Adicionar: Gamificacao do usuario (nivel atual + pontos + progresso para proximo nivel)
-    - Adicionar: Turnover Rate resumido (mini card)
+### 2. Tipografia e Espacamento
+- Padronizar headers de pagina: todos usando o mesmo padrao (`text-2xl font-heading font-bold` + descricao `text-sm text-muted-foreground`)
+- Reduzir titulos h1 de `text-3xl` para `text-2xl` para consistencia (menos gritante)
+- Melhorar line-height e letter-spacing nos cards de stats
+- Adicionar `tracking-tight` nos numeros grandes para visual mais premium
+
+### 3. Cards e Superficies
+- Padronizar todos os cards com `rounded-2xl border border-border/50 shadow-sm hover:shadow-md transition-shadow`
+- Remover `border-none` dos cards de PerformanceStats (inconsistente)
+- Adicionar efeito de hover lift sutil e consistente em cards clicaveis
+- Melhorar separadores usando `border-border/40` ao inves de `border-border` para suavidade
+
+### 4. Pagina de Login (Auth)
+- Adicionar animacao de entrada no card de login (fade-in + slide-up)
+- Melhorar inputs com `focus:border-primary/60` mais visivel
+- Adicionar animacao no logo O2 (pulse suave ou glow)
+- Melhorar contraste do texto "by O2 Inc" no painel esquerdo
+
+### 5. Sidebar (AppSidebar)
+- Adicionar indicador visual de item ativo com barra lateral colorida (2px left border primary)
+- Melhorar transicao de colapso com animacao mais suave
+- Adicionar tooltip nos icones quando colapsado (ja parcialmente implementado, garantir consistencia)
+- Suavizar cores do footer/dropdown com hover states mais refinados
+
+### 6. Header (AppLayout)
+- Melhorar a search bar com animacao de foco (expandir sutilmente ao focar)
+- Adicionar separador visual sutil entre trigger e search
+- Melhorar badge de notificacoes com animacao de pulse quando ha novas
+
+### 7. Dashboard (Index)
+- Melhorar StatCards com gradiente sutil no icone ao inves de cor solida
+- Adicionar numeros animados (count-up) nos stats principais
+- Melhorar skeleton loading com shimmer effect ao inves de pulse padrao
+- Hero header: adicionar animacao de particulas sutis ou mesh gradient animado
+
+### 8. Feed/Mural
+- Melhorar cards de eventos com imagem de fundo sutil ou gradiente
+- Adicionar animacao de entrada staggered nos cards
+- Melhorar mini-calendario com highlight mais visivel no dia atual
+- Adicionar hover effect nos aniversariantes
+
+### 9. Reconhecimentos
+- Melhorar RecognitionCard com avatar overlapping mais elegante (remover seta "->")
+- Adicionar animacao de confetti sutil ao enviar reconhecimento
+- Melhorar badges com borda gradient ao inves de cor solida
+- Card de leaderboard com ranking mais visual (medalhas 1o, 2o, 3o)
+
+### 10. Objetivos (OKRs)
+- Melhorar barras de progresso com gradiente animado
+- Adicionar indicador visual de nivel (strategic/tactical/operational) com cores distintas
+- Melhorar empty state com ilustracao SVG mais atrativa
+- Hover state das linhas do tree com highlight mais suave
+
+### 11. Pagina Empresa
+- Melhorar Company Info Card com gradiente mais suave e avatar maior
+- Adicionar badge de status (online/offline) nos membros
+- Melhorar DepartmentCards com cor do departamento como accent sutil
+- Tabs com underline animada ao trocar
+
+### 12. Gamificacao
+- Adicionar brilho/glow no card de nivel atual
+- Melhorar barras de progresso de niveis com cores de gradiente
+- Leaderboard com efeito de destaque no top 3 (ouro, prata, bronze)
+- Adicionar animacao de ganho de pontos
+
+### 13. Configuracoes
+- Melhorar selecao de tema com preview visual real (mini screenshot do tema)
+- Cards de integracao com logo real ao inves de letra
+- Adicionar animacao de toggle nos switches
+- Melhorar Zona de Perigo com borda pulsante sutil
+
+### 14. Componentes Base (shadcn/ui)
+- Melhorar Button default com gradiente mais suave e sombra menos agressiva
+- Tabs com animacao de underline sliding
+- Dialog/Sheet com backdrop blur mais forte
+- Toast com icones de status (check verde, X vermelho)
+- Select/Dropdown com animacao de abertura mais suave
+- Progress bar com gradiente e rounded ends
+
+### 15. CSS Global (index.css)
+- Adicionar scrollbar customizada (estilizada, fina, com cor primary)
+- Melhorar selection color (::selection) com cor primaria
+- Adicionar smooth scroll behavior global
+- Melhorar focus states globais para acessibilidade
 
 ## Detalhes Tecnicos
 
-### 1. Novo hook: `src/hooks/useDashboardFullStats.ts`
-Hook consolidado que busca dados de todos os modulos em paralelo:
-- **OKRs**: Query `objectives` agrupando por `auto_status` (on_track, attention, risk, overdue, completed)
-- **NPS**: Query a pesquisa NPS mais recente ativa/completada + suas respostas para calcular o NPS score
-- **Performance**: Query `performance_cycles` ativos + `performance_evaluations` pendentes e completadas
-- **Acoes**: Query `actions` da semana atual agrupando por status (todo, doing, done, blocked)
-- **Turnover**: Reutiliza logica do `useHRTurnover` para pegar apenas o turnoverRate
-- **Headcount**: Query simplificada de `company_memberships` para sparkline dos ultimos 12 meses
-- **Gamificacao**: Query pontos do usuario atual para exibir no painel lateral
-
-Todas as queries serao feitas em paralelo com `Promise.all` para performance.
-
-### 2. Novos componentes internos em `src/pages/Index.tsx`
-
-**`OKRStatusSummary`**
-- Card com 5 indicadores visuais (bolinhas coloridas + contagem): On Track (verde), Atencao (amarelo), Risco (vermelho), Atrasado (cinza), Concluido (azul)
-- Barra de progresso geral mostrando a media de progresso de todos os objetivos ativos
-- Link "Ver OKRs" que navega para /objectives
-
-**`NPSPerformanceRow`** (grid 2 colunas)
-- Coluna 1 - NPS: Score grande no centro, barra horizontal com cores (verde/amarelo/vermelho) para promotores/passivos/detratores, nome da pesquisa e data
-- Coluna 2 - Performance: Cards mini (ciclos ativos, avaliacoes pendentes, taxa conclusao, media geral)
-
-**`WeeklyActionsCard`**
-- Card com 4 mini indicadores inline: A fazer (X), Fazendo (X), Feito (X), Bloqueado (X)
-- Barra de progresso mostrando % concluido da semana
-- Link "Ver Kanban" que navega para /objectives (aba acoes)
-
-**`HeadcountSparkline`**
-- Card compacto com um AreaChart pequeno (sparkline) dos ultimos 12 meses
-- Badge com % crescimento em 6 meses
-- Total atual de colaboradores
-
-**`UserGamificationMini`** (no painel lateral)
-- Emoji do nivel + nome do nivel + total de pontos
-- Barra de progresso para o proximo nivel
-- Link para /gamification
-
-**`TurnoverMini`** (no painel lateral)
-- Taxa de turnover com cor (verde se < 10%, amarelo se < 20%, vermelho se >= 20%)
-- Tempo medio de casa
-
-### 3. Modificacao: `src/pages/Index.tsx`
-- Importar o novo hook `useDashboardFullStats`
-- Adicionar os novos componentes na area principal (entre ShortcutCards e EngagementChart)
-- Adicionar os widgets mini no painel lateral de Insights
-- Manter toda a estrutura existente intacta
-
-### Dependencias de dados (todas ja existem no banco)
-- `objectives` (status, auto_status, progress)
-- `nps_surveys` + `nps_responses` (score)
-- `performance_cycles` + `performance_evaluations` (status, overall_score)
-- `actions` (status, week_bucket)
-- `company_memberships` (hire_date, status)
-- `gamification_points` (points, user_id)
+### Arquivos que serao modificados:
+- `src/index.css` - Novas utilidades CSS, scrollbar, selection, animacoes globais
+- `tailwind.config.ts` - Novas keyframes e tokens de animacao
+- `src/components/ui/button.tsx` - Gradiente e hover refinados
+- `src/components/ui/card.tsx` - Hover states padronizados
+- `src/components/ui/progress.tsx` - Gradiente animado
+- `src/components/layout/AppLayout.tsx` - Search bar animada, header refinado
+- `src/components/layout/AppSidebar.tsx` - Active indicator, transicoes
+- `src/components/dashboard/StatCard.tsx` - Hover, gradientes, numeros
+- `src/components/recognition/RecognitionCard.tsx` - Layout avatares, badges
+- `src/components/performance/PerformanceStats.tsx` - Consistencia de cards
+- `src/pages/Auth.tsx` - Animacoes de entrada
+- `src/pages/Index.tsx` - Shimmer loading, stagger animations
+- `src/pages/Feed.tsx` - Stagger animations
+- `src/pages/Recognition.tsx` - Layout melhorado
+- `src/pages/Company.tsx` - Header consistente
+- `src/pages/Gamification.tsx` - Glow effects, leaderboard
+- `src/pages/Settings.tsx` - Toggle animations, logos
 
 ### Nenhuma alteracao em:
-- Banco de dados (todas as tabelas ja existem)
+- Banco de dados
 - RLS policies
-- Hooks existentes (novos hooks separados)
-- Componentes existentes do dashboard
+- Logica de negocio / hooks de dados
+- Funcionalidade existente (apenas visual)
+
+### Abordagem:
+Todas as mudancas sao puramente visuais/CSS. Nenhuma funcionalidade sera alterada. O foco e consistencia, animacoes suaves, melhor hierarquia visual e um acabamento premium em toda a plataforma.
