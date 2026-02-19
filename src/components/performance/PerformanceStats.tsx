@@ -48,7 +48,7 @@ export function PerformanceStats({
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {stats.map((stat) => (
-        <Card key={stat.label} className="border-none shadow-sm">
+        <Card key={stat.label}>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-lg ${stat.bgColor}`}>

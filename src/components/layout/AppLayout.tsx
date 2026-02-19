@@ -20,7 +20,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border/60 bg-background/90 backdrop-blur-xl px-4 lg:px-6">
             <div className="flex items-center gap-3">
               <SidebarTrigger className="h-8 w-8" />
-              <div className="hidden md:flex items-center gap-2 rounded-lg bg-secondary/60 border border-border/40 px-3 py-1.5 text-sm text-muted-foreground cursor-pointer hover:bg-secondary hover:border-border/60 transition-all w-72">
+              <div className="hidden md:flex items-center gap-2 rounded-lg bg-secondary/60 border border-border/40 px-3 py-1.5 text-sm text-muted-foreground cursor-pointer hover:bg-secondary hover:border-border/60 transition-all duration-200 w-72 focus-within:w-80 focus-within:border-primary/40 focus-within:bg-secondary">
                 <Search className="h-3.5 w-3.5 shrink-0" />
                 <span className="flex-1 text-left">Buscar pessoas, posts, objetivos...</span>
                 <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border border-border/60 bg-background/80 px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">

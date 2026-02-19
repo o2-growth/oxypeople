@@ -84,7 +84,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex animate-fade-in">
       {/* Left Side - O2 Inc Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-hero relative overflow-hidden">
         {/* Tech grid pattern */}
@@ -150,7 +150,7 @@ const Auth = () => {
             <span className="text-2xl font-heading font-bold">Oxy People</span>
           </div>
 
-          <Card className="border-0 shadow-xl">
+          <Card className="border-0 shadow-xl animate-slide-up">
             <CardHeader className="space-y-1 pb-6">
               <CardTitle className="text-2xl font-heading">
                 {isLogin ? "Bem-vindo de volta!" : "Criar conta"}
