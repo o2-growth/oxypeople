@@ -110,8 +110,8 @@ const Auth = () => {
           </div>
           
           <h2 className="text-4xl lg:text-5xl font-heading font-bold text-white leading-tight mb-6">
-            Conecte, engaje e<br />
-            <span className="text-primary">desenvolva</span> seu time
+            Compreender pessoas,<br />
+            <span className="text-primary">oxigenar</span> negócios.
           </h2>
           
           <p className="text-lg text-white/80 max-w-md mb-8">
