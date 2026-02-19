@@ -11,17 +11,25 @@ import { CollaboratorsDetailDialog } from "@/components/dashboard/CollaboratorsD
 import { RecognitionsDetailDialog } from "@/components/dashboard/RecognitionsDetailDialog";
 import { ObjectivesDetailDialog } from "@/components/dashboard/ObjectivesDetailDialog";
 import { EngagementDetailDialog } from "@/components/dashboard/EngagementDetailDialog";
+import { OKRStatusSummary } from "@/components/dashboard/OKRStatusSummary";
+import { NPSPerformanceRow } from "@/components/dashboard/NPSPerformanceRow";
+import { WeeklyActionsCard } from "@/components/dashboard/WeeklyActionsCard";
+import { HeadcountSparkline } from "@/components/dashboard/HeadcountSparkline";
+import { UserGamificationMini } from "@/components/dashboard/UserGamificationMini";
+import { TurnoverMini } from "@/components/dashboard/TurnoverMini";
 import { Users, Trophy, Target, TrendingUp, MessageSquare, CheckCircle2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useDashboardFullStats } from "@/hooks/useDashboardFullStats";
 import { useQuarterGoals } from "@/hooks/useQuarterGoals";
 import { useUser } from "@/hooks/useUser";
 
 const Index = () => {
   const { profile, isLoading: isLoadingUser } = useUser();
   const { data: stats, isLoading: isLoadingStats } = useDashboardStats();
+  const { data: fullStats, isLoading: isLoadingFull } = useDashboardFullStats();
   const { data: quarterGoals, isLoading: isLoadingGoals } = useQuarterGoals();
   const [openDialog, setOpenDialog] = useState<string | null>(null);
 
@@ -127,11 +135,43 @@ const Index = () => {
         {/* Shortcut Cards */}
         <ShortcutCards />
 
+        {/* NEW: OKR Summary */}
+        {isLoadingFull ? (
+          <Skeleton className="h-28 w-full rounded-2xl" />
+        ) : fullStats && (
+          <OKRStatusSummary data={fullStats.okr} />
+        )}
+
+        {/* NEW: NPS + Performance Row */}
+        {isLoadingFull ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Skeleton className="h-44 rounded-2xl" />
+            <Skeleton className="h-44 rounded-2xl" />
+          </div>
+        ) : fullStats && (
+          <NPSPerformanceRow nps={fullStats.nps} performance={fullStats.performance} />
+        )}
+
         {/* Main Content Grid */}
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
           {/* Left Column */}
           <div className="space-y-6">
             <EngagementChart />
+
+            {/* NEW: Weekly Actions */}
+            {isLoadingFull ? (
+              <Skeleton className="h-24 rounded-2xl" />
+            ) : fullStats && (
+              <WeeklyActionsCard data={fullStats.actions} />
+            )}
+
+            {/* NEW: Headcount Sparkline */}
+            {isLoadingFull ? (
+              <Skeleton className="h-32 rounded-2xl" />
+            ) : fullStats && (
+              <HeadcountSparkline data={fullStats.headcount} />
+            )}
+
             <RecentActivity />
           </div>
 
@@ -178,6 +218,26 @@ const Index = () => {
               </div>
 
               <Separator className="bg-border/40" />
+
+              {/* NEW: Gamification Mini */}
+              {fullStats && (
+                <>
+                  <div className="px-5 py-4">
+                    <UserGamificationMini data={fullStats.gamification} />
+                  </div>
+                  <Separator className="bg-border/40" />
+                </>
+              )}
+
+              {/* NEW: Turnover Mini */}
+              {fullStats && (
+                <>
+                  <div className="px-5 py-4">
+                    <TurnoverMini data={fullStats.turnover} />
+                  </div>
+                  <Separator className="bg-border/40" />
+                </>
+              )}
 
               {/* Top Recognized */}
               <div className="px-5 py-4">
