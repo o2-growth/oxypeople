@@ -93,7 +93,7 @@ const Index = () => {
       <div className="space-y-6">
         {/* Hero Welcome */}
         <div className="hero-header">
-          <h1 className="text-3xl lg:text-4xl font-heading font-bold text-white">
+          <h1 className="text-2xl lg:text-3xl font-heading font-bold text-white">
             {getGreeting()}{userName ? `, ${userName}` : ""}! 👋
           </h1>
           <p className="text-white/70 mt-2 text-base">

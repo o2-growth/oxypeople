@@ -58,27 +58,23 @@ export function RecognitionCard({
   const timeAgo = getTimeAgo();
 
   return (
-    <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg">
+    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-primary/20">
       <CardContent className="p-6">
         <div className="flex items-start gap-4">
-          <div className="relative">
-            <Avatar className="h-12 w-12 ring-2 ring-primary/20">
+          <div className="flex items-center -space-x-3">
+            <Avatar className="h-11 w-11 ring-2 ring-background z-10">
               <AvatarImage src={fromUser.avatar_url || ""} />
-              <AvatarFallback className="bg-primary/10 text-primary">
+              <AvatarFallback className="bg-primary/10 text-primary text-sm">
                 {getInitials(fromUser.full_name)}
               </AvatarFallback>
             </Avatar>
-            <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-background flex items-center justify-center text-sm">
-              →
-            </div>
+            <Avatar className="h-11 w-11 ring-2 ring-background">
+              <AvatarImage src={toUser.avatar_url || ""} />
+              <AvatarFallback className="bg-accent/20 text-accent-foreground text-sm">
+                {getInitials(toUser.full_name)}
+              </AvatarFallback>
+            </Avatar>
           </div>
-
-          <Avatar className="h-12 w-12 ring-2 ring-accent/40">
-            <AvatarImage src={toUser.avatar_url || ""} />
-            <AvatarFallback className="bg-accent/20 text-accent-foreground">
-              {getInitials(toUser.full_name)}
-            </AvatarFallback>
-          </Avatar>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">

@@ -144,7 +144,7 @@ function NavGroup({ label, items, defaultOpen = true }: NavGroupProps) {
                           "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sidebar-foreground/80 transition-all duration-200",
                           "hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         )}
-                        activeClassName="bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
+                        activeClassName="bg-sidebar-primary text-sidebar-primary-foreground shadow-md border-l-2 border-sidebar-primary-foreground/40"
                       >
                         <item.icon className="h-5 w-5 shrink-0" />
                         <span className="font-medium text-base">{item.title}</span>
@@ -196,7 +196,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border p-3">
         <div className="flex items-center justify-center gap-3">
           <div className={cn(
-            "flex items-center justify-center rounded-xl bg-primary shadow-[0_0_15px_hsla(142,71%,50%,0.5)] transition-all",
+            "flex items-center justify-center rounded-xl bg-primary shadow-[0_0_15px_hsla(142,71%,50%,0.5)] transition-all animate-pulse-soft",
             collapsed ? "h-9 w-9" : "h-10 w-10"
           )}>
             <span className={cn(

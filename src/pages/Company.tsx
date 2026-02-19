@@ -166,7 +166,7 @@ export default function Company() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-heading font-bold text-foreground">Empresa</h1>
+            <h1 className="text-2xl font-heading font-bold text-foreground">Empresa</h1>
             <p className="text-muted-foreground mt-1">
               Gerencie seu workspace e membros da equipe
             </p>
