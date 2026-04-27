@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { setSentryUser, clearSentryUser } from "@/lib/observability";
+import { identifyUser, resetAnalytics } from "@/lib/analytics";
 
 interface AuthContextType {
   session: Session | null;
@@ -28,14 +30,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Update last_active_at when user signs in
         if (event === "SIGNED_IN" && session?.user) {
+          const userMeta = { id: session.user.id, email: session.user.email };
+          setSentryUser(userMeta);
+          identifyUser(userMeta);
+
           setTimeout(async () => {
             await supabase
               .from("users")
               .update({ last_active_at: new Date().toISOString() })
               .eq("id", session.user.id);
           }, 0);
+        }
+
+        if (event === "SIGNED_OUT") {
+          clearSentryUser();
+          resetAnalytics();
         }
       }
     );
