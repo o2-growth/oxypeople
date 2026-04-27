@@ -71,12 +71,18 @@ const typeConfig: Record<ObjectiveType, { label: string; icon: typeof Crosshair;
   strategic: { label: "Estratégico", icon: Crosshair, color: "text-violet-400", bgColor: "bg-violet-500/10 border-violet-500/30" },
   tactical: { label: "Tático", icon: Layers, color: "text-blue-400", bgColor: "bg-blue-500/10 border-blue-500/30" },
   operational: { label: "Operacional", icon: Zap, color: "text-emerald-400", bgColor: "bg-emerald-500/10 border-emerald-500/30" },
+  personal: { label: "Pessoal", icon: Crosshair, color: "text-slate-400", bgColor: "bg-slate-500/10 border-slate-500/30" },
+  team: { label: "Time", icon: Layers, color: "text-sky-400", bgColor: "bg-sky-500/10 border-sky-500/30" },
+  individual: { label: "Individual", icon: Crosshair, color: "text-slate-400", bgColor: "bg-slate-500/10 border-slate-500/30" },
 };
 
 const childTypeMap: Record<ObjectiveType, ObjectiveType | null> = {
   strategic: "tactical",
   tactical: "operational",
   operational: null,
+  personal: null,
+  team: null,
+  individual: null,
 };
 
 function buildBreadcrumb(objective: ObjectiveWithDetails, allObjectives: ObjectiveWithDetails[]): ObjectiveWithDetails[] {

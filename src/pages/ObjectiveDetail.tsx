@@ -39,7 +39,9 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { useObjectives, usePeriods, ObjectiveWithDetails, ObjectiveType } from "@/hooks/useObjectives";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useCheckins } from "@/hooks/useCheckins";
+import { CollaboratorsTab } from "@/components/objectives/CollaboratorsTab";
 import { useRealtimeObjective } from "@/hooks/useRealtimeObjective";
 import { useDuplicateObjective } from "@/hooks/useDuplicateObjective";
 import { KeyResultItem, KeyResult } from "@/components/objectives/KeyResultItem";
@@ -73,6 +75,7 @@ export default function ObjectiveDetail() {
   const navigate = useNavigate();
   const { data: objectives = [], isLoading } = useObjectives();
   const { data: periods = [] } = usePeriods();
+  const { canEditObjective } = useUserPermissions();
   const duplicateObjective = useDuplicateObjective();
   const [isCreateKROpen, setIsCreateKROpen] = useState(false);
   const [isCreateChildOpen, setIsCreateChildOpen] = useState(false);
@@ -268,6 +271,15 @@ export default function ObjectiveDetail() {
                     title="Comentários"
                   >
                     <MessageSquare className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={activeTab === "collaborators" ? "default" : "outline"}
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => setActiveTab("collaborators")}
+                    title="Colaboradores"
+                  >
+                    <Users className="h-4 w-4" />
                   </Button>
                   <Button
                     className="gap-2"
@@ -477,6 +489,17 @@ export default function ObjectiveDetail() {
                 <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                 <p className="text-sm text-muted-foreground">Comentários em breve.</p>
               </div>
+            )}
+
+            {activeTab === "collaborators" && (
+              <CollaboratorsTab
+                objective={objective}
+                canEdit={canEditObjective({
+                  owner_id: objective.owner_id,
+                  created_by: objective.created_by,
+                  team_id: objective.team_id,
+                })}
+              />
             )}
           </CardContent>
         </Card>

@@ -4,10 +4,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "./useUser";
 import type { Database } from "@/integrations/supabase/types";
 
+import type { ObjectiveType } from "@/lib/objective-types";
+
 type ObjectiveRow = Database["public"]["Tables"]["objectives"]["Row"];
 type KeyResultRow = Database["public"]["Tables"]["key_results"]["Row"];
 
-export type ObjectiveType = "strategic" | "tactical" | "operational";
+export type { ObjectiveType };
 export type ObjectiveStatus = "planned" | "active" | "risk" | "completed" | "canceled";
 
 export interface ObjectiveWithDetails extends Omit<ObjectiveRow, 'type' | 'status'> {

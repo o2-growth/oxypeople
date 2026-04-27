@@ -58,12 +58,18 @@ const typeConfig: Record<ObjectiveType, { label: string; bg: string; borderColor
   strategic: { label: "Estratégico", bg: "bg-[#a25ddc]", borderColor: "border-l-[#a25ddc]" },
   tactical: { label: "Tático", bg: "bg-[#579bfc]", borderColor: "border-l-[#579bfc]" },
   operational: { label: "Operacional", bg: "bg-[#00c875]", borderColor: "border-l-[#00c875]" },
+  personal: { label: "Pessoal", bg: "bg-[#6b7280]", borderColor: "border-l-[#6b7280]" },
+  team: { label: "Time", bg: "bg-[#0ea5e9]", borderColor: "border-l-[#0ea5e9]" },
+  individual: { label: "Individual", bg: "bg-[#94a3b8]", borderColor: "border-l-[#94a3b8]" },
 };
 
 const childTypeMap: Record<ObjectiveType, ObjectiveType | null> = {
   strategic: "tactical",
   tactical: "operational",
   operational: null,
+  personal: null,
+  team: null,
+  individual: null,
 };
 
 export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelectObjective, weightPercentage }: ObjectiveTreeNodeProps) {

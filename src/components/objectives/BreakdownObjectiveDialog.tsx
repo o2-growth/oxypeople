@@ -37,12 +37,18 @@ const childTypeMap: Record<ObjectiveType, ObjectiveType> = {
   strategic: "tactical",
   tactical: "operational",
   operational: "operational",
+  personal: "operational",
+  team: "operational",
+  individual: "operational",
 };
 
 const childTypeLabels: Record<ObjectiveType, { label: string; icon: typeof Layers }> = {
   tactical: { label: "Tático", icon: Layers },
   operational: { label: "Operacional", icon: Zap },
   strategic: { label: "Estratégico", icon: Layers },
+  personal: { label: "Pessoal", icon: Layers },
+  team: { label: "Time", icon: Layers },
+  individual: { label: "Individual", icon: Layers },
 };
 
 let nextId = 0;

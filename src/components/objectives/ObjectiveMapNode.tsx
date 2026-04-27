@@ -32,6 +32,27 @@ const typeConfig: Record<ObjectiveType, { label: string; icon: typeof Crosshair;
     bgColor: "bg-emerald-500/10",
     borderColor: "border-emerald-500/40",
   },
+  personal: {
+    label: "Pessoal",
+    icon: Crosshair,
+    color: "text-slate-400",
+    bgColor: "bg-slate-500/10",
+    borderColor: "border-slate-500/40",
+  },
+  team: {
+    label: "Time",
+    icon: Layers,
+    color: "text-sky-400",
+    bgColor: "bg-sky-500/10",
+    borderColor: "border-sky-500/40",
+  },
+  individual: {
+    label: "Individual",
+    icon: Crosshair,
+    color: "text-slate-400",
+    bgColor: "bg-slate-500/10",
+    borderColor: "border-slate-500/40",
+  },
 };
 
 const autoStatusColors: Record<string, string> = {
