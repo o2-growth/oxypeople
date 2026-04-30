@@ -27,6 +27,7 @@ const Teams = lazy(() => import("./pages/Teams"));
 const Performance = lazy(() => import("./pages/Performance"));
 const Gamification = lazy(() => import("./pages/Gamification"));
 const HR = lazy(() => import("./pages/HR"));
+const PeriodsAdmin = lazy(() => import("./pages/admin/Periods"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => (
                   <Route path="/performance" element={<ProtectedRoute><Performance /></ProtectedRoute>} />
                   <Route path="/gamification" element={<ProtectedRoute><Gamification /></ProtectedRoute>} />
                   <Route path="/hr" element={<ProtectedRoute><HR /></ProtectedRoute>} />
+                  <Route path="/admin/periods" element={<ProtectedRoute><PeriodsAdmin /></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </TracedRoutes>
               </Suspense>

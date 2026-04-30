@@ -11,13 +11,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Settings2, Save } from "lucide-react";
+import { Settings2, Save, CalendarRange, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useOkrSettings, useUpdateOkrSettings } from "@/hooks/useCheckins";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { toast } from "sonner";
 
 export function OkrSettingsPanel() {
   const { data: settings, isLoading } = useOkrSettings();
   const updateSettings = useUpdateOkrSettings();
+  const { isAdmin } = useUserPermissions();
 
   const [frequency, setFrequency] = useState("weekly");
   const [minChars, setMinChars] = useState(20);
@@ -56,6 +59,31 @@ export function OkrSettingsPanel() {
   if (isLoading) return null;
 
   return (
+    <div className="space-y-4">
+      {isAdmin && (
+        <Card>
+          <CardContent className="flex items-center justify-between gap-4 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
+                <CalendarRange className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Períodos de OKR</p>
+                <p className="text-xs text-muted-foreground">
+                  Gerencie os ciclos (trimestres, semestres, anos) usados pelos objetivos.
+                </p>
+              </div>
+            </div>
+            <Button asChild variant="outline" size="sm" className="gap-1.5">
+              <Link to="/admin/periods">
+                Gerenciar
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -173,5 +201,6 @@ export function OkrSettingsPanel() {
         </Button>
       </CardContent>
     </Card>
+    </div>
   );
 }
