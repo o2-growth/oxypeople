@@ -8,7 +8,7 @@ import { useHRTurnover } from "@/hooks/useHRTurnover";
 import { useHeadcountAnalytics } from "@/hooks/useHeadcountAnalytics";
 import { HRCalendarTab } from "@/components/hr/HRCalendarTab";
 import { HRReportsTab } from "@/components/hr/HRReportsTab";
-import { OrganizationChart } from "@/components/people/OrganizationChart";
+import { OrganizationChartFlow } from "@/components/people/OrganizationChartFlow";
 import { FeedbackTab } from "@/components/people/FeedbackTab";
 import { NPSTab } from "@/components/people/NPSTab";
 import { CollaboratorCard } from "@/components/people/CollaboratorCard";
@@ -696,7 +696,7 @@ export default function HR() {
           </TabsContent>
 
           <TabsContent value="orgchart">
-            <OrganizationChart />
+            <OrganizationChartFlow />
           </TabsContent>
 
           <TabsContent value="feedback">

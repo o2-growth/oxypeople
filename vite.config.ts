@@ -31,6 +31,8 @@ export default defineConfig(({ mode }) => ({
           if (id.includes("@tanstack/react-query")) return "vendor-query";
           if (id.includes("react-router")) return "vendor-router";
           if (id.includes("@radix-ui")) return "vendor-radix";
+          if (id.includes("reactflow") || id.includes("@reactflow")) return "vendor-reactflow";
+          if (id.includes("html-to-image")) return "vendor-html-to-image";
           if (id.includes("recharts") || id.includes("d3-")) return "vendor-charts";
           if (id.includes("@dnd-kit")) return "vendor-dnd";
           if (id.includes("date-fns") || id.includes("react-day-picker")) return "vendor-dates";
