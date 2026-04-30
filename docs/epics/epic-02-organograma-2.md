@@ -36,7 +36,7 @@ Renata (admin) · Bruno (líder) · Camila (colab)
 5. 2.6 (drag-drop — usa @dnd-kit + reactflow)
 
 ## Definition of Done
-- [ ] manager_id preenchido para 100% dos colaboradores em ambiente de dogfood
+- [ ] manager_id preenchido para 100% dos colaboradores no rollout interno do o2-growth
 - [ ] Organograma carrega 500 pessoas em <2s
 - [ ] Drag-drop funciona com confirm + undo
 - [ ] Export PNG e PDF geram arquivos válidos

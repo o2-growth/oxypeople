@@ -32,9 +32,9 @@ Bruno (pede e dá) · Camila (responde, vê sobre si) · Renata (acompanha métr
 5. 5.7 (cron — quase free)
 
 ## Definition of Done
-- [ ] 30+ feedbacks circulando em dogfood
+- [ ] 30+ feedbacks circulando no rollout interno do o2-growth
 - [ ] **0 feedbacks privados vazando** (test RLS de visibility pass)
-- [ ] Tempo médio de resposta < 3 dias em dogfood
+- [ ] Tempo médio de resposta < 3 dias no rollout interno do o2-growth
 - [ ] Notificação chega em <1min após evento
 - [ ] Cron expira corretamente requests vencidos
 

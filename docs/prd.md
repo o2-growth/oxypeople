@@ -1,24 +1,29 @@
 # PRD — oxypeople MVP (Feedz Replacement)
 
 **Autor:** Morgan (Product Manager)
-**Data:** 2026-04-27
-**Versão:** 1.0
+**Data:** 2026-04-27 (revisado em 2026-04-30 para ajuste de escopo)
+**Versão:** 1.1 (scope-correction)
 **Inputs:** `brownfield-assessment.md` · `architecture-review.md` · `database-audit.md`
-**Status:** Draft — aguardando validação por Pax (PO)
+**Status:** Aprovado — escopo recalibrado para ferramenta interna
+
+---
+
+> **Atualização (2026-04-30):** este PRD foi originalmente escrito assumindo lançamento como SaaS comercial. O escopo real é **ferramenta interna do o2-growth para substituir o Feedz internamente**. Sem billing, sem landing comercial, sem onboarding de novos clientes. As seções abaixo foram revisadas para refletir essa realidade. Ver `docs/SCOPE-CORRECTION-2026-04-30.md` para o sumário das alterações.
 
 ---
 
 ## 1. Problem Statement
 
-Empresas brasileiras de médio porte usam **Feedz (TOTVS)** como plataforma de gestão de pessoas (clima, performance, OKRs, feedback, reconhecimento). O Feedz é fechado, opera dentro do ecossistema TOTVS, tem UX engessada, sem APIs abertas, e o pricing escala mal acima de 100 colaboradores.
+A o2-growth (empresa do usuário) usa hoje o **Feedz (TOTVS)** como plataforma de gestão de pessoas (clima, performance, OKRs, feedback, reconhecimento). O Feedz é fechado, opera dentro do ecossistema TOTVS, tem UX engessada, sem APIs abertas, e impõe limitações operacionais e de customização que pioram conforme o headcount cresce.
 
-A oxypeople nasceu para **substituir o Feedz** com:
-- Plataforma própria, multi-tenant, com ecossistema aberto (Pipefy, Slack — Google/Outras pelo roadmap)
-- UX moderna (Tailwind/shadcn) e customizável
-- Gamificação nativa profunda (diferencial vs Feedz)
-- Pricing previsível por seat
+A oxypeople é desenvolvida para **substituir o Feedz internamente no o2-growth** com:
+- Plataforma própria, sob controle total do time (uma empresa, mas com schema multi-tenant para defesa em profundidade e opcionalidade futura)
+- UX moderna (Tailwind/shadcn) e customizável às necessidades reais do RH interno
+- Gamificação nativa profunda (engajamento interno)
+- Integrações com as ferramentas que o o2-growth usa (Pipefy, Slack)
+- Custo previsível (apenas Supabase/infra; sem licenciamento por seat externo)
 
-**Status atual:** o produto cobre ~65% das funcionalidades do Feedz (OKRs, reconhecimento, surveys, ciclos de avaliação). Para ser **vendável como substituto**, faltam 5 módulos novos e 2 hardenings críticos.
+**Status atual:** o produto cobre ~65% das funcionalidades do Feedz (OKRs, reconhecimento, surveys, ciclos de avaliação). Para ser **adotado em substituição interna**, faltam 5 módulos novos e 2 hardenings críticos.
 
 ---
 
@@ -26,23 +31,25 @@ A oxypeople nasceu para **substituir o Feedz** com:
 
 ### 2.1 Goal de produto (MVP)
 
-> **"Em 8 semanas, ter uma plataforma vendável a clientes que hoje usam Feedz, cobrindo os módulos que eles efetivamente operam mensalmente."**
+> **"Em 4-6 semanas, ter uma plataforma interna pronta para substituir o Feedz no o2-growth, cobrindo os módulos que o RH e a liderança da empresa efetivamente operam mensalmente."**
 
-### 2.2 Success Metrics
+### 2.2 Success Metrics (rollout interno o2-growth)
 
-| Categoria | Métrica | Alvo (90 dias pós-lançamento) |
+| Categoria | Métrica | Alvo (90 dias pós-rollout interno) |
 |---|---|---|
-| **Adoção** | Empresas pagantes ativas | ≥ 5 |
-| **Adoção** | Usuários ativos semanais (WAU) por empresa | ≥ 60% do headcount |
+| **Adoção** | % do headcount o2-growth com login ativo | ≥ 95% |
+| **Adoção** | Usuários ativos semanais (WAU) | ≥ 70% do headcount |
+| **Substituição** | Tempo até desligamento do Feedz (data de cancelamento contratual) | ≤ 8 semanas após go-live interno |
+| **Substituição** | Módulos Feedz já não usados (migração concluída) | 100% dos módulos em escopo |
 | **Engajamento** | OKRs com pelo menos 1 check-in/mês | ≥ 75% |
-| **Engajamento** | Pulse Survey response rate | ≥ 50% |
+| **Engajamento** | Pulse Survey response rate | ≥ 60% (interno tende a ser maior que cliente externo) |
 | **Engajamento** | Feedbacks solicitados/respondidos por usuário/mês | ≥ 1 |
 | **Engajamento** | 1:1s realizadas vs agendadas | ≥ 70% |
-| **Qualidade** | NPS de admins de RH | ≥ +30 |
+| **Qualidade** | NPS interno (colaboradores o2-growth) sobre a plataforma | ≥ +40 |
 | **Qualidade** | Tempo médio de resposta de bugs P0/P1 | < 24h |
 | **Confiança** | Incidentes de segurança/privacidade | 0 |
 | **Confiança** | Disponibilidade (uptime) | ≥ 99.5% |
-| **Eficiência** | Tempo de onboarding de nova empresa | < 2h |
+| **Eficiência** | Tempo para convidar e ativar um novo funcionário | < 5 min |
 
 ### 2.3 Anti-metas (o que NÃO buscar no MVP)
 
@@ -51,6 +58,8 @@ A oxypeople nasceu para **substituir o Feedz** com:
 - **NÃO** ter app nativo mobile (PWA serve)
 - **NÃO** ter integrações com folha de pagamento
 - **NÃO** ter mapeamento comportamental (DISC) no MVP
+- **NÃO** construir landing comercial, pricing page, billing/Stripe, T&C para clientes externos, fluxo de signup multi-empresa — **fora de escopo** (ferramenta interna)
+- **NÃO** prospectar/onboardar clientes-piloto externos — apenas o2-growth
 
 ---
 
@@ -350,22 +359,24 @@ A oxypeople nasceu para **substituir o Feedz** com:
 
 ## 8. Timeline & Milestones
 
+> **Escopo interno (2026-04-30):** timeline encolhe de 8-10 semanas (MVP comercial) para **4-6 semanas** porque fronts F.2 (Stripe), F.3 (signup multi-empresa), F.4 (landing/pricing) e F.5 (marketing) saem do escopo. Resta apenas F.1 (LGPD interno) + F.x (onboarding interno) + F.y (e-mail transacional simples).
+
 | Sprint | Semanas | Entregáveis | Saída |
 |---|---|---|---|
 | **0 — Prep** | semana 0 | Aplicar `0001` (RLS fixes); remover Lovable Auth; setup Sentry/PostHog; bootstrap testes | Base limpa |
 | **1 — OKRs hardening** | semana 1 | Epic 1 completo (7 stories) | Cron rodando, comments, confidence, periods admin |
 | **2 — Org + Pulse + Nine Box** | semanas 2–3 | Epic 2 + Epic 3 + Epic 4 | manager_id, reactflow, Pulse semanal, matriz Nine Box |
-| **3 — Feedback + 1:1** | semanas 4–5 | Epic 5 + Epic 6 | Feedback contínuo, 1:1s com notas privadas |
-| **4 — PDI + qualidade** | semanas 6–7 | Epic 7 + suíte de testes mínima + central de notificações | PDI completo, testes em fluxos críticos |
-| **5 — Hardening** | semana 8 | Polish, bugs, docs, prep onboarding clientes-piloto | **MVP pronto para vender** |
+| **3 — Feedback + 1:1** | semana 4 | Epic 5 + Epic 6 | Feedback contínuo, 1:1s com notas privadas |
+| **4 — PDI + onboarding interno + e-mail** | semana 5 | Epic 7 + onboarding interno (admin convida por e-mail) + Resend/SendGrid + suíte mínima de testes | PDI completo, convite-por-email funcional |
+| **5 — Rollout interno** | semana 6 | Política de privacidade interna + DPO; rollout no o2-growth; desligamento do Feedz | **Feedz substituído** |
 
-**Marco GA:** fim da semana 8 com checklist de "MVP done" abaixo aprovado.
+**Marco GA:** fim da semana 6 com checklist de "Internal Rollout Done" abaixo aprovado.
 
 ---
 
-## 9. Definition of "MVP Done"
+## 9. Definition of "Internal Rollout Done"
 
-O MVP só é considerado pronto quando **TODOS** os critérios abaixo estão verdes:
+O rollout interno só é considerado pronto quando **TODOS** os critérios abaixo estão verdes:
 
 ### Funcional
 - [ ] 7 epics P0 com 100% das stories de AC marcadas como `done`
@@ -382,14 +393,16 @@ O MVP só é considerado pronto quando **TODOS** os critérios abaixo estão ver
 - [ ] Cron jobs rodando sem falha por 7 dias
 - [ ] Backup diário do Supabase confirmado
 
-### Negócio
-- [ ] 1 cliente-piloto fazendo dogfood com sucesso por 2 semanas
-- [ ] Material de onboarding (vídeo/walkthrough) pronto
-- [ ] Pricing definido + página de checkout
+### Adoção interna (o2-growth)
+- [ ] 100% do headcount o2-growth com convite enviado e ≥95% com login realizado
+- [ ] Rollout interno completo no o2-growth com substituição do Feedz iniciada
+- [ ] Material interno de onboarding (vídeo/walkthrough/Notion) pronto
+- [ ] Cancelamento contratual do Feedz agendado/efetivado
 
-### Segurança
-- [ ] Auditoria RLS: cada tabela testada com 3 personas distintas
-- [ ] LGPD: política de privacidade publicada, fluxo de delete-my-data documentado
+### Segurança & LGPD interno
+- [ ] Auditoria RLS: cada tabela testada com 3 personas distintas (owner, manager, member)
+- [ ] LGPD interno: política de privacidade interna publicada (intranet/Notion), DPO designado, fluxo de delete-my-data documentado
+- [ ] Registro interno das operações de tratamento (RAT) preenchido para dados de funcionários
 - [ ] Penetest light (mínimo: SQLi, XSS, CSRF, auth bypass)
 
 ---
@@ -403,23 +416,32 @@ O MVP só é considerado pronto quando **TODOS** os critérios abaixo estão ver
 | **Performance do organograma >500 pessoas** | Média | Médio | Virtualização adiada; se cliente piloto >500, ativar `materialized view` |
 | **Migração `manager_id` em produção** | Baixa | Médio | Coluna nullable + fallback para `dept.leader_id` por 2 sprints; UI guida admin a preencher |
 | **Atraso em algum epic** | Média | Médio | Compromisso pessoal do PM: ao primeiro sinal, descopar story P1 do epic atrasado, **nunca** push de qualidade |
-| **Cliente-piloto desiste** | Média | Alto | Vender 2–3 piloto em paralelo; usar dogfood se piloto cair |
+| ~~**Cliente-piloto desiste**~~ | ~~Média~~ | ~~Alto~~ | ~~Vender 2–3 piloto em paralelo; usar dogfood se piloto cair~~ — **removido pelo pivot 2026-04-30 (sem clientes externos)** |
 | **react-pdf bundle muito grande** | Baixa | Baixo | Lazy load com `React.lazy` |
-| **Concorrência (Feedz lança features novas)** | Média | Médio | Foco em diferenciais (gamificação, UX, integração aberta) |
-| **Adoção lenta** (WAU < 60%) | Alta | Médio | Iterar UX baseado em PostHog; gamificação premia uso; admin engajado vira referência interna |
+| ~~**Concorrência (Feedz lança features novas)**~~ | ~~Média~~ | ~~Médio~~ | ~~Foco em diferenciais (gamificação, UX, integração aberta)~~ — **removido pelo pivot 2026-04-30 (não competimos com Feedz, substituímos internamente)** |
+| **Adoção interna baixa** (WAU < 70% no o2-growth) | Média | Médio | Iterar UX baseado em PostHog; gamificação premia uso; campeões internos por departamento; envolvimento direto da liderança no rollout |
+| **Resistência ao desligamento do Feedz** (RH/líderes apegados) | Média | Alto | Rodar oxypeople em paralelo com Feedz por 2-4 semanas; comparativo de UX e dados; envolvimento da liderança na decisão de cutoff |
 
 ---
 
 ## 11. Dependências & Decisões pendentes
 
 ### Decisões de produto (precisam do usuário)
-- [ ] **Plano Supabase**: confirmar Pro+ para `pg_cron`
+- [ ] **Plano Supabase**: confirmar Pro+ para `pg_cron` (ou usar GitHub Actions)
 - [ ] **Orçamento Sentry/PostHog**: confirmar uso de free tier ou pago
-- [ ] **Cliente-piloto**: 1 ou múltiplos? Quem? Quando começa?
-- [ ] **Pricing**: por seat / por empresa / por módulo? Definir até semana 6
-- [ ] **Domínio comercial**: `oxypeople.com.br`? `app.oxypeople.com`?
-- [ ] **Política de privacidade & LGPD**: precisa advogado
-- [ ] **Material de marketing**: landing page + vídeo demo (paralelo, não bloqueia dev)
+- [ ] **Janela de rollout interno**: data de cutoff do Feedz no o2-growth?
+- [ ] **DPO interno**: quem é o Encarregado de Dados pelo o2-growth (LGPD)?
+- [ ] **Domínio interno**: `oxypeople.o2-growth.com.br`? subdomínio interno?
+- [ ] **Provider de e-mail transacional**: Resend ou SendGrid (free tier)?
+- [ ] **Política de privacidade interna**: revisão jurídica pontual (não precisa T&C de cliente)
+
+### ~~Decisões comerciais (removido pelo pivot 2026-04-30)~~
+- ~~Pricing: por seat / por empresa / por módulo~~
+- ~~Conta Stripe / KYC PJ~~
+- ~~Domínio comercial / landing pública~~
+- ~~Material de marketing / vídeo de vendas~~
+- ~~Recrutamento de clientes-piloto externos~~
+- ~~T&C para clientes B2B~~
 
 ### Decisões técnicas (já registradas — confirmar com Aria)
 Todos os 12 ADRs do `architecture-review.md` § 8.
@@ -434,4 +456,4 @@ Todos os 12 ADRs do `architecture-review.md` § 8.
 
 ---
 
-**Status:** ✅ PRD v1.0 pronto, aguardando validação por Pax (PO) e aprovação do usuário.
+**Status:** ✅ PRD v1.1 — recalibrado para escopo interno o2-growth (2026-04-30). Validado por Pax (PO).

@@ -1,22 +1,26 @@
 # Brownfield Assessment — oxypeople
 
 **Autor:** Atlas (Business Analyst)
-**Data:** 2026-04-27
-**Objetivo:** Substituir o Feedz (TOTVS) por uma plataforma própria. Foco do MVP: **paridade funcional** com os módulos mais usados do Feedz, em condição de uso real.
+**Data:** 2026-04-27 (revisado 2026-04-30 para ajuste de escopo)
+**Objetivo:** Substituir o Feedz (TOTVS) **internamente no o2-growth** por uma plataforma própria. Foco do MVP: **paridade funcional** com os módulos mais usados do Feedz, em condição de uso real interno.
+
+---
+
+> **Atualização (2026-04-30):** este assessment foi originalmente escrito assumindo lançamento como SaaS comercial. O escopo real é **ferramenta interna do o2-growth para substituir o Feedz internamente**. Sem billing, sem landing comercial, sem onboarding de novos clientes. Trechos relacionados a go-to-market foram marcados com ~~strikethrough~~ e a nota "removido pelo pivot 2026-04-30". Ver `docs/SCOPE-CORRECTION-2026-04-30.md`.
 
 ---
 
 ## 1. Sumário Executivo
 
-O **oxypeople** é um SaaS multi-tenant de **People Ops / Engajamento / Performance** construído com Vite + React + TypeScript + shadcn/ui no frontend e Supabase (Postgres + Auth + Edge Functions) no backend. Já existe **base sólida**: 14 páginas, 47 hooks, 30 tabelas Postgres com RLS habilitado em todas, 5 edge functions e integrações com Pipefy e Slack.
+O **oxypeople** é uma **ferramenta interna** do o2-growth de **People Ops / Engajamento / Performance** construída com Vite + React + TypeScript + shadcn/ui no frontend e Supabase (Postgres + Auth + Edge Functions) no backend. O schema é multi-tenant (companies + memberships) por defesa em profundidade, mas só uma empresa (o2-growth) usa em produção. Já existe **base sólida**: 14 páginas, 47 hooks, 30 tabelas Postgres com RLS habilitado em todas, 5 edge functions e integrações com Pipefy e Slack.
 
-**Veredito de prontidão para MVP substituto do Feedz:**
+**Veredito de prontidão para substituir o Feedz internamente no o2-growth:**
 
 - ✅ **Cobre hoje (mas com lacunas a fechar)**: OKRs (~70% cobertura), Organograma (~40% cobertura), Reconhecimentos, Gamificação, eNPS, GPTW, Avaliação de Desempenho (ciclos), Departamentos, Times, Calendário/Eventos, Mural/Feed, Automação básica, Integração Pipefy.
 - ⚠️ **Lacunas para paridade Feedz**: **PDI**, **1:1s estruturadas**, **Feedback contínuo**, **Matriz Nine Box**, **Pulse Survey**, **Onboarding automatizado** (parcial), **Trilhas de Desenvolvimento**, **Mapeamento Comportamental**, **Planos de Ação** vinculados às pesquisas, **Humor/Mood tracking**.
 - ❌ **Risco operacional**: zero testes automatizados, RLS frágil em 3 tabelas, enums alterados sem backfill, validações críticas em camada de aplicação.
 
-**Conclusão:** o produto está **~65% do caminho** (revisão pós-auditoria detalhada). Para um MVP comercial, o trabalho restante é: (a) **endurecer OKRs e Organograma** (módulos âncora — usuário pediu prioridade), (b) **fechar 5 lacunas funcionais novas** (PDI, 1:1, Feedback contínuo, Pulse survey, Nine Box) e (c) **endurecer qualidade** (testes, RLS, observabilidade) — em ordem nessa prioridade.
+**Conclusão:** o produto está **~65% do caminho** (revisão pós-auditoria detalhada). Para o rollout interno no o2-growth, o trabalho restante é: (a) **endurecer OKRs e Organograma** (módulos âncora — usuário pediu prioridade), (b) **fechar 5 lacunas funcionais novas** (PDI, 1:1, Feedback contínuo, Pulse survey, Nine Box) e (c) **endurecer qualidade** (testes, RLS, observabilidade) — em ordem nessa prioridade.
 
 ---
 
@@ -252,7 +256,7 @@ Pressupondo 1 dev full-time + Claude Code assistido:
 | **Sprint 3** | P0 #3 (Feedback contínuo) + P0 #4 (1:1s) | 2 semanas |
 | **Sprint 4** | P0 #5 (PDI) + observabilidade + suíte de testes mínima | 2 semanas |
 | **Sprint 5 (hardening)** | P1 #8 (Mood) + P1 #10 (Jornada) + bugs/polish + docs | 1 semana |
-| **Total para MVP comercializável** | | **~8 semanas** |
+| **Total para rollout interno o2-growth** | | **~4-6 semanas** (ver `next-fronts-gap-map.md` v1.1 para escopo recalibrado) |
 
 P1 #9 (Planos de ação), P1 #11 (Relatórios), P1 #12 (Onboarding workflow) e P1 #13 (Templates OKR) podem entrar em **v1.1** logo após o lançamento.
 
@@ -262,14 +266,15 @@ P1 #9 (Planos de ação), P1 #11 (Relatórios), P1 #12 (Onboarding workflow) e P
 
 ## 8. Diferenciais vs Feedz já presentes
 
-Vale destacar — são pontos de venda contra o concorrente:
+Vale destacar — justificam o esforço de substituir o Feedz internamente:
 
 1. **Gamificação nativa profunda** (pontos por ação, badges customizáveis, níveis, leaderboard) — Feedz não tem com essa profundidade
 2. **OKRs com cascata automática e auditoria** — provável paridade ou superior ao Feedz
 3. **Integração Pipefy nativa** (Feedz é fechado no ecossistema TOTVS)
 4. **Integração Slack nativa**
-5. **Multi-tenant desde o dia zero** (companies + memberships)
+5. **Multi-tenant desde o dia zero** (companies + memberships) — fica como defesa em profundidade e opcionalidade futura
 6. **Customização de UI** (oxypeople usa Tailwind/shadcn — Feedz é caixa-preta)
+7. **Controle total dos dados** — sem dependência de TOTVS para acessar/exportar dados internos do RH
 
 ---
 
@@ -290,10 +295,12 @@ Vale destacar — são pontos de venda contra o concorrente:
 - [ ] **OKRs hardening — escopo mínimo aceitável?** (alinhar enums, comentários, períodos UI, cron, confidence levels — algum desses pode ficar para v1.1?)
 - [ ] **Organograma — adicionar `manager_id` é OK?** (migration aditiva, sem destruir dados; mas muda modelo de hierarquia — hoje é por dept leader)
 - [ ] **Confirma os 7 P0**? Trocaria a ordem? (ex.: PDI antes de 1:1?)
-- [ ] **MVP fecha em ~8 semanas** ou há prazo mais agressivo?
-- [ ] **Onboarding workflow** entra no MVP ou v1.1?
+- [ ] **Rollout interno fecha em ~4-6 semanas** ou há prazo mais agressivo?
+- [ ] **Onboarding workflow interno** (admin convida por e-mail) entra no MVP — confirmado.
 - [ ] **Lovable Auth** fica ou sai? (recomendo sair — usar só Supabase Auth)
-- [ ] **Existe lista de clientes-piloto** já comprometidos? (impacta priorização)
+- [ ] ~~**Existe lista de clientes-piloto** já comprometidos? (impacta priorização)~~ — **removido pelo pivot 2026-04-30 (sem clientes externos, só o2-growth interno)**
+- [ ] **DPO interno do o2-growth designado?** (LGPD interna)
+- [ ] **Janela de cutoff do Feedz** definida?
 
 ---
 

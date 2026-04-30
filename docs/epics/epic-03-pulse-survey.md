@@ -30,8 +30,8 @@ Renata (configura, lê) · Bruno (lê do time) · Camila (responde)
 4. 3.3, 3.4 em paralelo
 
 ## Definition of Done
-- [ ] 1 Pulse semanal rodando em ambiente de dogfood com 100% de entrega via cron
-- [ ] Widget no dashboard com response rate > 70% interno
+- [ ] 1 Pulse semanal rodando no rollout interno do o2-growth com 100% de entrega via cron
+- [ ] Widget no dashboard com response rate > 70% no o2-growth
 - [ ] Gráfico mostra evolução de >4 semanas
 - [ ] Export CSV preserva anonimato em pesquisas anônimas
 - [ ] RLS testado: anônimo não revela `user_id`

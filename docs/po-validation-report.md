@@ -1,8 +1,12 @@
 # PO Validation Report — oxypeople MVP
 
 **Autor:** Pax (Product Owner)
-**Data:** 2026-04-27
+**Data:** 2026-04-27 (revisado 2026-04-30 para ajuste de escopo)
 **Documentos validados:** `brownfield-assessment.md` · `architecture-review.md` · `database-audit.md` · `prd.md` · `migrations-draft/0001-0009.sql`
+
+---
+
+> **Atualização (2026-04-30):** este relatório foi originalmente escrito assumindo lançamento como SaaS comercial. O escopo real é **ferramenta interna do o2-growth para substituir o Feedz internamente**. Sem billing, sem landing comercial, sem onboarding de novos clientes. Trechos de GTM/comercial foram marcados com ~~strikethrough~~ e a nota "removido pelo pivot 2026-04-30". Ver `docs/SCOPE-CORRECTION-2026-04-30.md`.
 
 ---
 
@@ -194,10 +198,12 @@ Sprint 5 (Hardening) — polish + docs + cliente piloto
 | D2 | Conta Sentry e PostHog | Sprint 0 (0.3, 0.4) | Free tier serve; criar antes |
 | D3 | Aplicar 0001 (fix RLS) em staging | Sprint 0 (0.1) | Aprovar — risco zero |
 | D4 | Aplicar 0002 (manager_id) em staging | Sprint 2 | Aprovar quando chegar |
-| D5 | Cliente-piloto definido? | Final do Sprint 5 | Iniciar prospecção paralela |
-| D6 | Pricing model | Sprint 5 | Definir até semana 6 |
-| D7 | Domínio + LGPD | Sprint 5 | Iniciar advogado em paralelo |
+| ~~D5 Cliente-piloto definido?~~ | ~~Final do Sprint 5~~ | ~~Iniciar prospecção paralela~~ — **removido pelo pivot 2026-04-30 (sem clientes externos)** |
+| ~~D6 Pricing model~~ | ~~Sprint 5~~ | ~~Definir até semana 6~~ — **removido pelo pivot 2026-04-30 (sem cobrança)** |
+| D7 | Política de privacidade interna + DPO | Sprint 5 | Iniciar com jurídico interno (sem advogado externo) |
 | D8 | UX wireframes (Uma) | Não bloqueia, mas acelera | Invocar em paralelo a Dev |
+| D9 | Janela de cutoff do Feedz | Sprint 5 (rollout) | Rodar paralelo 2 semanas; cutoff semana 6 |
+| D10 | Provider de e-mail transacional (Resend/SendGrid) | Sprint 0 (F.y) | Resend recomendado (free 3k/mês) |
 
 ---
 
