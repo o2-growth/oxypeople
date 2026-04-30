@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Settings2, Save, CalendarRange, ArrowRight } from "lucide-react";
+import { Settings2, Save, CalendarRange, ArrowRight, Siren } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useOkrSettings, useUpdateOkrSettings } from "@/hooks/useCheckins";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -61,27 +61,51 @@ export function OkrSettingsPanel() {
   return (
     <div className="space-y-4">
       {isAdmin && (
-        <Card>
-          <CardContent className="flex items-center justify-between gap-4 py-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
-                <CalendarRange className="h-5 w-5 text-primary" />
+        <div className="grid gap-3 md:grid-cols-2">
+          <Card>
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
+                  <CalendarRange className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Períodos de OKR</p>
+                  <p className="text-xs text-muted-foreground">
+                    Ciclos (trimestres, semestres, anos) usados pelos objetivos.
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium">Períodos de OKR</p>
-                <p className="text-xs text-muted-foreground">
-                  Gerencie os ciclos (trimestres, semestres, anos) usados pelos objetivos.
-                </p>
+              <Button asChild variant="outline" size="sm" className="gap-1.5">
+                <Link to="/admin/periods">
+                  Gerenciar
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-amber-500/10">
+                  <Siren className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Escalação automática</p>
+                  <p className="text-xs text-muted-foreground">
+                    Notifica owners e líderes de objetivos em risco/atrasados.
+                  </p>
+                </div>
               </div>
-            </div>
-            <Button asChild variant="outline" size="sm" className="gap-1.5">
-              <Link to="/admin/periods">
-                Gerenciar
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+              <Button asChild variant="outline" size="sm" className="gap-1.5">
+                <Link to="/admin/okr-escalation">
+                  Abrir
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
     <Card>

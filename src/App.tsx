@@ -28,6 +28,7 @@ const Performance = lazy(() => import("./pages/Performance"));
 const Gamification = lazy(() => import("./pages/Gamification"));
 const HR = lazy(() => import("./pages/HR"));
 const PeriodsAdmin = lazy(() => import("./pages/admin/Periods"));
+const OkrEscalationAdmin = lazy(() => import("./pages/admin/OkrEscalation"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ const App = () => (
                   <Route path="/gamification" element={<ProtectedRoute><Gamification /></ProtectedRoute>} />
                   <Route path="/hr" element={<ProtectedRoute><HR /></ProtectedRoute>} />
                   <Route path="/admin/periods" element={<ProtectedRoute><PeriodsAdmin /></ProtectedRoute>} />
+                  <Route path="/admin/okr-escalation" element={<ProtectedRoute><OkrEscalationAdmin /></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </TracedRoutes>
               </Suspense>
