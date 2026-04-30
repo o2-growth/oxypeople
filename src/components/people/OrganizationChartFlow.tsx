@@ -22,7 +22,7 @@ import { toPng } from "html-to-image";
 import { useOrganizationHierarchy, type HierarchyNode } from "@/hooks/useOrganizationHierarchy";
 import { useAuth } from "@/contexts/AuthContext";
 import { buildOrgGraph, flattenHierarchy, type OrgFlowNodeData } from "./org-layout";
-import { orgNodeTypes } from "./OrgFlowNodes";
+import { orgNodeTypes } from "./orgNodeTypes";
 import { OrgMemberDrawer } from "./OrgMemberDrawer";
 import { trackEvent } from "@/lib/analytics";
 

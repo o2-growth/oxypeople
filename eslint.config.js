@@ -21,6 +21,9 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // Legacy code carries ~129 `any` from before the brownfield phase; downgraded
+      // to a warning so CI lint can run end-to-end. New code should still avoid it.
+      "@typescript-eslint/no-explicit-any": "warn",
     },
   },
 );

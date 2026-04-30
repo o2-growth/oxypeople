@@ -111,10 +111,3 @@ export const OrgMemberNode = memo(({ data }: NodeProps<OrgFlowNodeData>) => (
   </div>
 ));
 OrgMemberNode.displayName = "OrgMemberNode";
-
-export const orgNodeTypes = {
-  orgRoot: OrgRootNode,
-  orgDept: OrgDeptNode,
-  orgTeam: OrgTeamNode,
-  orgMember: OrgMemberNode,
-};
