@@ -1,4 +1,11 @@
 import * as Sentry from "@sentry/react";
+import { useEffect } from "react";
+import {
+  createRoutesFromChildren,
+  matchRoutes,
+  useLocation,
+  useNavigationType,
+} from "react-router-dom";
 
 const DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined;
 
@@ -17,7 +24,13 @@ export function initSentry() {
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 1.0,
     integrations: [
-      Sentry.browserTracingIntegration(),
+      Sentry.reactRouterV6BrowserTracingIntegration({
+        useEffect,
+        useLocation,
+        useNavigationType,
+        createRoutesFromChildren,
+        matchRoutes,
+      }),
       Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true }),
     ],
     beforeSend(event) {
@@ -29,6 +42,8 @@ export function initSentry() {
     },
   });
 }
+
+export const SentryRoutes = Sentry.withSentryReactRouterV6Routing;
 
 type SentryUser = { id: string; email?: string; companyId?: string };
 

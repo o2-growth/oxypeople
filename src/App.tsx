@@ -9,6 +9,9 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RouteFallback } from "@/components/RouteFallback";
+import { SentryRoutes } from "@/lib/observability";
+
+const TracedRoutes = SentryRoutes(Routes);
 
 const Index = lazy(() => import("./pages/Index"));
 const Feed = lazy(() => import("./pages/Feed"));
@@ -38,7 +41,7 @@ const App = () => (
           <ErrorBoundary>
             <BrowserRouter>
               <Suspense fallback={<RouteFallback />}>
-                <Routes>
+                <TracedRoutes>
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                   <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
@@ -54,7 +57,7 @@ const App = () => (
                   <Route path="/gamification" element={<ProtectedRoute><Gamification /></ProtectedRoute>} />
                   <Route path="/hr" element={<ProtectedRoute><HR /></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
-                </Routes>
+                </TracedRoutes>
               </Suspense>
             </BrowserRouter>
           </ErrorBoundary>

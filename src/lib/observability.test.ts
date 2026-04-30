@@ -4,8 +4,9 @@ vi.mock("@sentry/react", () => ({
   init: vi.fn(),
   setUser: vi.fn(),
   captureException: vi.fn(),
-  browserTracingIntegration: vi.fn(() => ({ name: "BrowserTracing" })),
+  reactRouterV6BrowserTracingIntegration: vi.fn(() => ({ name: "ReactRouterV6BrowserTracing" })),
   replayIntegration: vi.fn(() => ({ name: "Replay" })),
+  withSentryReactRouterV6Routing: vi.fn((Routes) => Routes),
 }));
 
 describe("observability (no DSN)", () => {
