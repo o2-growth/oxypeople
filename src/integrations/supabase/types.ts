@@ -536,6 +536,8 @@ export type Database = {
         ]
       }
       company_memberships: {
+        // NOTE: manager_id added manually for pending migration 20260501003200_add_manager_id.
+        // Will be auto-generated when supabase typegen runs after migration apply.
         Row: {
           company_id: string
           created_at: string
@@ -547,6 +549,7 @@ export type Database = {
           invited_by: string | null
           is_new_hire: boolean | null
           joined_at: string | null
+          manager_id: string | null
           position: string | null
           status: Database["public"]["Enums"]["membership_status"]
           updated_at: string
@@ -563,6 +566,7 @@ export type Database = {
           invited_by?: string | null
           is_new_hire?: boolean | null
           joined_at?: string | null
+          manager_id?: string | null
           position?: string | null
           status?: Database["public"]["Enums"]["membership_status"]
           updated_at?: string
@@ -579,6 +583,7 @@ export type Database = {
           invited_by?: string | null
           is_new_hire?: boolean | null
           joined_at?: string | null
+          manager_id?: string | null
           position?: string | null
           status?: Database["public"]["Enums"]["membership_status"]
           updated_at?: string
@@ -609,6 +614,13 @@ export type Database = {
           {
             foreignKeyName: "company_memberships_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_memberships_manager_id_fkey"
+            columns: ["manager_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -903,8 +915,10 @@ export type Database = {
         ]
       }
       key_results: {
+        // NOTE: confidence added manually for pending migration 20260501003201_okr_hardening.
         Row: {
           checkin_frequency: string | null
+          confidence: number | null
           created_at: string
           current_value: number
           data_source: string | null
@@ -926,6 +940,7 @@ export type Database = {
         }
         Insert: {
           checkin_frequency?: string | null
+          confidence?: number | null
           created_at?: string
           current_value?: number
           data_source?: string | null
@@ -947,6 +962,7 @@ export type Database = {
         }
         Update: {
           checkin_frequency?: string | null
+          confidence?: number | null
           created_at?: string
           current_value?: number
           data_source?: string | null
@@ -1184,6 +1200,72 @@ export type Database = {
           },
         ]
       }
+      // NOTE: objective_comments added manually for pending migration 20260501003201_okr_hardening.
+      objective_comments: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          edited_at: string | null
+          id: string
+          key_result_id: string | null
+          objective_id: string
+          parent_comment_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          key_result_id?: string | null
+          objective_id: string
+          parent_comment_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          key_result_id?: string | null
+          objective_id?: string
+          parent_comment_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objective_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objective_comments_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objective_comments_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: false
+            referencedRelation: "key_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objective_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "objective_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objective_relations: {
         Row: {
           child_objective_id: string
@@ -1224,9 +1306,11 @@ export type Database = {
         ]
       }
       objectives: {
+        // NOTE: commitment_type added manually for pending migration 20260501003201_okr_hardening.
         Row: {
           assignee_id: string | null
           auto_status: string | null
+          commitment_type: string
           company_id: string
           created_at: string
           created_by: string
@@ -1254,6 +1338,7 @@ export type Database = {
         Insert: {
           assignee_id?: string | null
           auto_status?: string | null
+          commitment_type?: string
           company_id: string
           created_at?: string
           created_by: string
@@ -1281,6 +1366,7 @@ export type Database = {
         Update: {
           assignee_id?: string | null
           auto_status?: string | null
+          commitment_type?: string
           company_id?: string
           created_at?: string
           created_by?: string
