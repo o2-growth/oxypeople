@@ -147,3 +147,97 @@ export function flattenHierarchy(root: HierarchyNode): HierarchyNode[] {
   walk(root, (n) => out.push(n));
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Manager-based hierarchy builder (Story 2.6)
+// ---------------------------------------------------------------------------
+
+export interface ManagerMembershipInput {
+  user_id: string;
+  manager_id: string | null;
+  position?: string | null;
+  department_name?: string | null;
+}
+
+export interface ManagerUserInput {
+  id: string;
+  full_name: string | null;
+  email: string;
+  avatar_url?: string | null;
+}
+
+/**
+ * Builds a hierarchy tree from `company_memberships.manager_id`.
+ *
+ * - Returns null when there are no memberships at all.
+ * - Members with `manager_id = null` (or pointing to a non-member) are roots.
+ * - When there are multiple roots, a synthetic "company" root groups them.
+ * - Cycles are broken: any user reachable through its own ancestor chain is
+ *   not visited twice (defensive — DB trigger already prevents direct cycles).
+ */
+export function buildManagerHierarchy(
+  memberships: ManagerMembershipInput[],
+  users: ManagerUserInput[],
+): HierarchyNode | null {
+  if (!memberships || memberships.length === 0) return null;
+
+  const userById = new Map<string, ManagerUserInput>();
+  users.forEach((u) => userById.set(u.id, u));
+
+  const membershipByUserId = new Map<string, ManagerMembershipInput>();
+  memberships.forEach((m) => membershipByUserId.set(m.user_id, m));
+
+  const childrenByManager = new Map<string, ManagerMembershipInput[]>();
+  const roots: ManagerMembershipInput[] = [];
+
+  for (const m of memberships) {
+    if (m.manager_id && membershipByUserId.has(m.manager_id)) {
+      if (!childrenByManager.has(m.manager_id)) childrenByManager.set(m.manager_id, []);
+      childrenByManager.get(m.manager_id)!.push(m);
+    } else {
+      roots.push(m);
+    }
+  }
+
+  const buildNode = (
+    membership: ManagerMembershipInput,
+    visited: Set<string>,
+  ): HierarchyNode => {
+    const user = userById.get(membership.user_id);
+    const name = user?.full_name || user?.email || "Sem nome";
+
+    const childMemberships = childrenByManager.get(membership.user_id) ?? [];
+    const nextVisited = new Set(visited);
+    nextVisited.add(membership.user_id);
+
+    const children: HierarchyNode[] = childMemberships
+      .filter((c) => !nextVisited.has(c.user_id))
+      .map((c) => buildNode(c, nextVisited));
+
+    return {
+      id: `member-${membership.user_id}`,
+      type: "member",
+      name,
+      role: membership.position || "Membro",
+      position: membership.position || "",
+      department: membership.department_name || undefined,
+      avatarUrl: user?.avatar_url || undefined,
+      email: user?.email,
+      children,
+    };
+  };
+
+  if (roots.length === 1) {
+    return buildNode(roots[0], new Set());
+  }
+
+  const rootNodes = roots.map((r) => buildNode(r, new Set()));
+  return {
+    id: "manager-root",
+    type: "company",
+    name: "Organização",
+    role: "Hierarquia por gestor",
+    position: "",
+    children: rootNodes,
+  };
+}

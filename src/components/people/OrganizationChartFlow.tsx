@@ -1,9 +1,12 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
+  ReactFlowProvider,
+  useReactFlow,
   type Node,
+  type NodeChange,
   type ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
@@ -17,36 +20,68 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Network, Search, Download, RotateCcw } from "lucide-react";
+import { Loader2, Network, Search, Download, RotateCcw, GripVertical } from "lucide-react";
 import { toPng } from "html-to-image";
+import { toast } from "sonner";
 import { useOrganizationHierarchy, type HierarchyNode } from "@/hooks/useOrganizationHierarchy";
+import { useManagers } from "@/hooks/useManagers";
 import { useAuth } from "@/contexts/AuthContext";
-import { buildOrgGraph, flattenHierarchy, type OrgFlowNodeData } from "./org-layout";
+import {
+  buildOrgGraph,
+  buildManagerHierarchy,
+  flattenHierarchy,
+  type OrgFlowNodeData,
+} from "./org-layout";
 import { orgNodeTypes } from "./orgNodeTypes";
 import { OrgMemberDrawer } from "./OrgMemberDrawer";
 import { trackEvent } from "@/lib/analytics";
 
 type DepartmentOption = { id: string; name: string };
+type OrgMode = "visual" | "manager";
 
-export function OrganizationChartFlow() {
-  const { data: hierarchy, isLoading, error } = useOrganizationHierarchy();
-  const { user } = useAuth();
+interface FlowInnerProps {
+  hierarchy: HierarchyNode | null;
+  mode: OrgMode;
+  search: string;
+  departmentId: string;
+  scope: "all" | "mine";
+  myUserNodeId: string | null;
+  departmentOptions: DepartmentOption[];
+  setSelected: (node: HierarchyNode | null) => void;
+  setSearch: (v: string) => void;
+  setDepartmentId: (v: string) => void;
+  setScope: (v: "all" | "mine") => void;
+  setMode: (v: OrgMode) => void;
+  wrapperRef: React.RefObject<HTMLDivElement>;
+  flowInstanceRef: React.MutableRefObject<ReactFlowInstance | null>;
+  setManager: (userId: string, managerId: string | null) => Promise<unknown>;
+  managersLoading: boolean;
+}
 
-  const [search, setSearch] = useState("");
-  const [departmentId, setDepartmentId] = useState<string>("all");
-  const [scope, setScope] = useState<"all" | "mine">("all");
-  const [selected, setSelected] = useState<HierarchyNode | null>(null);
-  const flowInstanceRef = useRef<ReactFlowInstance | null>(null);
-  const wrapperRef = useRef<HTMLDivElement | null>(null);
+function userIdFromNodeId(nodeId: string): string | null {
+  if (!nodeId.startsWith("member-")) return null;
+  return nodeId.slice("member-".length);
+}
 
-  const departmentOptions = useMemo<DepartmentOption[]>(() => {
-    if (!hierarchy) return [];
-    return flattenHierarchy(hierarchy)
-      .filter((n) => n.type === "department")
-      .map((n) => ({ id: n.id, name: n.name }));
-  }, [hierarchy]);
-
-  const myUserNodeId = user ? `member-${user.id}` : null;
+function FlowInner({
+  hierarchy,
+  mode,
+  search,
+  departmentId,
+  scope,
+  myUserNodeId,
+  departmentOptions,
+  setSelected,
+  setSearch,
+  setDepartmentId,
+  setScope,
+  setMode,
+  wrapperRef,
+  flowInstanceRef,
+  setManager,
+  managersLoading,
+}: FlowInnerProps) {
+  const reactFlow = useReactFlow();
 
   const filterMatch = useCallback(
     (node: HierarchyNode) => {
@@ -59,9 +94,8 @@ export function OrganizationChartFlow() {
         if (!haystack.includes(q)) return false;
       }
       if (departmentId !== "all") {
-        if (node.id !== departmentId && node.department !== departmentNameFromId(departmentOptions, departmentId)) {
-          return false;
-        }
+        const deptName = departmentNameFromId(departmentOptions, departmentId);
+        if (node.id !== departmentId && node.department !== deptName) return false;
       }
       if (scope === "mine" && myUserNodeId) {
         if (node.id !== myUserNodeId) return false;
@@ -71,19 +105,176 @@ export function OrganizationChartFlow() {
     [search, departmentId, scope, myUserNodeId, departmentOptions],
   );
 
-  const graph = useMemo(() => {
-    if (!hierarchy) return { nodes: [], edges: [] };
+  const baseGraph = useMemo(() => {
+    if (!hierarchy) return { nodes: [] as Node<OrgFlowNodeData>[], edges: [] };
     const hasFilter = search.length > 0 || departmentId !== "all" || scope === "mine";
     return buildOrgGraph(hierarchy, hasFilter ? filterMatch : () => false);
   }, [hierarchy, search, departmentId, scope, filterMatch]);
+
+  // Local copy of nodes so we can apply drag positions without losing them
+  // when react-query refetches don't fire.
+  const [nodes, setNodes] = useState<Node<OrgFlowNodeData>[]>(baseGraph.nodes);
+  useEffect(() => {
+    setNodes(baseGraph.nodes);
+  }, [baseGraph]);
+
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodes((nds) => {
+      const next = [...nds];
+      for (const change of changes) {
+        if (change.type === "position" && change.position) {
+          const idx = next.findIndex((n) => n.id === change.id);
+          if (idx >= 0) {
+            next[idx] = { ...next[idx], position: change.position };
+          }
+        }
+      }
+      return next;
+    });
+  }, []);
 
   const handleNodeClick = useCallback(
     (_: unknown, node: Node<OrgFlowNodeData>) => {
       setSelected(node.data);
       trackEvent("orgchart_node_clicked", { type: node.data.type });
     },
-    [],
+    [setSelected],
   );
+
+  const handleNodeDragStop = useCallback(
+    (_: unknown, draggedNode: Node<OrgFlowNodeData>) => {
+      if (mode !== "manager") return;
+      const draggedUserId = userIdFromNodeId(draggedNode.id);
+      if (!draggedUserId) {
+        // Restore base position
+        setNodes(baseGraph.nodes);
+        return;
+      }
+
+      const intersections = reactFlow
+        .getIntersectingNodes(draggedNode)
+        .filter((n) => n.id !== draggedNode.id);
+      const target = intersections[0];
+
+      if (!target) {
+        // Snap back — no valid drop target
+        setNodes(baseGraph.nodes);
+        return;
+      }
+
+      const targetUserId = userIdFromNodeId(target.id);
+      if (!targetUserId) {
+        setNodes(baseGraph.nodes);
+        return;
+      }
+
+      const draggedName = draggedNode.data.name;
+      const targetName = (target.data as OrgFlowNodeData | undefined)?.name ?? "esta pessoa";
+
+      toast(`Mover ${draggedName} para sob ${targetName}?`, {
+        action: {
+          label: "Confirmar",
+          onClick: async () => {
+            try {
+              await setManager(draggedUserId, targetUserId);
+              // The hook invalidates the org-hierarchy query → graph rebuilds.
+            } catch {
+              // Hook already toasts the error; revert visually.
+              setNodes(baseGraph.nodes);
+            }
+          },
+        },
+        cancel: {
+          label: "Cancelar",
+          onClick: () => setNodes(baseGraph.nodes),
+        },
+        duration: 8000,
+        onDismiss: () => setNodes(baseGraph.nodes),
+        onAutoClose: () => setNodes(baseGraph.nodes),
+      });
+    },
+    [mode, baseGraph.nodes, reactFlow, setManager],
+  );
+
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={baseGraph.edges}
+      nodeTypes={orgNodeTypes}
+      onInit={(instance) => {
+        flowInstanceRef.current = instance;
+        instance.fitView({ padding: 0.2, duration: 300 });
+      }}
+      onNodeClick={handleNodeClick}
+      onNodesChange={onNodesChange}
+      onNodeDragStop={handleNodeDragStop}
+      nodesDraggable={mode === "manager" && !managersLoading}
+      nodesConnectable={false}
+      elementsSelectable
+      proOptions={{ hideAttribution: true }}
+      minZoom={0.2}
+      maxZoom={1.5}
+      fitView
+    >
+      <Background gap={24} size={1} />
+      <Controls showInteractive={false} />
+      <MiniMap
+        pannable
+        zoomable
+        nodeColor={(n) => {
+          const data = n.data as OrgFlowNodeData | undefined;
+          if (!data) return "hsl(var(--muted))";
+          if (data.isDimmed) return "hsl(var(--muted))";
+          return data.color || "hsl(var(--primary))";
+        }}
+        maskColor="hsl(var(--muted) / 0.4)"
+      />
+    </ReactFlow>
+  );
+}
+
+export function OrganizationChartFlow() {
+  const { data: visualHierarchy, isLoading, error } = useOrganizationHierarchy();
+  const { members, isLoading: managersLoading, setManager } = useManagers();
+  const { user } = useAuth();
+
+  const [mode, setMode] = useState<OrgMode>("visual");
+  const [search, setSearch] = useState("");
+  const [departmentId, setDepartmentId] = useState<string>("all");
+  const [scope, setScope] = useState<"all" | "mine">("all");
+  const [selected, setSelected] = useState<HierarchyNode | null>(null);
+  const flowInstanceRef = useRef<ReactFlowInstance | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  const managerHierarchy = useMemo(() => {
+    if (!members || members.length === 0) return null;
+    return buildManagerHierarchy(
+      members.map((m) => ({
+        user_id: m.user_id,
+        manager_id: m.manager_id,
+        position: m.position,
+        department_name: m.department_name,
+      })),
+      members.map((m) => ({
+        id: m.user_id,
+        full_name: m.full_name,
+        email: m.email,
+        avatar_url: m.avatar_url,
+      })),
+    );
+  }, [members]);
+
+  const activeHierarchy: HierarchyNode | null =
+    mode === "manager" ? managerHierarchy : visualHierarchy ?? null;
+
+  const departmentOptions = useMemo<DepartmentOption[]>(() => {
+    if (!visualHierarchy) return [];
+    return flattenHierarchy(visualHierarchy)
+      .filter((n) => n.type === "department")
+      .map((n) => ({ id: n.id, name: n.name }));
+  }, [visualHierarchy]);
+
+  const myUserNodeId = user ? `member-${user.id}` : null;
 
   const handleResetFilters = () => {
     setSearch("");
@@ -105,13 +296,15 @@ export function OrganizationChartFlow() {
       link.download = `organograma-${new Date().toISOString().slice(0, 10)}.png`;
       link.href = dataUrl;
       link.click();
-      trackEvent("orgchart_exported", { format: "png" });
+      trackEvent("orgchart_exported", { format: "png", mode });
     } catch (err) {
       console.error("[orgchart] export failed", err);
     }
-  }, []);
+  }, [mode]);
 
-  if (isLoading) {
+  const showLoading = isLoading || (mode === "manager" && managersLoading);
+
+  if (showLoading) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-16">
@@ -121,7 +314,7 @@ export function OrganizationChartFlow() {
     );
   }
 
-  if (error || !hierarchy) {
+  if (error || !activeHierarchy) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-16">
@@ -132,7 +325,9 @@ export function OrganizationChartFlow() {
           <p className="text-muted-foreground text-sm">
             {error
               ? "Não foi possível carregar a estrutura organizacional."
-              : "Configure departamentos e equipes para visualizar o organograma."}
+              : mode === "manager"
+                ? "Nenhuma relação de gestor configurada. Use /admin/managers para definir."
+                : "Configure departamentos e equipes para visualizar o organograma."}
           </p>
         </CardContent>
       </Card>
@@ -150,6 +345,15 @@ export function OrganizationChartFlow() {
             Organograma
           </CardTitle>
           <div className="flex items-center gap-2">
+            <Select value={mode} onValueChange={(v) => setMode(v as OrgMode)}>
+              <SelectTrigger className="h-9 w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="visual">Visual (depto/time)</SelectItem>
+                <SelectItem value="manager">Por gestor</SelectItem>
+              </SelectContent>
+            </Select>
             <Button variant="outline" size="sm" onClick={handleExportPng} className="gap-1.5">
               <Download className="h-4 w-4" />
               PNG
@@ -166,19 +370,21 @@ export function OrganizationChartFlow() {
               className="pl-8 h-9"
             />
           </div>
-          <Select value={departmentId} onValueChange={setDepartmentId}>
-            <SelectTrigger className="h-9 w-44">
-              <SelectValue placeholder="Departamento" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os departamentos</SelectItem>
-              {departmentOptions.map((d) => (
-                <SelectItem key={d.id} value={d.id}>
-                  {d.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {mode === "visual" && (
+            <Select value={departmentId} onValueChange={setDepartmentId}>
+              <SelectTrigger className="h-9 w-44">
+                <SelectValue placeholder="Departamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os departamentos</SelectItem>
+                {departmentOptions.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           {myUserNodeId && (
             <Select value={scope} onValueChange={(v) => setScope(v as "all" | "mine")}>
               <SelectTrigger className="h-9 w-32">
@@ -196,41 +402,36 @@ export function OrganizationChartFlow() {
               Limpar
             </Button>
           )}
+          {mode === "manager" && (
+            <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <GripVertical className="h-3 w-3" />
+              Arraste uma pessoa sobre outra para reatribuir o gestor
+            </span>
+          )}
         </div>
       </CardHeader>
       <CardContent>
         <div ref={wrapperRef} className="h-[640px] w-full rounded-md border bg-background">
-          <ReactFlow
-            nodes={graph.nodes}
-            edges={graph.edges}
-            nodeTypes={orgNodeTypes}
-            onInit={(instance) => {
-              flowInstanceRef.current = instance;
-              instance.fitView({ padding: 0.2, duration: 300 });
-            }}
-            onNodeClick={handleNodeClick}
-            nodesDraggable={false}
-            nodesConnectable={false}
-            elementsSelectable
-            proOptions={{ hideAttribution: true }}
-            minZoom={0.2}
-            maxZoom={1.5}
-            fitView
-          >
-            <Background gap={24} size={1} />
-            <Controls showInteractive={false} />
-            <MiniMap
-              pannable
-              zoomable
-              nodeColor={(n) => {
-                const data = n.data as OrgFlowNodeData | undefined;
-                if (!data) return "hsl(var(--muted))";
-                if (data.isDimmed) return "hsl(var(--muted))";
-                return data.color || "hsl(var(--primary))";
-              }}
-              maskColor="hsl(var(--muted) / 0.4)"
+          <ReactFlowProvider>
+            <FlowInner
+              hierarchy={activeHierarchy}
+              mode={mode}
+              search={search}
+              departmentId={departmentId}
+              scope={scope}
+              myUserNodeId={myUserNodeId}
+              departmentOptions={departmentOptions}
+              setSelected={setSelected}
+              setSearch={setSearch}
+              setDepartmentId={setDepartmentId}
+              setScope={setScope}
+              setMode={setMode}
+              wrapperRef={wrapperRef}
+              flowInstanceRef={flowInstanceRef}
+              setManager={setManager}
+              managersLoading={managersLoading}
             />
-          </ReactFlow>
+          </ReactFlowProvider>
         </div>
       </CardContent>
       <OrgMemberDrawer node={selected} onOpenChange={(open) => !open && setSelected(null)} />

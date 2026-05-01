@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { buildOrgGraph, flattenHierarchy } from "./org-layout";
+import {
+  buildOrgGraph,
+  flattenHierarchy,
+  buildManagerHierarchy,
+  type ManagerMembershipInput,
+  type ManagerUserInput,
+} from "./org-layout";
 import type { HierarchyNode } from "@/hooks/useOrganizationHierarchy";
 
 function makeNode(id: string, type: HierarchyNode["type"], children: HierarchyNode[] = []): HierarchyNode {
@@ -77,6 +83,77 @@ describe("org-layout", () => {
     expect(byId.get("member-alice")?.data.isHighlighted).toBe(true);
     expect(byId.get("dept-marketing")?.data.isDimmed).toBe(true);
     expect(byId.get("member-dave")?.data.isDimmed).toBe(true);
+  });
+
+  it("buildManagerHierarchy: empty memberships returns null", () => {
+    expect(buildManagerHierarchy([], [])).toBeNull();
+  });
+
+  it("buildManagerHierarchy: single root with no children", () => {
+    const memberships: ManagerMembershipInput[] = [
+      { user_id: "u-ceo", manager_id: null, position: "CEO" },
+    ];
+    const users: ManagerUserInput[] = [
+      { id: "u-ceo", full_name: "Ana", email: "ana@x.com" },
+    ];
+    const tree = buildManagerHierarchy(memberships, users);
+    expect(tree).not.toBeNull();
+    expect(tree?.id).toBe("member-u-ceo");
+    expect(tree?.name).toBe("Ana");
+    expect(tree?.children).toHaveLength(0);
+  });
+
+  it("buildManagerHierarchy: 2-level chain (CEO → Manager → IC)", () => {
+    const memberships: ManagerMembershipInput[] = [
+      { user_id: "u-ceo", manager_id: null },
+      { user_id: "u-mgr", manager_id: "u-ceo" },
+      { user_id: "u-ic", manager_id: "u-mgr" },
+    ];
+    const users: ManagerUserInput[] = [
+      { id: "u-ceo", full_name: "CEO", email: "ceo@x.com" },
+      { id: "u-mgr", full_name: "Mgr", email: "mgr@x.com" },
+      { id: "u-ic", full_name: "IC", email: "ic@x.com" },
+    ];
+    const tree = buildManagerHierarchy(memberships, users);
+    expect(tree?.id).toBe("member-u-ceo");
+    expect(tree?.children).toHaveLength(1);
+    expect(tree?.children[0].id).toBe("member-u-mgr");
+    expect(tree?.children[0].children).toHaveLength(1);
+    expect(tree?.children[0].children[0].id).toBe("member-u-ic");
+  });
+
+  it("buildManagerHierarchy: multiple roots → synthetic 'manager-root' wrapper", () => {
+    const memberships: ManagerMembershipInput[] = [
+      { user_id: "u-1", manager_id: null },
+      { user_id: "u-2", manager_id: null },
+      { user_id: "u-3", manager_id: "u-1" },
+    ];
+    const users: ManagerUserInput[] = [
+      { id: "u-1", full_name: "One", email: "1@x.com" },
+      { id: "u-2", full_name: "Two", email: "2@x.com" },
+      { id: "u-3", full_name: "Three", email: "3@x.com" },
+    ];
+    const tree = buildManagerHierarchy(memberships, users);
+    expect(tree?.id).toBe("manager-root");
+    expect(tree?.type).toBe("company");
+    expect(tree?.children).toHaveLength(2);
+    const ids = tree?.children.map((c) => c.id);
+    expect(ids).toContain("member-u-1");
+    expect(ids).toContain("member-u-2");
+    const u1 = tree?.children.find((c) => c.id === "member-u-1");
+    expect(u1?.children).toHaveLength(1);
+    expect(u1?.children[0].id).toBe("member-u-3");
+  });
+
+  it("buildManagerHierarchy: orphan manager_id pointing outside membership set is treated as root", () => {
+    const memberships: ManagerMembershipInput[] = [
+      { user_id: "u-orphan", manager_id: "u-not-here" },
+    ];
+    const users: ManagerUserInput[] = [
+      { id: "u-orphan", full_name: "Orphan", email: "o@x.com" },
+    ];
+    const tree = buildManagerHierarchy(memberships, users);
+    expect(tree?.id).toBe("member-u-orphan");
   });
 
   it("layout positions parent above the centroid of its direct children", () => {

@@ -30,6 +30,7 @@ const HR = lazy(() => import("./pages/HR"));
 const PeriodsAdmin = lazy(() => import("./pages/admin/Periods"));
 const OkrEscalationAdmin = lazy(() => import("./pages/admin/OkrEscalation"));
 const InvitationsAdmin = lazy(() => import("./pages/admin/Invitations"));
+const ManagersAdmin = lazy(() => import("./pages/admin/Managers"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ const App = () => (
                   <Route path="/admin/periods" element={<ProtectedRoute><PeriodsAdmin /></ProtectedRoute>} />
                   <Route path="/admin/okr-escalation" element={<ProtectedRoute><OkrEscalationAdmin /></ProtectedRoute>} />
                   <Route path="/admin/invitations" element={<ProtectedRoute><InvitationsAdmin /></ProtectedRoute>} />
+                  <Route path="/admin/managers" element={<ProtectedRoute><ManagersAdmin /></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </TracedRoutes>
               </Suspense>
