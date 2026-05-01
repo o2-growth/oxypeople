@@ -51,6 +51,9 @@ import { StatusBadge } from "@/components/objectives/StatusBadge";
 import { OverdueBadge } from "@/components/objectives/OverdueBadge";
 import { CreateKeyResultDialog } from "@/components/objectives/CreateKeyResultDialog";
 import { CreateObjectiveDialog } from "@/components/objectives/CreateObjectiveDialog";
+import { CommitmentTypeBadge } from "@/components/objectives/CommitmentTypeBadge";
+import { CommentsTab } from "@/components/objectives/CommentsTab";
+import { useObjectiveComments } from "@/hooks/useObjectiveComments";
 import { BulkCheckinDialog } from "@/components/objectives/BulkCheckinDialog";
 import { AuditHistory } from "@/components/objectives/AuditHistory";
 import { cn } from "@/lib/utils";
@@ -84,6 +87,7 @@ export default function ObjectiveDetail() {
   const [activeTab, setActiveTab] = useState("list");
 
   useRealtimeObjective(id);
+  const { comments: objectiveComments } = useObjectiveComments(id);
 
   const objective = useMemo(() => {
     if (!id) return null;
@@ -175,6 +179,7 @@ export default function ObjectiveDetail() {
     kr_type: (kr as any).kr_type,
     direction: (kr as any).direction,
     owner_user_id: (kr as any).owner_user_id,
+    confidence: (kr as { confidence?: number | null }).confidence ?? null,
     periodStart: period?.start_date,
     periodEnd: period?.end_date,
   }));
@@ -223,9 +228,12 @@ export default function ObjectiveDetail() {
             <div className="p-6 pb-4 border-b border-border/50">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-2xl lg:text-3xl font-heading font-bold text-foreground leading-tight">
-                    {objective.title}
-                  </h1>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-2xl lg:text-3xl font-heading font-bold text-foreground leading-tight">
+                      {objective.title}
+                    </h1>
+                    <CommitmentTypeBadge value={(objective as { commitment_type?: string }).commitment_type} />
+                  </div>
                   {parent && (
                     <p className="text-sm text-muted-foreground mt-1.5">
                       Objetivo pai: "
@@ -266,11 +274,19 @@ export default function ObjectiveDetail() {
                   <Button
                     variant={activeTab === "comments" ? "default" : "outline"}
                     size="icon"
-                    className="h-9 w-9"
+                    className="h-9 w-9 relative"
                     onClick={() => setActiveTab("comments")}
-                    title="Comentários"
+                    title="Discussão"
                   >
                     <MessageSquare className="h-4 w-4" />
+                    {objectiveComments.length > 0 && (
+                      <Badge
+                        variant="secondary"
+                        className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 text-[9px] leading-none rounded-full"
+                      >
+                        {objectiveComments.length}
+                      </Badge>
+                    )}
                   </Button>
                   <Button
                     variant={activeTab === "collaborators" ? "default" : "outline"}
@@ -485,10 +501,7 @@ export default function ObjectiveDetail() {
             )}
 
             {activeTab === "comments" && (
-              <div className="text-center py-12">
-                <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">Comentários em breve.</p>
-              </div>
+              <CommentsTab objectiveId={objective.id} />
             )}
 
             {activeTab === "collaborators" && (

@@ -37,7 +37,7 @@ import { useCreateObjective, usePeriods, useObjectives, ObjectiveType } from "@/
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Trash2, Crosshair, Layers, Zap } from "lucide-react";
+import { Plus, Trash2, Crosshair, Layers, Zap, Rocket, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,6 +63,7 @@ const formSchema = z.object({
   periodId: z.string().optional(),
   department: z.string().optional(),
   visibility: z.enum(["public", "company", "private"]),
+  commitmentType: z.enum(["committed", "aspirational"]).default("committed"),
   tags: z.array(z.string()).default([]),
   contributors: z.array(z.string()).default([]),
   editors: z.array(z.string()).default([]),
@@ -102,6 +103,7 @@ export function CreateObjectiveDialog({
       description: "",
       type: defaultType,
       visibility: "company",
+      commitmentType: "committed",
       ownerId: user?.id || "",
       contributors: [],
       editors: [],
@@ -118,6 +120,7 @@ export function CreateObjectiveDialog({
         description: parentObjective ? `Derivado de: ${parentObjective.title}` : "",
         type: defaultType,
         visibility: (parentObjective?.visibility as "company" | "public" | "private") || "company",
+        commitmentType: "committed",
         ownerId: user?.id || "",
         contributors: [],
         editors: [],
@@ -177,6 +180,7 @@ export function CreateObjectiveDialog({
         period_id: data.periodId,
         department: data.department,
         tags: data.tags.length > 0 ? data.tags : undefined,
+        commitment_type: data.commitmentType,
         contributors: data.contributors,
         editors: data.editors,
         key_results: data.keyResults.map((kr) => ({
@@ -290,6 +294,52 @@ export function CreateObjectiveDialog({
                               <Zap className="mb-1.5 h-5 w-5 text-emerald-400" />
                               <span className="text-xs font-medium">Operacional</span>
                               <span className="text-[10px] text-muted-foreground">Líder / Pessoa</span>
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Commitment type */}
+                <FormField
+                  control={form.control}
+                  name="commitmentType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de comprometimento</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          className="grid grid-cols-2 gap-3"
+                        >
+                          <div>
+                            <RadioGroupItem value="committed" id="ct-committed" className="peer sr-only" />
+                            <Label
+                              htmlFor="ct-committed"
+                              className="flex flex-col items-start rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent peer-data-[state=checked]:border-emerald-500 cursor-pointer"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                                <span className="text-xs font-medium">Committed</span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground mt-1">Entrega esperada — 100%</span>
+                            </Label>
+                          </div>
+                          <div>
+                            <RadioGroupItem value="aspirational" id="ct-aspirational" className="peer sr-only" />
+                            <Label
+                              htmlFor="ct-aspirational"
+                              className="flex flex-col items-start rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent peer-data-[state=checked]:border-purple-500 cursor-pointer"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <Rocket className="h-4 w-4 text-purple-400" />
+                                <span className="text-xs font-medium">Aspirational</span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground mt-1">Moonshot — 70% já é vitória</span>
                             </Label>
                           </div>
                         </RadioGroup>

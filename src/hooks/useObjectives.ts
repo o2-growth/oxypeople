@@ -11,6 +11,7 @@ type KeyResultRow = Database["public"]["Tables"]["key_results"]["Row"];
 
 export type { ObjectiveType };
 export type ObjectiveStatus = "planned" | "active" | "risk" | "completed" | "canceled";
+export type CommitmentType = "committed" | "aspirational";
 
 export interface ObjectiveWithDetails extends Omit<ObjectiveRow, 'type' | 'status'> {
   type: ObjectiveType;
@@ -57,6 +58,7 @@ export interface CreateObjectiveInput {
   tags?: string[];
   contributors?: string[];
   editors?: string[];
+  commitment_type?: CommitmentType;
   key_results?: {
     title: string;
     target_value: number;
@@ -82,6 +84,7 @@ export interface UpdateObjectiveInput {
   department?: string;
   owner_department_id?: string;
   tags?: string[];
+  commitment_type?: CommitmentType;
 }
 
 export function useObjectives() {
@@ -194,6 +197,7 @@ export function useCreateObjective() {
         department: input.department || null,
         owner_department_id: input.owner_department_id || null,
         tags: input.tags || null,
+        commitment_type: input.commitment_type || "committed",
         status: "planned",
         progress: 0,
       };

@@ -50,6 +50,16 @@ export function ExecutiveSummary({
     );
   }
 
+  // Average confidence across all KRs that have confidence set
+  const allConfidences = objectives.flatMap((o) =>
+    o.key_results
+      .map((kr) => (kr as { confidence?: number | null }).confidence)
+      .filter((c): c is number => typeof c === "number"),
+  );
+  const avgConfidence = allConfidences.length
+    ? Math.round(allConfidences.reduce((a, b) => a + b, 0) / allConfidences.length)
+    : null;
+
   // Top desvios: objectives with largest gap between expected and actual
   const topDeviations = objectives
     .filter((o) => (o as any).expected_progress > 0)
@@ -149,6 +159,26 @@ export function ExecutiveSummary({
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Confidence inline */}
+      {avgConfidence != null && (
+        <div className="flex items-center gap-2 px-1 text-xs">
+          <Badge
+            variant="outline"
+            className={cn(
+              "gap-1.5 py-1 font-medium",
+              avgConfidence > 70
+                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+                : avgConfidence >= 30
+                  ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-400"
+                  : "border-red-500/40 bg-red-500/10 text-red-400",
+            )}
+          >
+            <span className="font-bold">{avgConfidence}%</span>
+            <span>Confiança média ({allConfidences.length} KRs)</span>
+          </Badge>
+        </div>
       )}
 
       {/* Type breakdown inline */}

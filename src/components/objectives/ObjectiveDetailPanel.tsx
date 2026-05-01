@@ -44,7 +44,19 @@ import { ProgressBarStatus } from "./ProgressBarStatus";
 import { StatusBadge } from "./StatusBadge";
 import { OverdueBadge } from "./OverdueBadge";
 import { AuditHistory } from "./AuditHistory";
-import { ObjectiveWithDetails, ObjectiveType, usePeriods } from "@/hooks/useObjectives";
+import { ObjectiveWithDetails, ObjectiveType, usePeriods, useUpdateObjective, type CommitmentType } from "@/hooks/useObjectives";
+import { CommitmentTypeBadge } from "./CommitmentTypeBadge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { trackEvent } from "@/lib/analytics";
 import { CreateKeyResultDialog } from "./CreateKeyResultDialog";
 import { useCheckins } from "@/hooks/useCheckins";
 import { useRealtimeObjective } from "@/hooks/useRealtimeObjective";
@@ -190,6 +202,7 @@ export function ObjectiveDetailPanel({
               {type.label}
             </Badge>
             <StatusBadge status={autoStatus} />
+            <CommitmentEditor objective={objective} />
           </div>
 
           <div className="flex items-center justify-between gap-2">
@@ -321,6 +334,7 @@ function OperationalContent({
     kr_type: (kr as any).kr_type,
     direction: (kr as any).direction,
     owner_user_id: (kr as any).owner_user_id,
+    confidence: (kr as { confidence?: number | null }).confidence ?? null,
     periodStart: period?.start_date,
     periodEnd: period?.end_date,
   }));
@@ -702,6 +716,59 @@ function ObjectiveActionsTab({ objectiveId }: { objectiveId: string }) {
         />
       )}
     </div>
+  );
+}
+
+function CommitmentEditor({ objective }: { objective: ObjectiveWithDetails }) {
+  const updateObjective = useUpdateObjective();
+  const current = ((objective as { commitment_type?: string }).commitment_type ?? "committed") as CommitmentType;
+  const [pending, setPending] = useState<CommitmentType | null>(null);
+
+  const handleClick = () => {
+    const next: CommitmentType = current === "committed" ? "aspirational" : "committed";
+    setPending(next);
+  };
+
+  const handleConfirm = async () => {
+    if (!pending) return;
+    try {
+      await updateObjective.mutateAsync({ id: objective.id, commitment_type: pending });
+      trackEvent("objective_commitment_type_changed", {
+        objective_id: objective.id,
+        commitment_type: pending,
+      });
+      toast.success(
+        pending === "aspirational"
+          ? "Objetivo marcado como Aspirational (Moonshot)"
+          : "Objetivo marcado como Committed",
+      );
+    } catch (err) {
+      toast.error(`Erro ao atualizar tipo: ${(err as Error).message}`);
+    } finally {
+      setPending(null);
+    }
+  };
+
+  return (
+    <>
+      <button type="button" onClick={handleClick} title="Alterar tipo de comprometimento">
+        <CommitmentTypeBadge value={current} className="cursor-pointer hover:opacity-80" />
+      </button>
+      <AlertDialog open={!!pending} onOpenChange={(open) => !open && setPending(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alterar tipo de comprometimento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso afeta cálculo de média geral. Continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirm}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 

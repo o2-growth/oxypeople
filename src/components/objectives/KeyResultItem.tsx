@@ -17,6 +17,7 @@ import {
   ListTodo,
 } from "lucide-react";
 import { CheckinDialog } from "./CheckinDialog";
+import { KrConfidenceSlider } from "./KrConfidenceSlider";
 import { ProgressBarStatus } from "./ProgressBarStatus";
 import { OverdueBadge } from "./OverdueBadge";
 import { ProgressChart } from "./ProgressChart";
@@ -40,6 +41,7 @@ export interface KeyResult {
   kr_type?: string;
   direction?: string;
   owner_user_id?: string | null;
+  confidence?: number | null;
   owner?: {
     id: string;
     full_name: string | null;
@@ -140,6 +142,14 @@ export function KeyResultItem({ keyResult, canEdit = false, expandable = true }:
               </AvatarFallback>
             </Avatar>
           )}
+
+          <KrConfidenceSlider
+            keyResultId={keyResult.id}
+            value={keyResult.confidence ?? null}
+            canEdit={canEdit}
+            compact
+            className="shrink-0"
+          />
 
           {canEdit && keyResult.objective_id && (
             <Button
