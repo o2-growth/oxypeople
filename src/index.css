@@ -2,135 +2,224 @@
 @tailwind components;
 @tailwind utilities;
 
-/* People Hub — Premium SaaS Design System
- * Inspired by Ticto, Linear, Stripe, Vercel
- * Indigo-Violet primary palette with cyan accents
- * Clean, premium, trustworthy
- */
+/* @do-not-modify-without-reading docs/design-system-migration.md */
+
+/* ============================================================================
+ * Oxy People × O2 Editorial Design System — Foundation (Phase 1)
+ * ----------------------------------------------------------------------------
+ * Author: Aria (System Architect) + Dex (implementer). Visual map by Uma.
+ * Strategy: ADR-DS-001 — repaint shadcn HSL vars in place (no parallel hex
+ *   token system as primary source). All shadcn vars MUST stay in the
+ *   `H S% L%` triplet format so `hsl(var(--x) / <alpha>)` keeps working
+ *   across 15+ opacity-scaling sites.
+ *
+ * IMPORTANT: NEVER write hex values into the shadcn vars below
+ *   (e.g. `--primary: #63F161`). It silently breaks every `bg-primary/10`,
+ *   `bg-accent/50`, `border-border/50` utility across the codebase.
+ *   See ADR-DS-001 / ADR-DS-002 in the migration doc.
+ *
+ * Theme strategy (ADR-DS-003): keep `class="dark"` toggle (Tailwind), do
+ * NOT switch to `data-theme`. Default theme remains "system" (next-themes)
+ * — we honor the OS preference rather than forcing dark, even though the
+ * O2 spec defaults to dark. This is a deliberate UX call.
+ *
+ * Border tokens (ADR-DS-005): `--border` and `--input` are solid HSL
+ * lookalikes of the spec's rgba(255,255,255,0.10), so `border-border/50`
+ * keeps rendering. The 5 hand-rewritten primitives use `--o2-border` for
+ * spec-perfect alpha.
+ * ============================================================================ */
 
 @layer base {
   :root {
-    /* Core surfaces */
-    --background: 150 10% 97%;
-    --foreground: 160 30% 8%;
-    
-    /* Cards */
-    --card: 0 0% 100%;
-    --card-foreground: 160 30% 8%;
-    
-    /* Popovers */
+    /* ---------- shadcn HSL vars (LIGHT mode) — repainted with O2 Lima/Ink */
+
+    /* Core surfaces — Off White / Pure White / Ink */
+    --background: 60 9% 98%;          /* #FBFBFA — O2 --bg light */
+    --foreground: 0 0% 7%;            /* #111111 — O2 --fg light */
+
+    /* Cards — pure white elevation */
+    --card: 0 0% 100%;                /* #FFFFFF — O2 --bg-elev light */
+    --card-foreground: 0 0% 7%;
+
+    /* Popovers — white */
     --popover: 0 0% 100%;
-    --popover-foreground: 160 30% 8%;
-    
-    /* Primary — Deep emerald */
-    --primary: 152 60% 36%;
-    --primary-foreground: 0 0% 100%;
-    
-    /* Secondary */
-    --secondary: 150 10% 95%;
-    --secondary-foreground: 160 30% 8%;
-    
-    /* Muted */
-    --muted: 150 10% 95%;
-    --muted-foreground: 160 10% 45%;
-    
-    /* Accent — subtle surface for hover states */
-    --accent: 150 12% 93%;
-    --accent-foreground: 160 30% 8%;
-    
-    /* Destructive */
+    --popover-foreground: 0 0% 7%;
+
+    /* Primary — Lima 500 (light mode accent for max contrast on white) */
+    --primary: 138 100% 42%;          /* #00D842 — Lima 500 */
+    --primary-foreground: 0 0% 100%;  /* white text on Lima 500 */
+
+    /* Secondary — soft neutral elevation */
+    --secondary: 60 4% 95%;           /* #F4F4F3 — O2 --bg-elev-2 light */
+    --secondary-foreground: 0 0% 7%;
+
+    /* Muted — same as secondary; used for skeletons/table footers */
+    --muted: 60 4% 95%;
+    --muted-foreground: 0 0% 33%;     /* #555555 — O2 --fg-muted light */
+
+    /* Accent (shadcn semantics: hover SURFACE, not brand) — neutral elevation */
+    --accent: 60 4% 95%;              /* hover surfaces, NOT Lima */
+    --accent-foreground: 0 0% 7%;
+
+    /* Destructive — kept as shadcn red (no O2 token defined) */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    
-    /* Success */
-    --success: 142 71% 45%;
+
+    /* Success — DEPRECATED in v1.1; kept for back-compat with current callers */
+    --success: 138 100% 42%;          /* aligned to Lima 500 */
     --success-foreground: 0 0% 100%;
-    
-    /* Warning */
+
+    /* Warning — DEPRECATED in v1.1; out of O2 spec, kept as-is */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
-    
-    /* Borders */
-    --border: 150 10% 90%;
-    --input: 150 10% 90%;
-    --ring: 152 60% 36%;
-    
-    --radius: 0.75rem;
-    
-    /* Sidebar */
-    --sidebar-background: 160 30% 6%;
-    --sidebar-foreground: 150 15% 92%;
-    --sidebar-primary: 152 60% 42%;
+
+    /* Borders — solid HSL lookalike of rgba(0,0,0,0.08) over off-white */
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 138 100% 42%;             /* focus ring = Lima 500 */
+
+    --radius: 0.75rem;                /* shadcn default — keep */
+
+    /* Sidebar (light) — light cards with Lima active */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 33%;
+    --sidebar-primary: 138 100% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 20% 12%;
-    --sidebar-accent-foreground: 150 15% 92%;
-    --sidebar-border: 160 15% 14%;
-    --sidebar-ring: 152 60% 42%;
-    
-    /* Gradients — green tones */
-    --gradient-primary: linear-gradient(135deg, hsl(152 60% 32%) 0%, hsl(170 55% 40%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(170 55% 40%) 0%, hsl(185 50% 45%) 100%);
+    --sidebar-accent: 60 4% 95%;
+    --sidebar-accent-foreground: 0 0% 7%;
+    --sidebar-border: 0 0% 88%;
+    --sidebar-ring: 138 100% 42%;
+
+    /* ---------- O2 alias layer (additive — primary source of truth for new code)
+     * These resolve to the shadcn vars above so changing one place updates both.
+     * Hand-rewritten primitives (Phase 2+) consume these directly. */
+    --o2-bg:            hsl(var(--background));
+    --o2-bg-elev:       hsl(var(--card));
+    --o2-bg-elev-2:     hsl(var(--secondary));
+    --o2-surface:       hsl(var(--accent));
+    --o2-fg:            hsl(var(--foreground));
+    --o2-fg-muted:      hsl(var(--muted-foreground));
+    --o2-fg-subtle:     hsl(var(--muted-foreground) / 0.7);
+    --o2-accent:        hsl(var(--primary));
+    --o2-accent-ink:    hsl(var(--primary-foreground));
+    --o2-accent-soft:   hsl(var(--primary) / 0.14);
+    --o2-border:        rgba(0, 0, 0, 0.08);
+    --o2-border-strong: rgba(0, 0, 0, 0.18);
+
+    /* Convenience kebab aliases (matching Uma's specs in design-system-visual-map.md) */
+    --bg:           var(--o2-bg);
+    --bg-elev:      var(--o2-bg-elev);
+    --bg-elev-2:    var(--o2-bg-elev-2);
+    --surface:      var(--o2-surface);
+    --fg:           var(--o2-fg);
+    --fg-muted:     var(--o2-fg-muted);
+    --fg-subtle:    var(--o2-fg-subtle);
+    --accent-soft:  var(--o2-accent-soft);
+    --accent-ink:   var(--o2-accent-ink);
+    --border-strong: var(--o2-border-strong);
+
+    /* Brand palette (raw hex — for explicit cases like SVG fills, gradient stops) */
+    --lima-400: #63F161;
+    --lima-500: #00D842;
+    --lima-600: #00B038;
+    --ink-900:  #212121;
+    --ink-700:  #494949;
+    --ink-500:  #676767;
+    --ink-300:  #AAAAAA;
+    --ink-200:  #BFBFBF;
+    --ink-150:  #EAEAEA;
+
+    /* Forma — extends shadcn's --radius (0.75rem ≈ 12px) */
+    --radius-sm:   8px;
+    --radius-lg:   20px;
+    --radius-pill: 999px;
+
+    /* Motion + layout */
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --container: 1320px;
+
+    /* Typography tokens (consumed via Tailwind `font-display/body/mono` AND raw CSS) */
+    --font-display: 'Tusker Grotesk', 'Anton', 'Barlow Condensed', 'Impact', sans-serif;
+    --font-body:    'Montserrat', system-ui, -apple-system, sans-serif;
+    --font-mono:    'JetBrains Mono', 'Consolas', 'Menlo', monospace;
+
+    /* Gradients — DEPRECATED v1.1 (still consumed by `bg-gradient-*` utils +
+     * .objectives-page-bg + .hero-header). Aligned to Lima where possible
+     * to avoid emerald/Lima clash; full removal scheduled in PR posterior. */
+    --gradient-primary: linear-gradient(135deg, hsl(138 100% 42%) 0%, hsl(135 100% 35%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(138 100% 42%) 0%, hsl(119 84% 66%) 100%);
     --gradient-warm: linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(25 95% 53%) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(152 60% 36%) 0%, hsl(170 55% 40%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(160 40% 12%) 0%, hsl(152 55% 28%) 40%, hsl(170 50% 35%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(138 100% 42%) 0%, hsl(135 100% 35%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(0 0% 13%) 0%, hsl(0 0% 18%) 40%, hsl(0 0% 23%) 100%);
     --gradient-glass: linear-gradient(135deg, hsla(0, 0%, 100%, 0.1) 0%, hsla(0, 0%, 100%, 0.05) 100%);
-    --gradient-progress: linear-gradient(90deg, hsl(170 55% 40%), hsl(152 60% 36%));
-    --gradient-page: linear-gradient(135deg, hsl(150 10% 97%) 0%, hsl(150 15% 95%) 100%);
-    
-    /* Shadows — soft, layered depth */
-    --shadow-sm: 0 1px 2px 0 hsla(160, 30%, 8%, 0.04);
-    --shadow-md: 0 4px 12px -2px hsla(160, 30%, 8%, 0.08);
-    --shadow-lg: 0 8px 24px -4px hsla(160, 30%, 8%, 0.08);
-    --shadow-xl: 0 20px 40px -8px hsla(160, 30%, 8%, 0.1);
-    --shadow-glow: 0 0 24px hsla(152, 60%, 36%, 0.25);
-    --shadow-accent-glow: 0 0 24px hsla(170, 55%, 40%, 0.3);
+    --gradient-progress: linear-gradient(90deg, hsl(119 84% 66%), hsl(138 100% 42%));
+    --gradient-page: linear-gradient(135deg, hsl(60 9% 98%) 0%, hsl(60 4% 95%) 100%);
+
+    /* Shadows — neutralized to ink (was emerald-tinted) */
+    --shadow-sm: 0 1px 2px 0 hsla(0, 0%, 0%, 0.04);
+    --shadow-md: 0 4px 12px -2px hsla(0, 0%, 0%, 0.08);
+    --shadow-lg: 0 8px 24px -4px hsla(0, 0%, 0%, 0.08);
+    --shadow-xl: 0 20px 40px -8px hsla(0, 0%, 0%, 0.1);
+    --shadow-glow: 0 0 24px hsla(138, 100%, 42%, 0.25);
+    --shadow-accent-glow: 0 0 24px hsla(119, 84%, 66%, 0.3);
   }
 
   .dark {
-    --background: 160 20% 7%;
-    --foreground: 150 15% 95%;
-    
-    --card: 160 15% 11%;
-    --card-foreground: 150 15% 95%;
-    
-    --popover: 160 15% 12%;
-    --popover-foreground: 150 15% 95%;
-    
-    --primary: 152 60% 42%;
-    --primary-foreground: 0 0% 100%;
-    
-    --secondary: 160 15% 15%;
-    --secondary-foreground: 150 10% 88%;
-    
-    --muted: 160 15% 14%;
-    --muted-foreground: 150 8% 50%;
-    
-    --accent: 160 15% 17%;
-    --accent-foreground: 150 10% 90%;
-    
+    /* ---------- shadcn HSL vars (DARK mode) — repainted with O2 Lima/Ink */
+
+    --background: 0 0% 23%;           /* #3A3A3A — O2 --bg dark */
+    --foreground: 0 0% 98%;           /* #FAFAFA — O2 --fg dark */
+
+    --card: 0 0% 18%;                 /* #2E2E2E — O2 --bg-elev dark */
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 13%;              /* #212121 — Ink 900 (deeper than card) */
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 119 84% 66%;           /* #63F161 — Lima 400 (dark mode accent) */
+    --primary-foreground: 0 0% 4%;    /* near-black ink on Lima for legibility */
+
+    --secondary: 0 0% 18%;            /* mirror of --card */
+    --secondary-foreground: 0 0% 77%; /* #C4C4C4 — fg-muted */
+
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 60%;     /* #9A9A9A — fg-subtle */
+
+    /* shadcn accent = hover surface, NOT brand. Neutral elevation. */
+    --accent: 0 0% 29%;               /* #4A4A4A — surface */
+    --accent-foreground: 0 0% 98%;
+
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
-    
-    --success: 142 71% 48%;
-    --success-foreground: 0 0% 100%;
-    
+
+    --success: 119 84% 66%;
+    --success-foreground: 0 0% 4%;
+
     --warning: 38 92% 55%;
     --warning-foreground: 0 0% 100%;
-    
-    --border: 160 12% 18%;
-    --input: 160 12% 18%;
-    --ring: 152 60% 42%;
-    
-    --sidebar-background: 160 25% 5%;
-    --sidebar-foreground: 150 10% 90%;
-    --sidebar-primary: 152 60% 42%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 15% 12%;
-    --sidebar-accent-foreground: 150 10% 90%;
-    --sidebar-border: 160 12% 13%;
-    --sidebar-ring: 152 60% 42%;
-    
-    --gradient-page: linear-gradient(135deg, hsl(160 20% 7%) 0%, hsl(160 15% 9%) 100%);
+
+    /* Solid HSL lookalike of rgba(255,255,255,0.10) over #3A3A3A — preserves
+     * `border-border/50` legibility per ADR-DS-005 */
+    --border: 0 0% 30%;
+    --input: 0 0% 30%;
+    --ring: 119 84% 66%;
+
+    /* Sidebar — Ink 900 (darker than page) */
+    --sidebar-background: 0 0% 13%;
+    --sidebar-foreground: 0 0% 77%;
+    --sidebar-primary: 119 84% 66%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 0 0% 18%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 30%;
+    --sidebar-ring: 119 84% 66%;
+
+    /* Border alpha aliases for hand-rewritten primitives */
+    --o2-border:        rgba(255, 255, 255, 0.10);
+    --o2-border-strong: rgba(255, 255, 255, 0.20);
+
+    /* Page gradient — neutral inks, no green tint */
+    --gradient-page: linear-gradient(135deg, hsl(0 0% 23%) 0%, hsl(0 0% 18%) 100%);
   }
 }
 
@@ -145,6 +234,7 @@
 
   body {
     @apply bg-background text-foreground antialiased text-base leading-relaxed;
+    font-family: var(--font-body);
     font-feature-settings: "rlig" 1, "calt" 1;
     background-image: var(--gradient-page);
     background-attachment: fixed;
@@ -178,19 +268,39 @@
     @apply outline-none ring-2 ring-ring/50 ring-offset-2 ring-offset-background;
   }
   
+  /* Display headings — O2 editorial.
+   * Visual weight comes from the condensed display family (Tusker/Anton/
+   * Barlow Condensed), not from `font-weight`. We set 400 explicitly to
+   * avoid synthetic-bold artifacts when Anton (single weight) is used as
+   * fallback. Component-level overrides may still set explicit weights. */
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.005em;
+    font-weight: 400;
+  }
+
   h1 {
-    @apply font-heading font-bold tracking-tight text-4xl lg:text-5xl;
+    @apply text-4xl lg:text-5xl;
+    line-height: 0.96;
   }
-  
+
   h2 {
-    @apply font-heading font-semibold tracking-tight text-2xl lg:text-3xl;
+    @apply text-2xl lg:text-3xl;
+    line-height: 1.0;
   }
-  
+
   h3 {
-    @apply font-heading font-semibold tracking-tight text-xl;
+    @apply text-xl;
+    line-height: 1.05;
   }
-  
-  h4, h5, h6 {
+
+  h4 {
+    @apply text-base;
+    line-height: 1.1;
+  }
+
+  h5, h6 {
     @apply font-heading font-medium tracking-tight text-base;
   }
   

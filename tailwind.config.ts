@@ -15,9 +15,15 @@ export default {
     },
     extend: {
       fontFamily: {
+        // Legacy aliases — preserved during Phase 1 to avoid touching components.
+        // PR posterior (Phase 2) consolidates `sans → body` and `heading → display`.
         sans: ['Inter', 'system-ui', 'sans-serif'],
         heading: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        // O2 brand typography (foundation — Phase 1)
+        // Tusker Grotesk pendente de self-host (.woff2). Fallback: Anton + Barlow Condensed.
+        display: ['"Tusker Grotesk"', 'Anton', '"Barlow Condensed"', 'Impact', 'sans-serif'],
+        body: ['Montserrat', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'Consolas', 'Menlo', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",

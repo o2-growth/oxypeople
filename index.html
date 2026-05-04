@@ -8,9 +8,17 @@
     <meta name="author" content="Oxy People" />
 
     <!-- Fonts -->
+    <!--
+      O2 Brand Typography (Phase 1 - Design System Migration)
+      - display: Tusker Grotesk (TODO: self-host .woff2 from O2 Drive). Anton + Barlow Condensed are loaded as visually compatible fallbacks until Tusker is installed.
+      - body: Montserrat
+      - mono: JetBrains Mono (300-600)
+      Inter + Space Grotesk are intentionally retained for back-compat during the migration; remove in a follow-up PR once no consumer references them.
+      See: docs/design-system-migration.md (§ 5)
+    -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&family=Montserrat:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Open Graph -->
     <meta property="og:title" content="Oxy People - Gestão de Pessoas" />
