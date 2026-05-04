@@ -17,6 +17,8 @@ import {
   Briefcase,
   MessageSquareQuote,
   Inbox,
+  Send,
+  Sparkles,
   LogOut,
   User,
   Moon,
@@ -68,6 +70,8 @@ const engagementItems = [
   { title: "Objetivos", url: "/objectives", icon: Target },
   { title: "Pedir feedback", url: "/feedback/new", icon: MessageSquareQuote },
   { title: "Inbox feedback", url: "/feedback/inbox", icon: Inbox },
+  { title: "Pedidos enviados", url: "/feedback/sent", icon: Send },
+  { title: "Sobre mim", url: "/feedback/about-me", icon: Sparkles },
   { title: "Desempenho", url: "/performance", icon: ClipboardCheck },
   { title: "Gamificação", url: "/gamification", icon: Gamepad2 },
 ];
