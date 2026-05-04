@@ -71,6 +71,22 @@ export function validateRequesterRules(
   return { ok: true };
 }
 
+export const feedbackResponseSchema = z.object({
+  response: z
+    .string()
+    .min(50, "Resposta precisa de pelo menos 50 caracteres")
+    .max(5000, "Máximo 5000 caracteres"),
+});
+export type FeedbackResponseValues = z.infer<typeof feedbackResponseSchema>;
+
+export const feedbackDeclineSchema = z.object({
+  declined_reason: z
+    .string()
+    .min(10, "Motivo precisa de pelo menos 10 caracteres")
+    .max(500, "Máximo 500 caracteres"),
+});
+export type FeedbackDeclineValues = z.infer<typeof feedbackDeclineSchema>;
+
 export const DEFAULT_FEEDBACK_FORM: FeedbackRequestFormValues = {
   subject_user_id: "",
   respondent_id: "",

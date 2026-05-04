@@ -3,6 +3,8 @@ import {
   feedbackRequestSchema,
   validateRequesterRules,
   DEFAULT_FEEDBACK_FORM,
+  feedbackResponseSchema,
+  feedbackDeclineSchema,
 } from "./feedbackRequestSchema";
 
 const VALID = {
@@ -103,5 +105,41 @@ describe("validateRequesterRules", () => {
   it("passes when requester != subject and requester != respondent", () => {
     const r = validateRequesterRules(VALID, REQUESTER);
     expect(r.ok).toBe(true);
+  });
+});
+
+describe("feedbackResponseSchema", () => {
+  it("rejects response < 50 chars", () => {
+    expect(feedbackResponseSchema.safeParse({ response: "curto" }).success).toBe(false);
+  });
+
+  it("accepts response >= 50 chars", () => {
+    expect(
+      feedbackResponseSchema.safeParse({ response: "a".repeat(50) }).success,
+    ).toBe(true);
+  });
+
+  it("rejects response > 5000 chars", () => {
+    expect(
+      feedbackResponseSchema.safeParse({ response: "a".repeat(5001) }).success,
+    ).toBe(false);
+  });
+});
+
+describe("feedbackDeclineSchema", () => {
+  it("rejects reason < 10 chars", () => {
+    expect(feedbackDeclineSchema.safeParse({ declined_reason: "curto" }).success).toBe(false);
+  });
+
+  it("accepts reason >= 10 chars", () => {
+    expect(
+      feedbackDeclineSchema.safeParse({ declined_reason: "Motivo válido aqui" }).success,
+    ).toBe(true);
+  });
+
+  it("rejects reason > 500 chars", () => {
+    expect(
+      feedbackDeclineSchema.safeParse({ declined_reason: "a".repeat(501) }).success,
+    ).toBe(false);
   });
 });

@@ -16,6 +16,7 @@ import {
   Gamepad2,
   Briefcase,
   MessageSquareQuote,
+  Inbox,
   LogOut,
   User,
   Moon,
@@ -66,6 +67,7 @@ const engagementItems = [
   { title: "Reconhecimentos", url: "/recognition", icon: Trophy },
   { title: "Objetivos", url: "/objectives", icon: Target },
   { title: "Pedir feedback", url: "/feedback/new", icon: MessageSquareQuote },
+  { title: "Inbox feedback", url: "/feedback/inbox", icon: Inbox },
   { title: "Desempenho", url: "/performance", icon: ClipboardCheck },
   { title: "Gamificação", url: "/gamification", icon: Gamepad2 },
 ];
