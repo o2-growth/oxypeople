@@ -2114,6 +2114,137 @@ export type Database = {
           },
         ]
       }
+      // NOTE: pulse_responses added manually for pending migration 20260504050438_pulse_survey.
+      pulse_responses: {
+        Row: {
+          comment: string | null
+          created_at: string
+          emoji: string | null
+          id: string
+          period_start: string
+          pulse_survey_id: string
+          score: number
+          user_id: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          period_start: string
+          pulse_survey_id: string
+          score: number
+          user_id?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          period_start?: string
+          pulse_survey_id?: string
+          score?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pulse_responses_pulse_survey_id_fkey"
+            columns: ["pulse_survey_id"]
+            isOneToOne: false
+            referencedRelation: "pulse_surveys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pulse_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      // NOTE: pulse_surveys added manually for pending migration 20260504050438_pulse_survey.
+      pulse_surveys: {
+        Row: {
+          active: boolean
+          anonymous: boolean
+          company_id: string
+          created_at: string
+          created_by: string
+          day_of_month: number | null
+          day_of_week: number | null
+          frequency: string
+          id: string
+          last_dispatched_at: string | null
+          name: string
+          question: string
+          question_type: string
+          require_comment_below: number | null
+          send_hour_utc: number
+          target_all: boolean
+          target_departments: string[] | null
+          target_teams: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          anonymous?: boolean
+          company_id: string
+          created_at?: string
+          created_by: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          frequency: string
+          id?: string
+          last_dispatched_at?: string | null
+          name: string
+          question: string
+          question_type?: string
+          require_comment_below?: number | null
+          send_hour_utc?: number
+          target_all?: boolean
+          target_departments?: string[] | null
+          target_teams?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          anonymous?: boolean
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          frequency?: string
+          id?: string
+          last_dispatched_at?: string | null
+          name?: string
+          question?: string
+          question_type?: string
+          require_comment_below?: number | null
+          send_hour_utc?: number
+          target_all?: boolean
+          target_departments?: string[] | null
+          target_teams?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pulse_surveys_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pulse_surveys_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           author_id: string
