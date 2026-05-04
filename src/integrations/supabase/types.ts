@@ -1083,6 +1083,130 @@ export type Database = {
           },
         ]
       }
+      // NOTE: nine_box_placements added manually for migration 20260504055126_nine_box.
+      nine_box_placements: {
+        Row: {
+          created_at: string
+          id: string
+          justification: string | null
+          performance_axis: number
+          performance_source: string
+          placed_by: string
+          potential_axis: number
+          raw_evaluation_score: number | null
+          snapshot_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          justification?: string | null
+          performance_axis: number
+          performance_source?: string
+          placed_by: string
+          potential_axis: number
+          raw_evaluation_score?: number | null
+          snapshot_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          justification?: string | null
+          performance_axis?: number
+          performance_source?: string
+          placed_by?: string
+          potential_axis?: number
+          raw_evaluation_score?: number | null
+          snapshot_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nine_box_placements_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "nine_box_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nine_box_placements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nine_box_placements_placed_by_fkey"
+            columns: ["placed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      // NOTE: nine_box_snapshots added manually for migration 20260504055126_nine_box.
+      nine_box_snapshots: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          cycle_id: string | null
+          finalized_at: string | null
+          id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          cycle_id?: string | null
+          finalized_at?: string | null
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          cycle_id?: string | null
+          finalized_at?: string | null
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nine_box_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nine_box_snapshots_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "performance_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nine_box_snapshots_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           company_id: string

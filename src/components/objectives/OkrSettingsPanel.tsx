@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Settings2, Save, CalendarRange, ArrowRight, Siren, Network, Activity } from "lucide-react";
+import { Settings2, Save, CalendarRange, ArrowRight, Siren, Network, Activity, Grid3X3 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useOkrSettings, useUpdateOkrSettings } from "@/hooks/useCheckins";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -143,6 +143,28 @@ export function OkrSettingsPanel() {
               </div>
               <Button asChild variant="outline" size="sm" className="gap-1.5">
                 <Link to="/admin/pulse-surveys">
+                  Gerenciar
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-purple-500/10">
+                  <Grid3X3 className="h-5 w-5 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Nine Box</p>
+                  <p className="text-xs text-muted-foreground">
+                    Calibração de talentos por performance × potencial em matriz 3×3.
+                  </p>
+                </div>
+              </div>
+              <Button asChild variant="outline" size="sm" className="gap-1.5">
+                <Link to="/admin/nine-box">
                   Gerenciar
                   <ArrowRight className="h-4 w-4" />
                 </Link>

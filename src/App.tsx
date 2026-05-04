@@ -33,6 +33,8 @@ const InvitationsAdmin = lazy(() => import("./pages/admin/Invitations"));
 const ManagersAdmin = lazy(() => import("./pages/admin/Managers"));
 const PulseSurveysAdmin = lazy(() => import("./pages/admin/PulseSurveys"));
 const PulseAnalyticsAdmin = lazy(() => import("./pages/admin/PulseAnalytics"));
+const NineBoxAdmin = lazy(() => import("./pages/admin/NineBox"));
+const NineBoxEditorAdmin = lazy(() => import("./pages/admin/NineBoxEditor"));
 const PulsePage = lazy(() => import("./pages/Pulse"));
 const NewFeedbackRequest = lazy(() => import("./pages/feedback/NewFeedbackRequest"));
 const FeedbackInbox = lazy(() => import("./pages/feedback/Inbox"));
@@ -74,6 +76,8 @@ const App = () => (
                   <Route path="/admin/managers" element={<ProtectedRoute><ManagersAdmin /></ProtectedRoute>} />
                   <Route path="/admin/pulse-surveys" element={<ProtectedRoute><PulseSurveysAdmin /></ProtectedRoute>} />
                   <Route path="/admin/pulse-surveys/:id/analytics" element={<ProtectedRoute><PulseAnalyticsAdmin /></ProtectedRoute>} />
+                  <Route path="/admin/nine-box" element={<ProtectedRoute><NineBoxAdmin /></ProtectedRoute>} />
+                  <Route path="/admin/nine-box/:id" element={<ProtectedRoute><NineBoxEditorAdmin /></ProtectedRoute>} />
                   <Route path="/pulse/:id" element={<ProtectedRoute><PulsePage /></ProtectedRoute>} />
                   <Route path="/feedback/new" element={<ProtectedRoute><NewFeedbackRequest /></ProtectedRoute>} />
                   <Route path="/feedback/inbox" element={<ProtectedRoute><FeedbackInbox /></ProtectedRoute>} />
