@@ -12,7 +12,7 @@ export interface UserPermissions {
 
 export function useUserPermissions() {
   const { user } = useAuth();
-  const { profile } = useUser();
+  const { profile, isLoading: profileLoading } = useUser();
   const companyId = profile?.primary_company_id;
 
   // Check if user is admin/owner
@@ -112,7 +112,11 @@ export function useUserPermissions() {
     isTeamLeader,
     ledTeamIds,
     role,
-    isLoading: roleQuery.isLoading || ledTeamsQuery.isLoading,
+    isLoading:
+      profileLoading ||
+      (!!user?.id && !companyId) ||
+      roleQuery.isLoading ||
+      ledTeamsQuery.isLoading,
     canCreateForTeam,
     canCreateForUser,
     canEditObjective,
