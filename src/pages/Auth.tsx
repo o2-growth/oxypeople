@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Button as O2Button } from "@/components/o2/Button";
+import { O2Logo } from "@/components/o2/Logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,8 +103,8 @@ const Auth = () => {
         
         <div className="relative z-10 flex flex-col justify-center px-12 lg:px-16">
           <div className="flex items-center gap-3 mb-8">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-accent-glow">
-              <span className="text-2xl font-bold text-primary-foreground">O₂</span>
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-accent-glow p-2.5">
+              <O2Logo variant="icon" forceTheme="dark" className="h-full w-full" />
             </div>
             <div>
               <h1 className="text-3xl font-heading font-bold text-white">Oxy People</h1>
@@ -145,8 +146,8 @@ const Auth = () => {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="flex lg:hidden items-center gap-3 mb-8 justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-accent-glow">
-              <span className="text-xl font-bold text-primary-foreground">O₂</span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-accent-glow p-2">
+              <O2Logo variant="icon" forceTheme="dark" className="h-full w-full" />
             </div>
             <span className="text-2xl font-heading font-bold">Oxy People</span>
           </div>

@@ -57,6 +57,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/hooks/useUser";
 import { useAuth } from "@/contexts/AuthContext";
+import { O2Logo } from "@/components/o2/Logo";
 
 const mainNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -204,13 +205,10 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border p-3">
         <div className="flex items-center justify-center gap-3">
           <div className={cn(
-            "flex items-center justify-center rounded-xl bg-primary shadow-[0_0_15px_hsla(142,71%,50%,0.5)] transition-all animate-pulse-soft",
+            "flex items-center justify-center rounded-xl bg-primary shadow-[0_0_15px_hsla(138,100%,42%,0.5)] transition-all animate-pulse-soft p-1.5",
             collapsed ? "h-9 w-9" : "h-10 w-10"
           )}>
-            <span className={cn(
-              "font-bold text-primary-foreground",
-              collapsed ? "text-base" : "text-lg"
-            )}>O₂</span>
+            <O2Logo variant="icon" forceTheme="dark" className={cn(collapsed ? "h-5 w-5" : "h-6 w-6")} alt="O2" />
           </div>
           {!collapsed && (
             <div className="flex flex-col">
