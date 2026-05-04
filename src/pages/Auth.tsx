@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Button as O2Button } from "@/components/o2/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -226,9 +227,9 @@ const Auth = () => {
                   </div>
                 </div>
 
-                <Button
+                <O2Button
                   type="submit"
-                  className="w-full gap-2 bg-primary hover:bg-primary/90 transition-all hover:shadow-glow"
+                  variant="primary"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -239,7 +240,7 @@ const Auth = () => {
                       <ArrowRight className="h-4 w-4" />
                     </>
                   )}
-                </Button>
+                </O2Button>
               </form>
 
               <div className="mt-6">

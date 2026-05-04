@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { StatCard } from "@/components/dashboard/StatCard";
+import { StatCard } from "@/components/o2/StatCard";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { EngagementChart } from "@/components/dashboard/EngagementChart";
