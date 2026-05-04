@@ -31,7 +31,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus, Pencil, Trash2, Loader2, Activity, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Activity, EyeOff, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import {
   usePulseSurveysAdmin,
@@ -223,7 +223,17 @@ export default function PulseSurveysAdminPage() {
                               size="icon"
                               variant="ghost"
                               className="h-8 w-8"
+                              onClick={() => navigate(`/admin/pulse-surveys/${s.id}/analytics`)}
+                              title="Ver resultados"
+                            >
+                              <BarChart3 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
                               onClick={() => openEdit(s)}
+                              title="Editar"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -232,6 +242,7 @@ export default function PulseSurveysAdminPage() {
                               variant="ghost"
                               className="h-8 w-8 text-muted-foreground hover:text-destructive"
                               onClick={() => setDeleteTarget(s)}
+                              title="Remover"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
