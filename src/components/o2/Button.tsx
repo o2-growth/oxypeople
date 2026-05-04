@@ -31,8 +31,8 @@ const o2ButtonVariants = cva(
     "transition-[transform,filter,background-color,border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
     // active press
     "active:translate-y-[1px]",
-    // a11y
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]",
+    // a11y (uses shadcn `--primary` which Phase 1 mapped to Lima)
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     // disabled
     "disabled:pointer-events-none disabled:opacity-50",
     // mobile-first: full width by default, auto from sm
@@ -43,13 +43,15 @@ const o2ButtonVariants = cva(
   {
     variants: {
       variant: {
+        // shadcn `--accent` is HOVER SURFACE (neutral), NOT brand.
+        // Lima brand color lives in `--primary` (mapped in Phase 1).
         primary: [
-          "bg-[var(--accent)] text-[var(--accent-ink)] border-transparent",
+          "bg-primary text-primary-foreground border-transparent",
           "hover:brightness-110",
         ].join(" "),
         ghost: [
-          "bg-transparent text-[var(--fg)] border-[var(--border-strong)]",
-          "hover:bg-[var(--bg-elev)] hover:border-[var(--fg-muted)]",
+          "bg-transparent text-foreground border border-border",
+          "hover:bg-muted hover:border-muted-foreground/40",
         ].join(" "),
       },
       size: {
