@@ -32,6 +32,7 @@ const OkrEscalationAdmin = lazy(() => import("./pages/admin/OkrEscalation"));
 const InvitationsAdmin = lazy(() => import("./pages/admin/Invitations"));
 const ManagersAdmin = lazy(() => import("./pages/admin/Managers"));
 const PulseSurveysAdmin = lazy(() => import("./pages/admin/PulseSurveys"));
+const PulsePage = lazy(() => import("./pages/Pulse"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -66,6 +67,7 @@ const App = () => (
                   <Route path="/admin/invitations" element={<ProtectedRoute><InvitationsAdmin /></ProtectedRoute>} />
                   <Route path="/admin/managers" element={<ProtectedRoute><ManagersAdmin /></ProtectedRoute>} />
                   <Route path="/admin/pulse-surveys" element={<ProtectedRoute><PulseSurveysAdmin /></ProtectedRoute>} />
+                  <Route path="/pulse/:id" element={<ProtectedRoute><PulsePage /></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </TracedRoutes>
               </Suspense>

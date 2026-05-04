@@ -14,6 +14,7 @@ import { EngagementDetailDialog } from "@/components/dashboard/EngagementDetailD
 import { OKRStatusSummary } from "@/components/dashboard/OKRStatusSummary";
 import { NPSPerformanceRow } from "@/components/dashboard/NPSPerformanceRow";
 import { WeeklyActionsCard } from "@/components/dashboard/WeeklyActionsCard";
+import { PulseWidget } from "@/components/dashboard/PulseWidget";
 import { HeadcountSparkline } from "@/components/dashboard/HeadcountSparkline";
 import { UserGamificationMini } from "@/components/dashboard/UserGamificationMini";
 import { TurnoverMini } from "@/components/dashboard/TurnoverMini";
@@ -131,6 +132,9 @@ const Index = () => {
             ))
           )}
         </div>
+
+        {/* Pulse Widget — só aparece se há pulse pendente para o usuário no período */}
+        <PulseWidget />
 
         {/* Shortcut Cards */}
         <ShortcutCards />
