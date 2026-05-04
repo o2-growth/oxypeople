@@ -15,6 +15,7 @@ import {
   ClipboardCheck,
   Gamepad2,
   Briefcase,
+  MessageSquareQuote,
   LogOut,
   User,
   Moon,
@@ -64,6 +65,7 @@ const mainNavItems = [
 const engagementItems = [
   { title: "Reconhecimentos", url: "/recognition", icon: Trophy },
   { title: "Objetivos", url: "/objectives", icon: Target },
+  { title: "Pedir feedback", url: "/feedback/new", icon: MessageSquareQuote },
   { title: "Desempenho", url: "/performance", icon: ClipboardCheck },
   { title: "Gamificação", url: "/gamification", icon: Gamepad2 },
 ];

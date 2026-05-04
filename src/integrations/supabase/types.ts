@@ -675,6 +675,90 @@ export type Database = {
           },
         ]
       }
+      // NOTE: feedback_requests added manually for migration 20260504052645_feedback_continuo.
+      feedback_requests: {
+        Row: {
+          answered_at: string | null
+          company_id: string
+          competency_tags: Json
+          created_at: string
+          declined_reason: string | null
+          due_date: string | null
+          id: string
+          question: string
+          requester_id: string
+          respondent_id: string
+          response: string | null
+          status: string
+          subject_user_id: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          answered_at?: string | null
+          company_id: string
+          competency_tags?: Json
+          created_at?: string
+          declined_reason?: string | null
+          due_date?: string | null
+          id?: string
+          question: string
+          requester_id: string
+          respondent_id: string
+          response?: string | null
+          status?: string
+          subject_user_id: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          answered_at?: string | null
+          company_id?: string
+          competency_tags?: Json
+          created_at?: string
+          declined_reason?: string | null
+          due_date?: string | null
+          id?: string
+          question?: string
+          requester_id?: string
+          respondent_id?: string
+          response?: string | null
+          status?: string
+          subject_user_id?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_requests_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_requests_subject_user_id_fkey"
+            columns: ["subject_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gamification_levels: {
         Row: {
           badge_emoji: string | null
