@@ -536,8 +536,6 @@ export type Database = {
         ]
       }
       company_memberships: {
-        // NOTE: manager_id added manually for pending migration 20260501003200_add_manager_id.
-        // Will be auto-generated when supabase typegen runs after migration apply.
         Row: {
           company_id: string
           created_at: string
@@ -549,7 +547,6 @@ export type Database = {
           invited_by: string | null
           is_new_hire: boolean | null
           joined_at: string | null
-          manager_id: string | null
           position: string | null
           status: Database["public"]["Enums"]["membership_status"]
           updated_at: string
@@ -566,7 +563,6 @@ export type Database = {
           invited_by?: string | null
           is_new_hire?: boolean | null
           joined_at?: string | null
-          manager_id?: string | null
           position?: string | null
           status?: Database["public"]["Enums"]["membership_status"]
           updated_at?: string
@@ -583,7 +579,6 @@ export type Database = {
           invited_by?: string | null
           is_new_hire?: boolean | null
           joined_at?: string | null
-          manager_id?: string | null
           position?: string | null
           status?: Database["public"]["Enums"]["membership_status"]
           updated_at?: string
@@ -614,13 +609,6 @@ export type Database = {
           {
             foreignKeyName: "company_memberships_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "company_memberships_manager_id_fkey"
-            columns: ["manager_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -669,90 +657,6 @@ export type Database = {
           {
             foreignKeyName: "departments_leader_id_fkey"
             columns: ["leader_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      // NOTE: feedback_requests added manually for migration 20260504052645_feedback_continuo.
-      feedback_requests: {
-        Row: {
-          answered_at: string | null
-          company_id: string
-          competency_tags: Json
-          created_at: string
-          declined_reason: string | null
-          due_date: string | null
-          id: string
-          question: string
-          requester_id: string
-          respondent_id: string
-          response: string | null
-          status: string
-          subject_user_id: string
-          updated_at: string
-          visibility: string
-        }
-        Insert: {
-          answered_at?: string | null
-          company_id: string
-          competency_tags?: Json
-          created_at?: string
-          declined_reason?: string | null
-          due_date?: string | null
-          id?: string
-          question: string
-          requester_id: string
-          respondent_id: string
-          response?: string | null
-          status?: string
-          subject_user_id: string
-          updated_at?: string
-          visibility?: string
-        }
-        Update: {
-          answered_at?: string | null
-          company_id?: string
-          competency_tags?: Json
-          created_at?: string
-          declined_reason?: string | null
-          due_date?: string | null
-          id?: string
-          question?: string
-          requester_id?: string
-          respondent_id?: string
-          response?: string | null
-          status?: string
-          subject_user_id?: string
-          updated_at?: string
-          visibility?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "feedback_requests_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feedback_requests_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feedback_requests_respondent_id_fkey"
-            columns: ["respondent_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feedback_requests_subject_user_id_fkey"
-            columns: ["subject_user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -999,10 +903,8 @@ export type Database = {
         ]
       }
       key_results: {
-        // NOTE: confidence added manually for pending migration 20260501003201_okr_hardening.
         Row: {
           checkin_frequency: string | null
-          confidence: number | null
           created_at: string
           current_value: number
           data_source: string | null
@@ -1024,7 +926,6 @@ export type Database = {
         }
         Insert: {
           checkin_frequency?: string | null
-          confidence?: number | null
           created_at?: string
           current_value?: number
           data_source?: string | null
@@ -1046,7 +947,6 @@ export type Database = {
         }
         Update: {
           checkin_frequency?: string | null
-          confidence?: number | null
           created_at?: string
           current_value?: number
           data_source?: string | null
@@ -1077,130 +977,6 @@ export type Database = {
           {
             foreignKeyName: "key_results_owner_user_id_fkey"
             columns: ["owner_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      // NOTE: nine_box_placements added manually for migration 20260504055126_nine_box.
-      nine_box_placements: {
-        Row: {
-          created_at: string
-          id: string
-          justification: string | null
-          performance_axis: number
-          performance_source: string
-          placed_by: string
-          potential_axis: number
-          raw_evaluation_score: number | null
-          snapshot_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          justification?: string | null
-          performance_axis: number
-          performance_source?: string
-          placed_by: string
-          potential_axis: number
-          raw_evaluation_score?: number | null
-          snapshot_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          justification?: string | null
-          performance_axis?: number
-          performance_source?: string
-          placed_by?: string
-          potential_axis?: number
-          raw_evaluation_score?: number | null
-          snapshot_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "nine_box_placements_snapshot_id_fkey"
-            columns: ["snapshot_id"]
-            isOneToOne: false
-            referencedRelation: "nine_box_snapshots"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "nine_box_placements_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "nine_box_placements_placed_by_fkey"
-            columns: ["placed_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      // NOTE: nine_box_snapshots added manually for migration 20260504055126_nine_box.
-      nine_box_snapshots: {
-        Row: {
-          company_id: string
-          created_at: string
-          created_by: string
-          cycle_id: string | null
-          finalized_at: string | null
-          id: string
-          name: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          company_id: string
-          created_at?: string
-          created_by: string
-          cycle_id?: string | null
-          finalized_at?: string | null
-          id?: string
-          name: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          company_id?: string
-          created_at?: string
-          created_by?: string
-          cycle_id?: string | null
-          finalized_at?: string | null
-          id?: string
-          name?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "nine_box_snapshots_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "nine_box_snapshots_cycle_id_fkey"
-            columns: ["cycle_id"]
-            isOneToOne: false
-            referencedRelation: "performance_cycles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "nine_box_snapshots_created_by_fkey"
-            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1408,72 +1184,6 @@ export type Database = {
           },
         ]
       }
-      // NOTE: objective_comments added manually for pending migration 20260501003201_okr_hardening.
-      objective_comments: {
-        Row: {
-          author_id: string
-          content: string
-          created_at: string
-          edited_at: string | null
-          id: string
-          key_result_id: string | null
-          objective_id: string
-          parent_comment_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          author_id: string
-          content: string
-          created_at?: string
-          edited_at?: string | null
-          id?: string
-          key_result_id?: string | null
-          objective_id: string
-          parent_comment_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          author_id?: string
-          content?: string
-          created_at?: string
-          edited_at?: string | null
-          id?: string
-          key_result_id?: string | null
-          objective_id?: string
-          parent_comment_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "objective_comments_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "objective_comments_objective_id_fkey"
-            columns: ["objective_id"]
-            isOneToOne: false
-            referencedRelation: "objectives"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "objective_comments_key_result_id_fkey"
-            columns: ["key_result_id"]
-            isOneToOne: false
-            referencedRelation: "key_results"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "objective_comments_parent_comment_id_fkey"
-            columns: ["parent_comment_id"]
-            isOneToOne: false
-            referencedRelation: "objective_comments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       objective_relations: {
         Row: {
           child_objective_id: string
@@ -1514,11 +1224,9 @@ export type Database = {
         ]
       }
       objectives: {
-        // NOTE: commitment_type added manually for pending migration 20260501003201_okr_hardening.
         Row: {
           assignee_id: string | null
           auto_status: string | null
-          commitment_type: string
           company_id: string
           created_at: string
           created_by: string
@@ -1546,7 +1254,6 @@ export type Database = {
         Insert: {
           assignee_id?: string | null
           auto_status?: string | null
-          commitment_type?: string
           company_id: string
           created_at?: string
           created_by: string
@@ -1574,7 +1281,6 @@ export type Database = {
         Update: {
           assignee_id?: string | null
           auto_status?: string | null
-          commitment_type?: string
           company_id?: string
           created_at?: string
           created_by?: string
@@ -2318,137 +2024,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      // NOTE: pulse_responses added manually for pending migration 20260504050438_pulse_survey.
-      pulse_responses: {
-        Row: {
-          comment: string | null
-          created_at: string
-          emoji: string | null
-          id: string
-          period_start: string
-          pulse_survey_id: string
-          score: number
-          user_id: string | null
-        }
-        Insert: {
-          comment?: string | null
-          created_at?: string
-          emoji?: string | null
-          id?: string
-          period_start: string
-          pulse_survey_id: string
-          score: number
-          user_id?: string | null
-        }
-        Update: {
-          comment?: string | null
-          created_at?: string
-          emoji?: string | null
-          id?: string
-          period_start?: string
-          pulse_survey_id?: string
-          score?: number
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pulse_responses_pulse_survey_id_fkey"
-            columns: ["pulse_survey_id"]
-            isOneToOne: false
-            referencedRelation: "pulse_surveys"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pulse_responses_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      // NOTE: pulse_surveys added manually for pending migration 20260504050438_pulse_survey.
-      pulse_surveys: {
-        Row: {
-          active: boolean
-          anonymous: boolean
-          company_id: string
-          created_at: string
-          created_by: string
-          day_of_month: number | null
-          day_of_week: number | null
-          frequency: string
-          id: string
-          last_dispatched_at: string | null
-          name: string
-          question: string
-          question_type: string
-          require_comment_below: number | null
-          send_hour_utc: number
-          target_all: boolean
-          target_departments: string[] | null
-          target_teams: string[] | null
-          updated_at: string
-        }
-        Insert: {
-          active?: boolean
-          anonymous?: boolean
-          company_id: string
-          created_at?: string
-          created_by: string
-          day_of_month?: number | null
-          day_of_week?: number | null
-          frequency: string
-          id?: string
-          last_dispatched_at?: string | null
-          name: string
-          question: string
-          question_type?: string
-          require_comment_below?: number | null
-          send_hour_utc?: number
-          target_all?: boolean
-          target_departments?: string[] | null
-          target_teams?: string[] | null
-          updated_at?: string
-        }
-        Update: {
-          active?: boolean
-          anonymous?: boolean
-          company_id?: string
-          created_at?: string
-          created_by?: string
-          day_of_month?: number | null
-          day_of_week?: number | null
-          frequency?: string
-          id?: string
-          last_dispatched_at?: string | null
-          name?: string
-          question?: string
-          question_type?: string
-          require_comment_below?: number | null
-          send_hour_utc?: number
-          target_all?: boolean
-          target_departments?: string[] | null
-          target_teams?: string[] | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pulse_surveys_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pulse_surveys_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
