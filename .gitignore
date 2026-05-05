@@ -31,3 +31,5 @@ dist-ssr
 # Local smoke test artifacts
 .playwright-mcp/
 /*.png
+/scripts/import-*.mjs
+/.local/

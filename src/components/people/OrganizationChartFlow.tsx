@@ -34,10 +34,11 @@ import {
 } from "./org-layout";
 import { orgNodeTypes } from "./orgNodeTypes";
 import { OrgMemberDrawer } from "./OrgMemberDrawer";
+import { OrgListView } from "./OrgListView";
 import { trackEvent } from "@/lib/analytics";
 
 type DepartmentOption = { id: string; name: string };
-type OrgMode = "visual" | "manager";
+type OrgMode = "visual" | "manager" | "list";
 
 interface FlowInnerProps {
   hierarchy: HierarchyNode | null;
@@ -117,6 +118,25 @@ function FlowInner({
   useEffect(() => {
     setNodes(baseGraph.nodes);
   }, [baseGraph]);
+
+  // When search/filter narrows results, zoom into the *direct* matches (not
+  // ancestors/descendants which are also highlighted) so the user lands
+  // exactly on what they typed.
+  useEffect(() => {
+    const hasFilter = search.length > 0 || departmentId !== "all" || scope === "mine";
+    if (!hasFilter || baseGraph.nodes.length === 0) return;
+    const directMatches = baseGraph.nodes.filter((n) => filterMatch(n.data));
+    if (directMatches.length === 0) return;
+    const id = window.setTimeout(() => {
+      reactFlow.fitView({
+        nodes: directMatches.map((n) => ({ id: n.id })),
+        padding: 0.5,
+        duration: 400,
+        maxZoom: 1.2,
+      });
+    }, 80);
+    return () => window.clearTimeout(id);
+  }, [search, departmentId, scope, baseGraph.nodes, reactFlow, filterMatch]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((nds) => {
@@ -203,7 +223,9 @@ function FlowInner({
       nodeTypes={orgNodeTypes}
       onInit={(instance) => {
         flowInstanceRef.current = instance;
-        instance.fitView({ padding: 0.2, duration: 300 });
+        // Larger padding + cap initial zoom so we don't render tiny pinhead
+        // cards when there are many leaves at the same depth.
+        instance.fitView({ padding: 0.35, duration: 300, maxZoom: 0.9 });
       }}
       onNodeClick={handleNodeClick}
       onNodesChange={onNodesChange}
@@ -215,6 +237,7 @@ function FlowInner({
       minZoom={0.2}
       maxZoom={1.5}
       fitView
+      fitViewOptions={{ padding: 0.35, maxZoom: 0.9 }}
     >
       <Background gap={24} size={1} />
       <Controls showInteractive={false} />
@@ -238,7 +261,9 @@ export function OrganizationChartFlow() {
   const { members, isLoading: managersLoading, setManager } = useManagers();
   const { user } = useAuth();
 
-  const [mode, setMode] = useState<OrgMode>("visual");
+  // Default to "list" — much more legible for companies with many people
+  // and works regardless of department/team configuration.
+  const [mode, setMode] = useState<OrgMode>("list");
   const [search, setSearch] = useState("");
   const [departmentId, setDepartmentId] = useState<string>("all");
   const [scope, setScope] = useState<"all" | "mine">("all");
@@ -264,8 +289,15 @@ export function OrganizationChartFlow() {
     );
   }, [members]);
 
+  // Prefer the manager-based hierarchy whenever it exists — it represents the
+  // real chain of command (CEO → C-Level → Heads → Squad leaders → ICs).
+  // Fall back to the dept/team visual hierarchy only when manager_id is empty
+  // for the whole company. The "manager" mode itself stays purely manager-based
+  // since that's where users edit hierarchies via drag-and-drop.
   const activeHierarchy: HierarchyNode | null =
-    mode === "manager" ? managerHierarchy : visualHierarchy ?? null;
+    mode === "manager"
+      ? managerHierarchy
+      : managerHierarchy ?? visualHierarchy ?? null;
 
   const departmentOptions = useMemo<DepartmentOption[]>(() => {
     if (!visualHierarchy) return [];
@@ -350,14 +382,17 @@ export function OrganizationChartFlow() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="visual">Visual (depto/time)</SelectItem>
-                <SelectItem value="manager">Por gestor</SelectItem>
+                <SelectItem value="list">Lista (árvore)</SelectItem>
+                <SelectItem value="visual">Visual (organograma)</SelectItem>
+                <SelectItem value="manager">Editar hierarquia</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={handleExportPng} className="gap-1.5">
-              <Download className="h-4 w-4" />
-              PNG
-            </Button>
+            {mode !== "list" && (
+              <Button variant="outline" size="sm" onClick={handleExportPng} className="gap-1.5">
+                <Download className="h-4 w-4" />
+                PNG
+              </Button>
+            )}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 pt-2">
@@ -411,28 +446,39 @@ export function OrganizationChartFlow() {
         </div>
       </CardHeader>
       <CardContent>
-        <div ref={wrapperRef} className="h-[640px] w-full rounded-md border bg-background">
-          <ReactFlowProvider>
-            <FlowInner
+        {mode === "list" ? (
+          <div className="max-h-[640px] overflow-auto rounded-md border bg-background">
+            <OrgListView
               hierarchy={activeHierarchy}
-              mode={mode}
               search={search}
-              departmentId={departmentId}
-              scope={scope}
+              onSelectMember={setSelected}
               myUserNodeId={myUserNodeId}
-              departmentOptions={departmentOptions}
-              setSelected={setSelected}
-              setSearch={setSearch}
-              setDepartmentId={setDepartmentId}
-              setScope={setScope}
-              setMode={setMode}
-              wrapperRef={wrapperRef}
-              flowInstanceRef={flowInstanceRef}
-              setManager={setManager}
-              managersLoading={managersLoading}
             />
-          </ReactFlowProvider>
-        </div>
+          </div>
+        ) : (
+          <div ref={wrapperRef} className="h-[640px] w-full rounded-md border bg-background">
+            <ReactFlowProvider>
+              <FlowInner
+                hierarchy={activeHierarchy}
+                mode={mode}
+                search={search}
+                departmentId={departmentId}
+                scope={scope}
+                myUserNodeId={myUserNodeId}
+                departmentOptions={departmentOptions}
+                setSelected={setSelected}
+                setSearch={setSearch}
+                setDepartmentId={setDepartmentId}
+                setScope={setScope}
+                setMode={setMode}
+                wrapperRef={wrapperRef}
+                flowInstanceRef={flowInstanceRef}
+                setManager={setManager}
+                managersLoading={managersLoading}
+              />
+            </ReactFlowProvider>
+          </div>
+        )}
       </CardContent>
       <OrgMemberDrawer node={selected} onOpenChange={(open) => !open && setSelected(null)} />
     </Card>

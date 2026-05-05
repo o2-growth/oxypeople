@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Camera, Save } from "lucide-react";
+import { Camera, Loader2, Save } from "lucide-react";
+import { useUpdateUser, useUser } from "@/hooks/useUser";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProfileFormProps {
   user?: {
@@ -21,17 +23,69 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ user }: ProfileFormProps) {
+  const { profile } = useUser();
+  const updateUser = useUpdateUser();
+  const { toast } = useToast();
+
   const [formData, setFormData] = useState({
-    name: user?.name || "Usuário",
-    email: user?.email || "usuario@empresa.com",
-    bio: user?.bio || "",
-    phone: user?.phone || "",
-    department: user?.department || "",
-    position: user?.position || "",
+    name: user?.name ?? "",
+    email: user?.email ?? "",
+    bio: user?.bio ?? "",
+    phone: user?.phone ?? "",
+    department: user?.department ?? "",
+    position: user?.position ?? "",
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name,
+        email: user.email,
+        bio: user.bio,
+        phone: user.phone,
+        department: user.department,
+        position: user.position,
+      });
+    }
+  }, [user]);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!profile?.id) {
+      toast({
+        title: "Erro",
+        description: "Perfil não carregado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const existingMetadata = (profile.metadata as Record<string, unknown> | null) ?? {};
+    try {
+      await updateUser.mutateAsync({
+        full_name: formData.name.trim() || null,
+        metadata: {
+          ...existingMetadata,
+          phone: formData.phone || null,
+          department: formData.department || null,
+          position: formData.position || null,
+          bio: formData.bio || null,
+        },
+      });
+      toast({
+        title: "Perfil atualizado",
+        description: "Suas informações foram salvas.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao salvar",
+        description: error instanceof Error ? error.message : "Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -56,12 +110,13 @@ export function ProfileForm({ user }: ProfileFormProps) {
               size="icon"
               variant="secondary"
               className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
+              type="button"
             >
               <Camera className="h-4 w-4" />
             </Button>
           </div>
           <div>
-            <p className="font-medium text-foreground">{formData.name}</p>
+            <p className="font-medium text-foreground">{formData.name || "Sem nome"}</p>
             <p className="text-sm text-muted-foreground">{formData.email}</p>
           </div>
         </div>
@@ -83,7 +138,6 @@ export function ProfileForm({ user }: ProfileFormProps) {
               id="email"
               type="email"
               value={formData.email}
-              onChange={(e) => handleChange("email", e.target.value)}
               disabled
             />
           </div>
@@ -130,9 +184,18 @@ export function ProfileForm({ user }: ProfileFormProps) {
           </div>
         </div>
 
-        <Button className="gap-2">
-          <Save className="h-4 w-4" />
-          Salvar Alterações
+        <Button
+          className="gap-2"
+          type="button"
+          onClick={handleSave}
+          disabled={updateUser.isPending}
+        >
+          {updateUser.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          {updateUser.isPending ? "Salvando..." : "Salvar Alterações"}
         </Button>
       </CardContent>
     </Card>

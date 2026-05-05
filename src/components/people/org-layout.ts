@@ -1,61 +1,62 @@
+import dagre from "dagre";
 import type { Node, Edge } from "reactflow";
 import type { HierarchyNode } from "@/hooks/useOrganizationHierarchy";
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 88;
-const HORIZONTAL_GAP = 24;
-const VERTICAL_GAP = 56;
+// Gaps tuned for hierarchies with many siblings (eg. 18+ direct reports under
+// a single C-level). Larger horizontal/vertical separation prevents the
+// "wall of cards" feel when zoomed out.
+const HORIZONTAL_GAP = 40;
+const VERTICAL_GAP = 80;
 
 export type OrgFlowNodeData = HierarchyNode & {
   isHighlighted: boolean;
   isDimmed: boolean;
 };
 
-type Layout = {
-  width: number;
-  positions: Map<string, { x: number; y: number }>;
-};
+/**
+ * Layout via dagre — handles arbitrary tree shapes (deep, wide, or mixed)
+ * far more reliably than the hand-rolled centroid algorithm we had before.
+ *
+ * - `rankdir: "TB"` = top→bottom (CEO at top, ICs at bottom).
+ * - `nodesep` separates siblings; `ranksep` separates depth levels.
+ * - `tight-tree` ranker keeps subtrees compact horizontally so there's no
+ *   200% horizontal stretch when one C-level has 18 direct reports.
+ */
+function runDagreLayout(root: HierarchyNode): Map<string, { x: number; y: number }> {
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({
+    rankdir: "TB",
+    nodesep: HORIZONTAL_GAP,
+    ranksep: VERTICAL_GAP,
+    ranker: "tight-tree",
+    marginx: 20,
+    marginy: 20,
+  });
+  g.setDefaultEdgeLabel(() => ({}));
 
-function layoutSubtree(node: HierarchyNode, depth: number, leftX: number): Layout {
-  const positions = new Map<string, { x: number; y: number }>();
-  const children = node.children ?? [];
-
-  if (children.length === 0) {
-    const x = leftX;
-    const y = depth * (NODE_HEIGHT + VERTICAL_GAP);
-    positions.set(node.id, { x, y });
-    return { width: NODE_WIDTH, positions };
-  }
-
-  let cursor = leftX;
-  const childLayouts: Layout[] = [];
-  for (const child of children) {
-    const childLayout = layoutSubtree(child, depth + 1, cursor);
-    childLayouts.push(childLayout);
-    childLayout.positions.forEach((value, key) => positions.set(key, value));
-    cursor += childLayout.width + HORIZONTAL_GAP;
-  }
-
-  const childrenWidth = cursor - leftX - HORIZONTAL_GAP;
-  const totalWidth = Math.max(NODE_WIDTH, childrenWidth);
-
-  const firstChildX = childLayouts[0]?.positions.get(children[0].id)?.x ?? leftX;
-  const lastChildX =
-    childLayouts[childLayouts.length - 1]?.positions.get(children[children.length - 1].id)?.x ?? leftX;
-
-  positions.set(node.id, {
-    x: (firstChildX + lastChildX) / 2,
-    y: depth * (NODE_HEIGHT + VERTICAL_GAP),
+  walk(root, (node, parent) => {
+    g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    if (parent) g.setEdge(parent.id, node.id);
   });
 
-  return { width: totalWidth, positions };
+  dagre.layout(g);
+
+  const positions = new Map<string, { x: number; y: number }>();
+  g.nodes().forEach((id) => {
+    const n = g.node(id);
+    // dagre returns center positions; reactflow uses top-left, so subtract half size.
+    positions.set(id, { x: n.x - NODE_WIDTH / 2, y: n.y - NODE_HEIGHT / 2 });
+  });
+  return positions;
 }
 
 export function buildOrgGraph(
   root: HierarchyNode,
   filterMatch: (node: HierarchyNode) => boolean = () => true
 ): { nodes: Node<OrgFlowNodeData>[]; edges: Edge[] } {
-  const layout = layoutSubtree(root, 0, 0);
+  const positions = runDagreLayout(root);
   const matchingIds = collectMatches(root, filterMatch);
   const hasFilter = matchingIds.size > 0 && matchingIds.size < countAll(root);
 
@@ -63,7 +64,7 @@ export function buildOrgGraph(
   const edges: Edge[] = [];
 
   walk(root, (node, parent) => {
-    const pos = layout.positions.get(node.id);
+    const pos = positions.get(node.id);
     if (!pos) return;
     const matched = matchingIds.has(node.id);
     nodes.push({

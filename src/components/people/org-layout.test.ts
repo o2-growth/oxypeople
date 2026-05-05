@@ -156,7 +156,7 @@ describe("org-layout", () => {
     expect(tree?.id).toBe("member-u-orphan");
   });
 
-  it("layout positions parent above the centroid of its direct children", () => {
+  it("layout places children below their parent and within its horizontal span", () => {
     const { nodes } = buildOrgGraph(sampleTree);
     const byId = new Map(nodes.map((n) => [n.id, n]));
     const dept = byId.get("dept-eng");
@@ -166,9 +166,15 @@ describe("org-layout", () => {
     expect(teamA).toBeDefined();
     expect(teamB).toBeDefined();
     if (dept && teamA && teamB) {
-      const expected = (teamA.position.x + teamB.position.x) / 2;
-      expect(dept.position.x).toBeCloseTo(expected, 5);
+      // Top-down: children sit below the parent
       expect(teamA.position.y).toBeGreaterThan(dept.position.y);
+      expect(teamB.position.y).toBeGreaterThan(dept.position.y);
+      // Parent's x is roughly between its children (any layout engine will
+      // respect this loose constraint; we don't pin to exact centroid).
+      const minX = Math.min(teamA.position.x, teamB.position.x);
+      const maxX = Math.max(teamA.position.x, teamB.position.x);
+      expect(dept.position.x).toBeGreaterThanOrEqual(minX - 100);
+      expect(dept.position.x).toBeLessThanOrEqual(maxX + 100);
     }
   });
 });

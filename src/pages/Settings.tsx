@@ -7,20 +7,61 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { 
-  User, 
-  Bell, 
-  Shield, 
-  Palette, 
+import {
+  User,
+  Bell,
+  Shield,
+  Palette,
   Link2,
   Moon,
   Sun,
+  Monitor,
   LogOut,
   Trash2,
   Target,
 } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUser } from "@/hooks/useUser";
+import { cn } from "@/lib/utils";
+
+function getInitials(name: string | null | undefined, email: string | null | undefined) {
+  const source = name?.trim() || email?.split("@")[0] || "U";
+  return source
+    .split(/\s+/)
+    .map((part) => part[0])
+    .filter(Boolean)
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 export default function Settings() {
+  const { user, signOut } = useAuth();
+  const { profile, isLoading } = useUser();
+  const { theme, setTheme } = useTheme();
+  const navigate = useNavigate();
+
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário";
+  const displayEmail = profile?.email || user?.email || "";
+  const metadata = (profile?.metadata as Record<string, unknown> | null) ?? {};
+  const phone = typeof metadata.phone === "string" ? metadata.phone : "";
+  const department = typeof metadata.department === "string" ? metadata.department : "";
+  const position = typeof metadata.position === "string" ? metadata.position : "";
+  const bio = typeof metadata.bio === "string" ? metadata.bio : "";
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
+  const themeOptions: Array<{ value: "light" | "dark" | "system"; label: string; Icon: typeof Sun }> = [
+    { value: "light", label: "Claro", Icon: Sun },
+    { value: "dark", label: "Escuro", Icon: Moon },
+    { value: "system", label: "Sistema", Icon: Monitor },
+  ];
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -63,18 +104,26 @@ export default function Settings() {
 
           {/* Profile Tab */}
           <TabsContent value="profile" className="mt-6">
-            <ProfileForm
-              user={{
-                name: "Usuário",
-                email: "usuario@empresa.com",
-                avatar: "",
-                initials: "U",
-                bio: "",
-                phone: "",
-                department: "",
-                position: "",
-              }}
-            />
+            {isLoading ? (
+              <Card>
+                <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                  Carregando perfil...
+                </CardContent>
+              </Card>
+            ) : (
+              <ProfileForm
+                user={{
+                  name: displayName,
+                  email: displayEmail,
+                  avatar: profile?.avatar_url ?? "",
+                  initials: getInitials(displayName, displayEmail),
+                  bio,
+                  phone,
+                  department,
+                  position,
+                }}
+              />
+            )}
           </TabsContent>
 
           {/* Notifications Tab */}
@@ -163,27 +212,34 @@ export default function Settings() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <button className="flex flex-col items-center gap-3 p-4 rounded-lg border-2 border-primary bg-primary/5 transition-all">
-                    <div className="h-12 w-12 rounded-lg bg-background border flex items-center justify-center">
-                      <Sun className="h-6 w-6" />
-                    </div>
-                    <span className="font-medium text-foreground">Claro</span>
-                  </button>
-                  <button className="flex flex-col items-center gap-3 p-4 rounded-lg border-2 border-muted hover:border-primary/50 transition-all">
-                    <div className="h-12 w-12 rounded-lg bg-slate-800 flex items-center justify-center">
-                      <Moon className="h-6 w-6 text-white" />
-                    </div>
-                    <span className="font-medium text-foreground">Escuro</span>
-                  </button>
-                  <button className="flex flex-col items-center gap-3 p-4 rounded-lg border-2 border-muted hover:border-primary/50 transition-all">
-                    <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-background to-slate-800 flex items-center justify-center">
-                      <div className="flex">
-                        <Sun className="h-4 w-4" />
-                        <Moon className="h-4 w-4 text-white" />
-                      </div>
-                    </div>
-                    <span className="font-medium text-foreground">Sistema</span>
-                  </button>
+                  {themeOptions.map(({ value, label, Icon }) => {
+                    const isActive = theme === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setTheme(value)}
+                        className={cn(
+                          "flex flex-col items-center gap-3 p-4 rounded-lg border-2 transition-all",
+                          isActive
+                            ? "border-primary bg-primary/5"
+                            : "border-muted hover:border-primary/50",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "h-12 w-12 rounded-lg flex items-center justify-center",
+                            value === "light" && "bg-background border",
+                            value === "dark" && "bg-slate-800 text-white",
+                            value === "system" && "bg-gradient-to-br from-background to-slate-800",
+                          )}
+                        >
+                          <Icon className={cn("h-6 w-6", value === "dark" && "text-white")} />
+                        </div>
+                        <span className="font-medium text-foreground">{label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

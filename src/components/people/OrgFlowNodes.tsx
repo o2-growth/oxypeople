@@ -100,6 +100,9 @@ export const OrgMemberNode = memo(({ data }: NodeProps<OrgFlowNodeData>) => (
     )}
   >
     <Handle type="target" position={Position.Top} className="!bg-transparent !border-0" />
+    {/* Source handle is needed because in manager-based hierarchy any member
+        can have direct reports (eg. CEO → C-Level → Heads → ICs). */}
+    <Handle type="source" position={Position.Bottom} className="!bg-transparent !border-0" />
     <Avatar className="h-8 w-8 shrink-0">
       <AvatarImage src={data.avatarUrl} alt={data.name} />
       <AvatarFallback className="text-[10px] bg-muted">{getInitials(data.name)}</AvatarFallback>
