@@ -22,6 +22,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown } from "lucide-react";
 import { useObjectivesFilters } from "@/hooks/useObjectivesFilters";
 import { ObjectiveType, ObjectiveWithDetails } from "@/hooks/useObjectives";
+import { useOkrTier } from "@/hooks/useOkrTier";
 
 export type DisplayMode = "tree" | "map" | "actions";
 
@@ -43,6 +44,8 @@ export default function Objectives() {
   const [breakdownObjective, setBreakdownObjective] = useState<ObjectiveWithDetails | null>(null);
   const [isDeletedOpen, setIsDeletedOpen] = useState(false);
   const [isAuditOpen, setIsAuditOpen] = useState(false);
+
+  const { canCreateObjective } = useOkrTier();
 
   const {
     filters,
@@ -100,12 +103,12 @@ export default function Objectives() {
           </p>
           {hasActiveFilters ? (
             <Button variant="outline" onClick={clearFilters}>Limpar Filtros</Button>
-          ) : (
+          ) : canCreateObjective ? (
             <Button onClick={handleNewObjective} className="bg-[#00c875] hover:bg-[#00b461] text-white">
               <Plus className="h-4 w-4 mr-2" />
               Criar Objetivo Estratégico
             </Button>
-          )}
+          ) : null}
         </div>
       );
     }
@@ -144,7 +147,7 @@ export default function Objectives() {
                       />
                     ))}
                   </div>
-                  <GroupFooter objectives={objectives} onAddItem={handleNewObjective} />
+                  <GroupFooter objectives={objectives} onAddItem={canCreateObjective ? handleNewObjective : undefined} />
                 </CollapsibleContent>
               </Collapsible>
             );
@@ -173,7 +176,7 @@ export default function Objectives() {
             />
           ))}
         </div>
-        <GroupFooter objectives={filteredTree} onAddItem={handleNewObjective} />
+        <GroupFooter objectives={filteredTree} onAddItem={canCreateObjective ? handleNewObjective : undefined} />
       </div>
     );
   };

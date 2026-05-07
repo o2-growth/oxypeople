@@ -39,7 +39,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { useObjectives, usePeriods, ObjectiveWithDetails, ObjectiveType } from "@/hooks/useObjectives";
-import { useUserPermissions } from "@/hooks/useUserPermissions";
+import { useOkrTier } from "@/hooks/useOkrTier";
 import { useCheckins } from "@/hooks/useCheckins";
 import { CollaboratorsTab } from "@/components/objectives/CollaboratorsTab";
 import { useRealtimeObjective } from "@/hooks/useRealtimeObjective";
@@ -78,7 +78,7 @@ export default function ObjectiveDetail() {
   const navigate = useNavigate();
   const { data: objectives = [], isLoading } = useObjectives();
   const { data: periods = [] } = usePeriods();
-  const { canEditObjective } = useUserPermissions();
+  const { canCreateKR, canManageRelations, canManageCollaborators } = useOkrTier();
   const duplicateObjective = useDuplicateObjective();
   const [isCreateKROpen, setIsCreateKROpen] = useState(false);
   const [isCreateChildOpen, setIsCreateChildOpen] = useState(false);
@@ -297,19 +297,21 @@ export default function ObjectiveDetail() {
                   >
                     <Users className="h-4 w-4" />
                   </Button>
-                  <Button
-                    className="gap-2"
-                    onClick={() => {
-                      if (objective.type === "operational" || !hasChildren) {
-                        setIsCreateKROpen(true);
-                      } else {
-                        setIsCreateChildOpen(true);
-                      }
-                    }}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Novo resultado
-                  </Button>
+                  {(canCreateKR(objective.type) || (objective.type !== "operational" && canManageRelations)) && (
+                    <Button
+                      className="gap-2"
+                      onClick={() => {
+                        if (objective.type === "operational" || !hasChildren) {
+                          setIsCreateKROpen(true);
+                        } else {
+                          setIsCreateChildOpen(true);
+                        }
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Novo resultado
+                    </Button>
+                  )}
                   {hasKRs && (
                     <Button
                       variant="outline"
@@ -507,11 +509,7 @@ export default function ObjectiveDetail() {
             {activeTab === "collaborators" && (
               <CollaboratorsTab
                 objective={objective}
-                canEdit={canEditObjective({
-                  owner_id: objective.owner_id,
-                  created_by: objective.created_by,
-                  team_id: objective.team_id,
-                })}
+                canEdit={canManageCollaborators(objective.owner_id, objective.created_by)}
               />
             )}
           </CardContent>
@@ -523,6 +521,7 @@ export default function ObjectiveDetail() {
         open={isCreateKROpen}
         onOpenChange={setIsCreateKROpen}
         objectiveId={objective.id}
+        objectiveType={objective.type}
       />
 
       <CreateObjectiveDialog

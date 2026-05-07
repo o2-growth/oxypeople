@@ -34,10 +34,10 @@ import { ParentObjectiveSelector } from "./ParentObjectiveSelector";
 import { DepartmentSelector } from "./DepartmentSelector";
 import { TagsInput } from "./TagsInput";
 import { useCreateObjective, usePeriods, useObjectives, ObjectiveType } from "@/hooks/useObjectives";
-import { useUserPermissions } from "@/hooks/useUserPermissions";
+import { useOkrTier } from "@/hooks/useOkrTier";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Plus, Trash2, Crosshair, Layers, Zap, Rocket, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Crosshair, Layers, Zap, Rocket, CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -86,7 +86,7 @@ export function CreateObjectiveDialog({
   defaultParentId,
 }: CreateObjectiveDialogProps) {
   const { user } = useAuth();
-  const { isAdmin, isTeamLeader } = useUserPermissions();
+  const { canCreateObjective, isLoading: tierLoading } = useOkrTier();
   const createObjective = useCreateObjective();
   const { data: periods = [] } = usePeriods();
   const { data: allObjectives = [] } = useObjectives();
@@ -160,6 +160,11 @@ export function CreateObjectiveDialog({
 
   const handleSubmit = async (data: FormData) => {
     try {
+      // Defensive: KRs are only valid for operational objectives.
+      if (data.type !== "operational") {
+        data.keyResults = [];
+      }
+
       // Validate weight sum for KRs
       if (data.keyResults.length > 0) {
         const totalWeight = data.keyResults.reduce((sum, kr) => sum + (kr.weightPercentage || 0), 0);
@@ -202,8 +207,50 @@ export function CreateObjectiveDialog({
     }
   };
 
-  const canSelectType = isAdmin || isTeamLeader;
-  const showKRWarning = selectedType !== "operational" && fields.length > 0;
+  const canSelectType = canCreateObjective;
+  const allowedParentTypes: Array<"strategic" | "tactical" | "operational"> | undefined =
+    selectedType === "tactical"
+      ? ["strategic"]
+      : selectedType === "operational"
+        ? ["strategic", "tactical"]
+        : undefined;
+  const showParentSelector = selectedType !== "strategic";
+  const showKRSection = selectedType === "operational";
+
+  if (tierLoading) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Carregando…</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (!canCreateObjective) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sem permissão</DialogTitle>
+          </DialogHeader>
+          <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-sm text-yellow-600">
+            Você não tem permissão para criar objetivos.
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -393,19 +440,25 @@ export function CreateObjectiveDialog({
                 </div>
 
                 {/* Row: Parent + Period */}
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name="parentId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Objetivo Pai</FormLabel>
-                        <FormControl>
-                          <ParentObjectiveSelector value={field.value} onValueChange={field.onChange} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                <div className={cn("grid gap-3", showParentSelector ? "grid-cols-2" : "grid-cols-1")}>
+                  {showParentSelector && (
+                    <FormField
+                      control={form.control}
+                      name="parentId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Objetivo Pai</FormLabel>
+                          <FormControl>
+                            <ParentObjectiveSelector
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              allowedParentTypes={allowedParentTypes}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <FormField
                     control={form.control}
@@ -514,14 +567,13 @@ export function CreateObjectiveDialog({
               </TabsContent>
 
               <TabsContent value="keyresults" className="space-y-4 mt-4">
-                {showKRWarning && (
+                {!showKRSection && (
                   <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-sm text-yellow-600">
-                    ⚠️ Objetivos {selectedType === "strategic" ? "estratégicos" : "táticos"} normalmente não
-                    possuem KRs diretos. O progresso é calculado a partir dos objetivos filhos.
+                    Resultados-chave só são permitidos em objetivos operacionais.
                   </div>
                 )}
 
-                {fields.map((field, index) => (
+                {showKRSection && fields.map((field, index) => (
                   <div key={field.id} className="p-3 border rounded-lg space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">KR {index + 1}</span>
@@ -654,7 +706,7 @@ export function CreateObjectiveDialog({
                 ))}
 
                 {/* Weight validation bar */}
-                {hasKRs && (
+                {showKRSection && hasKRs && (
                   <div className="p-3 rounded-lg border space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium">Soma dos Pesos</span>
@@ -682,26 +734,28 @@ export function CreateObjectiveDialog({
                   </div>
                 )}
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full gap-2"
-                  onClick={() =>
-                    append({
-                      title: "",
-                      targetValue: 100,
-                      currentValue: 0,
-                      initialValue: 0,
-                      unit: "%",
-                      krType: "numeric",
-                      weightPercentage: 0,
-                      direction: "up",
-                    })
-                  }
-                >
-                  <Plus className="h-4 w-4" />
-                  Adicionar Key Result
-                </Button>
+                {showKRSection && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={() =>
+                      append({
+                        title: "",
+                        targetValue: 100,
+                        currentValue: 0,
+                        initialValue: 0,
+                        unit: "%",
+                        krType: "numeric",
+                        weightPercentage: 0,
+                        direction: "up",
+                      })
+                    }
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar Key Result
+                  </Button>
+                )}
               </TabsContent>
             </Tabs>
 

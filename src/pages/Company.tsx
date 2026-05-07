@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { MembersList, Member } from "@/components/company/MembersList";
 import { InviteModal } from "@/components/company/InviteModal";
@@ -42,8 +43,10 @@ import {
 } from "@/hooks/useDepartmentsManager";
 import { usePeopleList, usePeopleStats } from "@/hooks/usePeopleList";
 import { useUser } from "@/hooks/useUser";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 function getInitials(name: string | null | undefined): string {
   if (!name) return "??";
@@ -65,6 +68,16 @@ function formatJoinDate(dateStr: string | null | undefined): string {
 }
 
 export default function Company() {
+  const navigate = useNavigate();
+  const { isAdmin, isLoading: permsLoading } = useUserPermissions();
+
+  useEffect(() => {
+    if (!permsLoading && !isAdmin) {
+      toast.error("Sem permissão para gerenciar a empresa.");
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAdmin, permsLoading, navigate]);
+
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [createDepartmentOpen, setCreateDepartmentOpen] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
@@ -159,6 +172,16 @@ export default function Company() {
   };
 
   const isLoading = isLoadingPeople || isLoadingStats;
+
+  if (permsLoading || !isAdmin) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

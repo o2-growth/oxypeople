@@ -21,10 +21,13 @@ import { Check, ChevronsUpDown, Target } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
+type ParentObjectiveType = "strategic" | "tactical" | "operational";
+
 interface ParentObjective {
   id: string;
   title: string;
   progress: number;
+  type: ParentObjectiveType;
   owner: {
     id: string;
     full_name: string | null;
@@ -37,6 +40,7 @@ interface ParentObjectiveSelectorProps {
   onValueChange: (value: string | undefined) => void;
   excludeId?: string;
   placeholder?: string;
+  allowedParentTypes?: Array<ParentObjectiveType>;
 }
 
 export function ParentObjectiveSelector({
@@ -44,6 +48,7 @@ export function ParentObjectiveSelector({
   onValueChange,
   excludeId,
   placeholder = "Vincular a objetivo pai",
+  allowedParentTypes,
 }: ParentObjectiveSelectorProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -61,6 +66,7 @@ export function ParentObjectiveSelector({
           id,
           title,
           progress,
+          type,
           owner:users!objectives_owner_id_fkey(id, full_name, avatar_url)
         `)
         .eq("company_id", companyId)
@@ -77,6 +83,7 @@ export function ParentObjectiveSelector({
         id: obj.id,
         title: obj.title,
         progress: obj.progress,
+        type: obj.type as ParentObjectiveType,
         owner: obj.owner,
       }));
     },
@@ -86,10 +93,18 @@ export function ParentObjectiveSelector({
   const filteredObjectives = (objectives || [])
     .filter((obj) => {
       if (excludeId && obj.id === excludeId) return false;
+      if (allowedParentTypes && !allowedParentTypes.includes(obj.type)) return false;
       if (!search) return true;
       return obj.title.toLowerCase().includes(search.toLowerCase());
     })
     .slice(0, 20);
+
+  const noCompatibleParents =
+    !!allowedParentTypes &&
+    !isLoading &&
+    (objectives || []).filter(
+      (obj) => (!excludeId || obj.id !== excludeId) && allowedParentTypes.includes(obj.type),
+    ).length === 0;
 
   const selectedObjective = objectives?.find((obj) => obj.id === value);
 
@@ -134,7 +149,11 @@ export function ParentObjectiveSelector({
           />
           <CommandList>
             <CommandEmpty>
-              {isLoading ? "Carregando..." : "Nenhum objetivo encontrado."}
+              {isLoading
+                ? "Carregando..."
+                : noCompatibleParents
+                  ? "Nenhum objetivo pai compatível disponível"
+                  : "Nenhum objetivo encontrado."}
             </CommandEmpty>
             <CommandGroup>
               {value && (

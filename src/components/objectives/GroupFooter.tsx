@@ -3,7 +3,7 @@ import { ObjectiveWithDetails } from "@/hooks/useObjectives";
 
 interface GroupFooterProps {
   objectives: ObjectiveWithDetails[];
-  onAddItem: () => void;
+  onAddItem?: () => void;
 }
 
 export function GroupFooter({ objectives, onAddItem }: GroupFooterProps) {
@@ -13,13 +13,17 @@ export function GroupFooter({ objectives, onAddItem }: GroupFooterProps) {
 
   return (
     <div className="flex items-center h-9 border-t border-border/30">
-      <button
-        onClick={onAddItem}
-        className="flex items-center gap-1.5 px-3 text-xs text-muted-foreground hover:text-primary transition-colors"
-      >
-        <Plus className="h-3 w-3" />
-        Adicionar
-      </button>
+      {onAddItem ? (
+        <button
+          onClick={onAddItem}
+          className="flex items-center gap-1.5 px-3 text-xs text-muted-foreground hover:text-primary transition-colors"
+        >
+          <Plus className="h-3 w-3" />
+          Adicionar
+        </button>
+      ) : (
+        <div className="px-3" />
+      )}
       <div className="flex-1" />
       <div className="w-[55px]" />
       <div className="w-[100px]" />

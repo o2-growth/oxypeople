@@ -23,6 +23,7 @@ interface CreateKeyResultDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   objectiveId: string;
+  objectiveType?: string;
 }
 
 const krTypes = [
@@ -37,7 +38,9 @@ export function CreateKeyResultDialog({
   open,
   onOpenChange,
   objectiveId,
+  objectiveType,
 }: CreateKeyResultDialogProps) {
+  const isOperational = objectiveType === undefined || objectiveType === "operational";
   const [title, setTitle] = useState("");
   const [krType, setKrType] = useState("numeric");
   const [direction, setDirection] = useState("up");
@@ -89,6 +92,26 @@ export function CreateKeyResultDialog({
     setUnit("%");
     setWeight("0");
   };
+
+  if (!isOperational) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Novo Key Result</DialogTitle>
+          </DialogHeader>
+          <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-sm text-yellow-600">
+            Este objetivo não aceita resultados-chave (apenas objetivos operacionais).
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -38,6 +38,7 @@ import { OverdueBadge } from "./OverdueBadge";
 import { BreakdownObjectiveDialog } from "./BreakdownObjectiveDialog";
 import { ObjectiveWithDetails, useDeleteObjective, ObjectiveType } from "@/hooks/useObjectives";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import { useOkrTier } from "@/hooks/useOkrTier";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -80,6 +81,7 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const { canEditObjective, canDeleteObjective } = useUserPermissions();
+  const { canManageRelations } = useOkrTier();
   const deleteObjective = useDeleteObjective();
 
   // Child weights state
@@ -334,25 +336,25 @@ export function ObjectiveTreeNode({ objective, depth = 0, onCreateChild, onSelec
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  {canAddChild && onCreateChild && (
+                  {canAddChild && onCreateChild && canManageRelations && (
                     <DropdownMenuItem onClick={() => onCreateChild(objective.id, childTypeMap[objective.type]!)}>
                       <Plus className="h-4 w-4 mr-2" />
                       Criar {typeConfig[childTypeMap[objective.type]!]?.label}
                     </DropdownMenuItem>
                   )}
-                  {canAddChild && canEdit && (
+                  {canAddChild && canEdit && canManageRelations && (
                     <DropdownMenuItem onClick={() => setShowBreakdown(true)}>
                       <GitBranchPlus className="h-4 w-4 mr-2" />
                       Quebrar em filhos
                     </DropdownMenuItem>
                   )}
-                  {hasChildren && canEdit && (
+                  {hasChildren && canEdit && canManageRelations && (
                     <DropdownMenuItem onClick={startEditWeights}>
                       <Scale className="h-4 w-4 mr-2" />
                       Editar pesos
                     </DropdownMenuItem>
                   )}
-                  {(canAddChild || canDelete) && <DropdownMenuSeparator />}
+                  {((canAddChild && canManageRelations) || canDelete) && <DropdownMenuSeparator />}
                   {canDelete && (
                     <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-destructive">
                       <Trash2 className="h-4 w-4 mr-2" />

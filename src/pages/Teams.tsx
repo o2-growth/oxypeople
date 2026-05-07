@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +8,21 @@ import { TeamCard } from "@/components/teams/TeamCard";
 import { CreateTeamDialog } from "@/components/teams/CreateTeamDialog";
 import { TeamMembersDialog } from "@/components/teams/TeamMembersDialog";
 import { Team, useTeams, useDeleteTeam, useTeamMembers } from "@/hooks/useTeams";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Users, Plus, Search, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Teams() {
+  const navigate = useNavigate();
+  const { isAdmin, isLoading: permsLoading } = useUserPermissions();
+
+  useEffect(() => {
+    if (!permsLoading && !isAdmin) {
+      toast.error("Sem permissão para gerenciar equipes.");
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAdmin, permsLoading, navigate]);
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
@@ -72,6 +85,16 @@ export default function Teams() {
       setEditingTeam(null);
     }
   };
+
+  if (permsLoading || !isAdmin) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { PersonSelector } from "./PersonSelector";
 import { DepartmentSelector } from "./DepartmentSelector";
 import { ObjectiveWithDetails, ObjectiveType, useCreateObjective } from "@/hooks/useObjectives";
+import { useOkrTier } from "@/hooks/useOkrTier";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -63,6 +64,7 @@ export function BreakdownObjectiveDialog({
   const childLabel = childTypeLabels[childType];
   const queryClient = useQueryClient();
   const createObjective = useCreateObjective();
+  const { canManageRelations } = useOkrTier();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [children, setChildren] = useState<ChildEntry[]>([
@@ -167,6 +169,18 @@ export function BreakdownObjectiveDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {!canManageRelations ? (
+          <>
+            <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-sm text-yellow-600">
+              Você não tem permissão para quebrar objetivos em filhos.
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Fechar
+              </Button>
+            </div>
+          </>
+        ) : (
         <div className="space-y-4">
           {/* Inherited context */}
           <div className="p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground space-y-1">
@@ -271,7 +285,7 @@ export function BreakdownObjectiveDialog({
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting || !isWeightValid}
+              disabled={isSubmitting || !isWeightValid || !canManageRelations}
             >
               {isSubmitting
                 ? "Criando..."
@@ -279,6 +293,7 @@ export function BreakdownObjectiveDialog({
             </Button>
           </div>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );
