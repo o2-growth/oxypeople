@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Settings2, Save, CalendarRange, ArrowRight, Siren, Network, Activity, Grid3X3 } from "lucide-react";
+import { Settings2, Save, CalendarRange, ArrowRight, Siren, Network, Activity, Grid3X3, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useOkrSettings, useUpdateOkrSettings } from "@/hooks/useCheckins";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -121,6 +121,28 @@ export function OkrSettingsPanel() {
               </div>
               <Button asChild variant="outline" size="sm" className="gap-1.5">
                 <Link to="/admin/managers">
+                  Gerenciar
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="flex items-center justify-between gap-4 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-indigo-500/10">
+                  <ShieldCheck className="h-5 w-5 text-indigo-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Acesso a OKR</p>
+                  <p className="text-xs text-muted-foreground">
+                    Defina quem pode criar (Manager), contribuir ou apenas ler OKRs.
+                  </p>
+                </div>
+              </div>
+              <Button asChild variant="outline" size="sm" className="gap-1.5">
+                <Link to="/admin/okr-access">
                   Gerenciar
                   <ArrowRight className="h-4 w-4" />
                 </Link>

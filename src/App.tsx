@@ -31,6 +31,7 @@ const PeriodsAdmin = lazy(() => import("./pages/admin/Periods"));
 const OkrEscalationAdmin = lazy(() => import("./pages/admin/OkrEscalation"));
 const InvitationsAdmin = lazy(() => import("./pages/admin/Invitations"));
 const ManagersAdmin = lazy(() => import("./pages/admin/Managers"));
+const OkrAccessAdmin = lazy(() => import("./pages/admin/OkrAccess"));
 const PulseSurveysAdmin = lazy(() => import("./pages/admin/PulseSurveys"));
 const PulseAnalyticsAdmin = lazy(() => import("./pages/admin/PulseAnalytics"));
 const NineBoxAdmin = lazy(() => import("./pages/admin/NineBox"));
@@ -74,6 +75,7 @@ const App = () => (
                   <Route path="/admin/okr-escalation" element={<ProtectedRoute><OkrEscalationAdmin /></ProtectedRoute>} />
                   <Route path="/admin/invitations" element={<ProtectedRoute><InvitationsAdmin /></ProtectedRoute>} />
                   <Route path="/admin/managers" element={<ProtectedRoute><ManagersAdmin /></ProtectedRoute>} />
+                  <Route path="/admin/okr-access" element={<ProtectedRoute><OkrAccessAdmin /></ProtectedRoute>} />
                   <Route path="/admin/pulse-surveys" element={<ProtectedRoute><PulseSurveysAdmin /></ProtectedRoute>} />
                   <Route path="/admin/pulse-surveys/:id/analytics" element={<ProtectedRoute><PulseAnalyticsAdmin /></ProtectedRoute>} />
                   <Route path="/admin/nine-box" element={<ProtectedRoute><NineBoxAdmin /></ProtectedRoute>} />
