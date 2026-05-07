@@ -40,8 +40,8 @@ export default defineConfig(({ mode }) => ({
             return "vendor-forms";
           }
           if (id.includes("lucide-react")) return "vendor-icons";
-          if (id.includes("react-dom")) return "vendor-react-dom";
           if (
+            id.includes("react-dom") ||
             id.includes("/react/") ||
             id.endsWith("/react/index.js") ||
             id.includes("scheduler") ||
