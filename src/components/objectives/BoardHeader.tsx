@@ -15,6 +15,7 @@ interface BoardHeaderProps {
   filteredObjectives: ObjectiveWithDetails[];
   search: string;
   onSearchChange: (value: string) => void;
+  canCreate?: boolean;
 }
 
 export function BoardHeader({
@@ -26,6 +27,7 @@ export function BoardHeader({
   filteredObjectives,
   search,
   onSearchChange,
+  canCreate = true,
 }: BoardHeaderProps) {
   return (
     <div className="space-y-3">
@@ -85,10 +87,12 @@ export function BoardHeader({
         <div className="flex-1" />
 
         {/* Toolbar */}
-        <Button onClick={onNewObjective} size="sm" className="gap-1.5 bg-[#00c875] hover:bg-[#00b461] text-white border-0 h-8">
-          <Plus className="h-3.5 w-3.5" />
-          Novo Item
-        </Button>
+        {canCreate && (
+          <Button onClick={onNewObjective} size="sm" className="gap-1.5 bg-[#00c875] hover:bg-[#00b461] text-white border-0 h-8">
+            <Plus className="h-3.5 w-3.5" />
+            Novo Item
+          </Button>
+        )}
 
         <div className="relative w-48">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />

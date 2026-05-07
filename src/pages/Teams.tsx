@@ -19,7 +19,7 @@ export default function Teams() {
   useEffect(() => {
     if (!permsLoading && !isAdmin) {
       toast.error("Sem permissão para gerenciar equipes.");
-      navigate("/dashboard", { replace: true });
+      navigate("/", { replace: true });
     }
   }, [isAdmin, permsLoading, navigate]);
 

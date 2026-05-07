@@ -99,7 +99,9 @@ export default function Objectives() {
           <p className="text-muted-foreground mb-4 text-sm">
             {hasActiveFilters
               ? "Nenhum objetivo corresponde aos filtros aplicados."
-              : "Comece criando um objetivo estratégico para definir a direção da empresa."}
+              : canCreateObjective
+                ? "Comece criando um objetivo estratégico para definir a direção da empresa."
+                : "Você ainda não tem acesso a nenhum objetivo. Peça a um manager para incluir você como contribuidor."}
           </p>
           {hasActiveFilters ? (
             <Button variant="outline" onClick={clearFilters}>Limpar Filtros</Button>
@@ -194,6 +196,7 @@ export default function Objectives() {
           filteredObjectives={filteredObjectives}
           search={filters.search}
           onSearchChange={(v) => setFilters((p) => ({ ...p, search: v }))}
+          canCreate={canCreateObjective}
         />
 
         {/* Compact filters bar */}

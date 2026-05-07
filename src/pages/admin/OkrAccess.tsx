@@ -62,7 +62,7 @@ export default function OkrAccessAdminPage() {
   useEffect(() => {
     if (!permsLoading && !isAdmin) {
       toast.error("Sem permissão para gerenciar acesso a OKR.");
-      navigate("/dashboard", { replace: true });
+      navigate("/", { replace: true });
     }
   }, [isAdmin, permsLoading, navigate]);
 
