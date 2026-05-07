@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { toastDbError } from "@/lib/db-errors";
 import { trackEvent } from "@/lib/analytics";
 
 export type CollaboratorRole = "contributor" | "editor";
@@ -66,7 +67,7 @@ export function useObjectiveCollaborators(objectiveId: string | undefined) {
       toast.success("Colaborador adicionado");
       trackEvent("objective_collaborator_added", { objective_id: objectiveId, role });
     },
-    onError: (err: Error) => toast.error(`Erro ao adicionar: ${err.message}`),
+    onError: (err) => toastDbError(err, "Erro ao adicionar"),
   });
 
   const updateCollaboratorRole = useMutation({
@@ -83,7 +84,7 @@ export function useObjectiveCollaborators(objectiveId: string | undefined) {
       toast.success(`Papel atualizado para ${role === "editor" ? "Editor" : "Contribuidor"}`);
       trackEvent("objective_collaborator_role_changed", { objective_id: objectiveId, role });
     },
-    onError: (err: Error) => toast.error(`Erro ao atualizar: ${err.message}`),
+    onError: (err) => toastDbError(err, "Erro ao atualizar"),
   });
 
   const removeCollaborator = useMutation({
@@ -100,7 +101,7 @@ export function useObjectiveCollaborators(objectiveId: string | undefined) {
       toast.success("Colaborador removido");
       trackEvent("objective_collaborator_removed", { objective_id: objectiveId });
     },
-    onError: (err: Error) => toast.error(`Erro ao remover: ${err.message}`),
+    onError: (err) => toastDbError(err, "Erro ao remover"),
   });
 
   return {

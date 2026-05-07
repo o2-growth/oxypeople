@@ -10,6 +10,7 @@ import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 import { useBadges } from "@/hooks/useBadges";
 import { useRecognitions } from "@/hooks/useRecognitions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/AuthContext";
 
 function getInitials(name: string | null): string {
   if (!name) return "?";
@@ -26,9 +27,13 @@ export function SendRecognition() {
   const [selectedBadge, setSelectedBadge] = useState("");
   const [message, setMessage] = useState("");
 
-  const { data: users, isLoading: isLoadingUsers } = useCompanyUsers();
+  const { user: authUser } = useAuth();
+  const { data: usersRaw, isLoading: isLoadingUsers } = useCompanyUsers();
   const { data: badges, isLoading: isLoadingBadges } = useBadges();
   const { sendRecognition } = useRecognitions();
+
+  // Block self-recognition: filter out current user from picker
+  const users = (usersRaw ?? []).filter((u) => u.id !== authUser?.id);
 
   const selectedBadgeData = badges?.find((b) => b.id === selectedBadge);
 
@@ -82,7 +87,7 @@ export function SendRecognition() {
                     <SelectValue placeholder="Selecione um colega" />
                   </SelectTrigger>
                   <SelectContent>
-                    {users?.map((user) => (
+                    {users.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6">
@@ -95,9 +100,9 @@ export function SendRecognition() {
                         </div>
                       </SelectItem>
                     ))}
-                    {(!users || users.length === 0) && (
+                    {users.length === 0 && (
                       <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                        Nenhum colega encontrado
+                        Não há colegas disponíveis para reconhecimento.
                       </div>
                     )}
                   </SelectContent>

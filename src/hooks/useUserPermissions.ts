@@ -2,18 +2,25 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "./useUser";
+import { useOkrAccessLevels, type OkrAccessLevel } from "./useOkrAccessLevels";
+
+export type OkrTier = OkrAccessLevel | "unknown";
 
 export interface UserPermissions {
   isAdmin: boolean;
   isTeamLeader: boolean;
   ledTeamIds: string[];
   role: string | null;
+  okrTier: OkrTier;
+  canCreateOkr: boolean;
+  canManageOkrCascade: boolean;
 }
 
 export function useUserPermissions() {
   const { user } = useAuth();
   const { profile, isLoading: profileLoading } = useUser();
   const companyId = profile?.primary_company_id;
+  const { byUserId, isLoading: okrLevelsLoading } = useOkrAccessLevels();
 
   // Check if user is admin/owner
   const roleQuery = useQuery({
@@ -107,6 +114,12 @@ export function useUserPermissions() {
     return false;
   };
 
+  // OKR tier from okr_access_levels (single source of truth)
+  const okrRow = user?.id ? byUserId.get(user.id) : undefined;
+  const okrTier: OkrTier = okrRow?.okr_access_level ?? "unknown";
+  const canCreateOkr = isAdmin || okrTier === "manager";
+  const canManageOkrCascade = canCreateOkr; // alias for canManageRelations
+
   return {
     isAdmin,
     isTeamLeader,
@@ -116,11 +129,15 @@ export function useUserPermissions() {
       profileLoading ||
       (!!user?.id && !companyId) ||
       roleQuery.isLoading ||
-      ledTeamsQuery.isLoading,
+      ledTeamsQuery.isLoading ||
+      okrLevelsLoading,
     canCreateForTeam,
     canCreateForUser,
     canEditObjective,
     canDeleteObjective,
     canCreateTeamOrIndividual: isAdmin || isTeamLeader,
+    okrTier,
+    canCreateOkr,
+    canManageOkrCascade,
   };
 }

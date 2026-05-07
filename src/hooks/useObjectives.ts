@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "./useUser";
+import { toastDbError } from "@/lib/db-errors";
 import type { Database } from "@/integrations/supabase/types";
 
 import type { ObjectiveType } from "@/lib/objective-types";
@@ -266,6 +267,7 @@ export function useCreateObjective() {
       queryClient.invalidateQueries({ queryKey: ["objectives"] });
       queryClient.invalidateQueries({ queryKey: ["objectives-filtered"] });
     },
+    onError: (err) => toastDbError(err),
   });
 }
 
@@ -290,6 +292,7 @@ export function useUpdateObjective() {
       queryClient.invalidateQueries({ queryKey: ["objectives"] });
       queryClient.invalidateQueries({ queryKey: ["objectives-filtered"] });
     },
+    onError: (err) => toastDbError(err),
   });
 }
 
@@ -309,6 +312,7 @@ export function useDeleteObjective() {
       queryClient.invalidateQueries({ queryKey: ["objectives"] });
       queryClient.invalidateQueries({ queryKey: ["objectives-filtered"] });
     },
+    onError: (err) => toastDbError(err),
   });
 }
 

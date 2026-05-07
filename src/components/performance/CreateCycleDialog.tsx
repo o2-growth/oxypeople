@@ -31,14 +31,25 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
 import type { CreateCycleInput, PerformanceCycleType } from "@/hooks/usePerformanceCycles";
 
-const formSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
-  description: z.string().optional(),
-  type: z.enum(["full", "pocket", "self", "180", "360", "leader", "custom"]),
-  start_date: z.string().min(1, "Data de início é obrigatória"),
-  end_date: z.string().min(1, "Data de término é obrigatória"),
-  target_all: z.boolean().default(false),
-});
+const formSchema = z
+  .object({
+    name: z.string().min(1, "Nome é obrigatório"),
+    description: z.string().optional(),
+    type: z.enum(["full", "pocket", "self", "180", "360", "leader", "custom"]),
+    start_date: z.string().min(1, "Data de início é obrigatória"),
+    end_date: z.string().min(1, "Data de término é obrigatória"),
+    target_all: z.boolean().default(false),
+  })
+  .refine(
+    (data) => {
+      if (!data.start_date || !data.end_date) return true;
+      return new Date(data.end_date) > new Date(data.start_date);
+    },
+    {
+      message: "Data final deve ser posterior à inicial.",
+      path: ["end_date"],
+    },
+  );
 
 type FormData = z.infer<typeof formSchema>;
 

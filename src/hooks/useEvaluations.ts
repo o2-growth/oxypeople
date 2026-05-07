@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "@/hooks/useUser";
 import { toast } from "sonner";
+import { toastDbError } from "@/lib/db-errors";
 
 export type EvaluationStatus = "pending" | "in_progress" | "completed" | "expired";
 
@@ -125,7 +126,7 @@ export function useEvaluations(cycleId?: string) {
     },
     onError: (error) => {
       console.error("Error creating evaluation:", error);
-      toast.error("Erro ao criar avaliação");
+      toastDbError(error, "Erro ao criar avaliação");
     },
   });
 
@@ -147,7 +148,7 @@ export function useEvaluations(cycleId?: string) {
     },
     onError: (error) => {
       console.error("Error updating evaluation:", error);
-      toast.error("Erro ao atualizar avaliação");
+      toastDbError(error, "Erro ao atualizar avaliação");
     },
   });
 

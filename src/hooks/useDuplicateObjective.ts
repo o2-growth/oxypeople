@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUser } from "./useUser";
 import { ObjectiveWithDetails } from "./useObjectives";
 import { toast } from "sonner";
+import { toastDbError } from "@/lib/db-errors";
 
 export function useDuplicateObjective() {
   const { user } = useAuth();
@@ -85,8 +86,8 @@ export function useDuplicateObjective() {
       queryClient.invalidateQueries({ queryKey: ["objectives-filtered"] });
       toast.success("Objetivo duplicado com sucesso!");
     },
-    onError: () => {
-      toast.error("Erro ao duplicar objetivo.");
+    onError: (err) => {
+      toastDbError(err, "Erro ao duplicar objetivo");
     },
   });
 }

@@ -167,6 +167,16 @@ export function ChildWeightEditor({ parentId, children, canEdit }: ChildWeightEd
           </div>
         ))}
       </div>
+
+      <div
+        className={cn(
+          "text-[10px] font-medium",
+          isValid ? "text-emerald-500" : "text-amber-500",
+        )}
+      >
+        Soma atual: {totalWeight}% / 100%
+        {!isValid && " — ajuste antes de salvar."}
+      </div>
     </div>
   );
 }

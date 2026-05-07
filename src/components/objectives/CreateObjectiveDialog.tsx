@@ -37,6 +37,7 @@ import { useCreateObjective, usePeriods, useObjectives, ObjectiveType } from "@/
 import { useOkrTier } from "@/hooks/useOkrTier";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { toastDbError } from "@/lib/db-errors";
 import { Plus, Trash2, Crosshair, Layers, Zap, Rocket, CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
@@ -203,7 +204,7 @@ export function CreateObjectiveDialog({
       onOpenChange(false);
     } catch (error) {
       console.error("Error creating objective:", error);
-      toast.error("Erro ao criar objetivo");
+      toastDbError(error, "Erro ao criar objetivo");
     }
   };
 
@@ -709,7 +710,7 @@ export function CreateObjectiveDialog({
                 {showKRSection && hasKRs && (
                   <div className="p-3 rounded-lg border space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium">Soma dos Pesos</span>
+                      <span className="text-xs font-medium">Soma atual: {totalWeight}% / 100%</span>
                       <span className={cn(
                         "text-xs font-bold",
                         totalWeight === 100 ? "text-emerald-500" : totalWeight > 100 ? "text-red-500" : "text-amber-500"

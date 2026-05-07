@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "./useUser";
 import { useAuth } from "@/contexts/AuthContext";
+import { toastDbError } from "@/lib/db-errors";
 
 export interface CompanyEvent {
   id: string;
@@ -84,6 +85,7 @@ export function useCreateEvent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company-events"] });
     },
+    onError: (err) => toastDbError(err, "Erro ao criar evento"),
   });
 }
 
@@ -102,5 +104,6 @@ export function useDeleteEvent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company-events"] });
     },
+    onError: (err) => toastDbError(err, "Erro ao remover evento"),
   });
 }
