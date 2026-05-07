@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "@/hooks/useUser";
 import { trackEvent } from "@/lib/analytics";
 import { toast } from "sonner";
+import { toastDbError } from "@/lib/db-errors";
 
 export interface PeriodAdminRow {
   id: string;
@@ -108,7 +109,11 @@ export function usePeriodsAdmin() {
       invalidate();
     },
     onError: (err: Error) => {
-      toast.error(explainPgError(err.message));
+      if (isOverlapError(err.message) || isInvalidRangeError(err.message)) {
+        toast.error(explainPgError(err.message));
+        return;
+      }
+      toastDbError(err, "Erro ao criar período");
     },
   });
 
@@ -133,7 +138,11 @@ export function usePeriodsAdmin() {
       invalidate();
     },
     onError: (err: Error) => {
-      toast.error(explainPgError(err.message));
+      if (isOverlapError(err.message) || isInvalidRangeError(err.message)) {
+        toast.error(explainPgError(err.message));
+        return;
+      }
+      toastDbError(err, "Erro ao atualizar período");
     },
   });
 
@@ -153,7 +162,11 @@ export function usePeriodsAdmin() {
         toast.error("Período tem objetivos vinculados — desvincule antes de remover.");
         return;
       }
-      toast.error(explainPgError(msg));
+      if (isOverlapError(msg) || isInvalidRangeError(msg)) {
+        toast.error(explainPgError(msg));
+        return;
+      }
+      toastDbError(err, "Erro ao remover período");
     },
   });
 

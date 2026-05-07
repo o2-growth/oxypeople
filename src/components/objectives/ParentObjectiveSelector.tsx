@@ -79,12 +79,23 @@ export function ParentObjectiveSelector({
         return [];
       }
 
-      return (data || []).map((obj: any) => ({
+      interface ObjectiveRow {
+        id: string;
+        title: string;
+        progress: number;
+        type: string;
+        owner:
+          | { id: string; full_name: string | null; avatar_url: string | null }
+          | { id: string; full_name: string | null; avatar_url: string | null }[]
+          | null;
+      }
+
+      return ((data || []) as unknown as ObjectiveRow[]).map((obj) => ({
         id: obj.id,
         title: obj.title,
         progress: obj.progress,
         type: obj.type as ParentObjectiveType,
-        owner: obj.owner,
+        owner: Array.isArray(obj.owner) ? obj.owner[0] ?? null : obj.owner,
       }));
     },
     enabled: !!companyId,

@@ -42,6 +42,17 @@ interface PeriodFormDialogProps {
   initialValue?: PeriodAdminRow | null;
   onSubmit: (values: PeriodInput) => Promise<void>;
   isSubmitting: boolean;
+  existingPeriods?: PeriodAdminRow[];
+}
+
+function rangesOverlap(
+  aStart: string,
+  aEnd: string,
+  bStart: string,
+  bEnd: string,
+): boolean {
+  // Inclusive overlap on date strings (YYYY-MM-DD), matches Postgres daterange [,] check.
+  return aStart <= bEnd && bStart <= aEnd;
 }
 
 const EMPTY: PeriodFormValues = { name: "", start_date: "", end_date: "" };
@@ -52,6 +63,7 @@ export function PeriodFormDialog({
   initialValue,
   onSubmit,
   isSubmitting,
+  existingPeriods = [],
 }: PeriodFormDialogProps) {
   const form = useForm<PeriodFormValues>({
     resolver: zodResolver(periodSchema),
@@ -73,6 +85,22 @@ export function PeriodFormDialog({
   }, [open, initialValue, form]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
+    const conflict = existingPeriods.find(
+      (p) =>
+        p.id !== initialValue?.id &&
+        rangesOverlap(values.start_date, values.end_date, p.start_date, p.end_date),
+    );
+    if (conflict) {
+      form.setError("start_date", {
+        type: "overlap",
+        message: "Este período se sobrepõe a outro existente.",
+      });
+      form.setError("end_date", {
+        type: "overlap",
+        message: "Este período se sobrepõe a outro existente.",
+      });
+      return;
+    }
     await onSubmit(values);
   });
 

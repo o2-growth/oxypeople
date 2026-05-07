@@ -62,11 +62,16 @@ export const pulseSurveySchema = z
       }
     }
     if (value.frequency === "monthly") {
-      if (value.day_of_month === null || value.day_of_month === undefined) {
+      if (
+        value.day_of_month === null ||
+        value.day_of_month === undefined ||
+        value.day_of_month < 1 ||
+        value.day_of_month > 28
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["day_of_month"],
-          message: "Escolha o dia do mês (1–28)",
+          message: "Defina o dia do mês para envio quando a frequência for mensal.",
         });
       }
     }

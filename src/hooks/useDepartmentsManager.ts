@@ -2,6 +2,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUser } from "./useUser";
 import { toast } from "sonner";
+import { friendlyDbError } from "@/lib/db-errors";
+
+function isDepartmentNameUniqueViolation(message: string): boolean {
+  return (
+    message.includes("departments_company_id_name_key") ||
+    message.includes("departments_name_company_unique")
+  );
+}
 
 export interface Department {
   id: string;
@@ -132,10 +140,10 @@ export function useCreateDepartment() {
       toast.success("Departamento criado com sucesso!");
     },
     onError: (error: Error) => {
-      if (error.message.includes("departments_name_company_unique")) {
-        toast.error("Já existe um departamento com este nome");
+      if (isDepartmentNameUniqueViolation(error.message)) {
+        toast.error("Já existe um departamento com este nome.");
       } else {
-        toast.error("Erro ao criar departamento");
+        toast.error(friendlyDbError(error));
       }
     },
   });
@@ -164,10 +172,10 @@ export function useUpdateDepartment() {
       toast.success("Departamento atualizado com sucesso!");
     },
     onError: (error: Error) => {
-      if (error.message.includes("departments_name_company_unique")) {
-        toast.error("Já existe um departamento com este nome");
+      if (isDepartmentNameUniqueViolation(error.message)) {
+        toast.error("Já existe um departamento com este nome.");
       } else {
-        toast.error("Erro ao atualizar departamento");
+        toast.error(friendlyDbError(error));
       }
     },
   });

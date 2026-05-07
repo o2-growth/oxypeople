@@ -178,6 +178,7 @@ export default function PeriodsAdminPage() {
         initialValue={editTarget}
         onSubmit={handleSubmit}
         isSubmitting={createPeriod.isPending || updatePeriod.isPending}
+        existingPeriods={periods}
       />
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
