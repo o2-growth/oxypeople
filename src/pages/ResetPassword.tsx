@@ -15,6 +15,7 @@ const ResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [ready, setReady] = useState(false);
   const [linkInvalid, setLinkInvalid] = useState(false);
+  const [invalidReason, setInvalidReason] = useState<"expired" | "invalid" | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -26,53 +27,74 @@ const ResetPassword = () => {
         if (!cancelled) {
           setReady(true);
           setLinkInvalid(false);
+          setInvalidReason(null);
         }
       }
     });
 
     const init = async () => {
       const url = new URL(window.location.href);
-      const code = url.searchParams.get("code");
-      const errorDesc = url.searchParams.get("error_description") || url.hash.includes("error");
-      const hash = window.location.hash;
-      const isRecoveryHash = hash.includes("type=recovery") && hash.includes("access_token");
+      const search = url.searchParams;
+      // Hash params (fluxo implícito do Supabase) podem conter access_token OU error
+      const hashStr = window.location.hash.startsWith("#")
+        ? window.location.hash.slice(1)
+        : window.location.hash;
+      const hashParams = new URLSearchParams(hashStr);
 
-      if (errorDesc && !code) {
-        if (!cancelled) setLinkInvalid(true);
+      const errorParam = search.get("error") || hashParams.get("error");
+      const errorCode = search.get("error_code") || hashParams.get("error_code");
+
+      // 1) Erro explícito do Supabase (link expirado, já usado, access denied, etc.)
+      if (errorParam || errorCode) {
+        if (cancelled) return;
+        setLinkInvalid(true);
+        setInvalidReason(errorCode === "otp_expired" ? "expired" : "invalid");
         return;
       }
 
-      // Fluxo PKCE: ?code=...
+      // 2) Fluxo PKCE: ?code=...
+      const code = search.get("code");
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (cancelled) return;
         if (error) {
           setLinkInvalid(true);
+          setInvalidReason("invalid");
         } else {
           setReady(true);
-          // Limpa a query string da URL
           window.history.replaceState({}, "", url.pathname);
         }
         return;
       }
 
-      // Fluxo implícito antigo: #access_token=...&type=recovery
+      // 3) Fluxo implícito: #access_token=...&type=recovery
+      const isRecoveryHash =
+        hashParams.get("type") === "recovery" && !!hashParams.get("access_token");
       if (isRecoveryHash) {
-        // O SDK processa automaticamente; aguarda o evento via onAuthStateChange.
-        // Como fallback, checa sessão após pequeno delay.
+        // O SDK processa o hash e dispara PASSWORD_RECOVERY/SIGNED_IN.
         setTimeout(async () => {
+          if (cancelled) return;
           const { data: { session } } = await supabase.auth.getSession();
-          if (!cancelled && session) setReady(true);
-          else if (!cancelled && !session) setLinkInvalid(true);
+          if (cancelled) return;
+          if (session) {
+            setReady(true);
+          } else {
+            setLinkInvalid(true);
+            setInvalidReason("invalid");
+          }
         }, 1500);
         return;
       }
 
-      // Sessão pré-existente
+      // 4) Sessão pré-existente (usuário já autenticado abriu o link)
       const { data: { session } } = await supabase.auth.getSession();
       if (cancelled) return;
-      if (session) setReady(true);
-      else setLinkInvalid(true);
+      if (session) {
+        setReady(true);
+      } else {
+        setLinkInvalid(true);
+        setInvalidReason("invalid");
+      }
     };
 
     init();
