@@ -19,31 +19,68 @@ const ResetPassword = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // O Supabase processa o hash automaticamente e dispara PASSWORD_RECOVERY.
-    // Também verificamos a sessão atual: se já existir, podemos redefinir.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
-        setLinkInvalid(false);
-      } else if (session) {
-        setReady(true);
+    let cancelled = false;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+        if (!cancelled) {
+          setReady(true);
+          setLinkInvalid(false);
+        }
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setReady(true);
-      } else {
-        // Aguarda um momento para o SDK processar o hash; se ainda não houver sessão, link inválido
-        setTimeout(() => {
-          supabase.auth.getSession().then(({ data: { session: s2 } }) => {
-            if (!s2) setLinkInvalid(true);
-          });
+    const init = async () => {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
+      const errorDesc = url.searchParams.get("error_description") || url.hash.includes("error");
+      const hash = window.location.hash;
+      const isRecoveryHash = hash.includes("type=recovery") && hash.includes("access_token");
+
+      if (errorDesc && !code) {
+        if (!cancelled) setLinkInvalid(true);
+        return;
+      }
+
+      // Fluxo PKCE: ?code=...
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (cancelled) return;
+        if (error) {
+          setLinkInvalid(true);
+        } else {
+          setReady(true);
+          // Limpa a query string da URL
+          window.history.replaceState({}, "", url.pathname);
+        }
+        return;
+      }
+
+      // Fluxo implícito antigo: #access_token=...&type=recovery
+      if (isRecoveryHash) {
+        // O SDK processa automaticamente; aguarda o evento via onAuthStateChange.
+        // Como fallback, checa sessão após pequeno delay.
+        setTimeout(async () => {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!cancelled && session) setReady(true);
+          else if (!cancelled && !session) setLinkInvalid(true);
         }, 1500);
+        return;
       }
-    });
 
-    return () => subscription.unsubscribe();
+      // Sessão pré-existente
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (session) setReady(true);
+      else setLinkInvalid(true);
+    };
+
+    init();
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
