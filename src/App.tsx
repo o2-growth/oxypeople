@@ -16,8 +16,6 @@ const TracedRoutes = SentryRoutes(Routes);
 const Index = lazy(() => import("./pages/Index"));
 const Feed = lazy(() => import("./pages/Feed"));
 const Auth = lazy(() => import("./pages/Auth"));
-const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Recognition = lazy(() => import("./pages/Recognition"));
 const Objectives = lazy(() => import("./pages/Objectives"));
 const ObjectiveDetail = lazy(() => import("./pages/ObjectiveDetail"));
@@ -60,8 +58,6 @@ const App = () => (
               <Suspense fallback={<RouteFallback />}>
                 <TracedRoutes>
                   <Route path="/auth" element={<Auth />} />
-                  <Route path="/auth/reset" element={<ForgotPassword />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                   <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
                   <Route path="/recognition" element={<ProtectedRoute><Recognition /></ProtectedRoute>} />
