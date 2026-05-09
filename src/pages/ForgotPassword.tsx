@@ -20,10 +20,29 @@ const ForgotPassword = () => {
     setIsLoading(true);
 
     try {
-      await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
-      // Sempre mostrar sucesso para não permitir enumeração de usuários
+
+      if (error) {
+        const code = (error as any).code || "";
+        const status = (error as any).status;
+        const isRateLimit =
+          status === 429 ||
+          code === "over_email_send_rate_limit" ||
+          /rate limit/i.test(error.message);
+
+        toast({
+          title: isRateLimit ? "Muitas tentativas" : "Erro ao enviar link",
+          description: isRateLimit
+            ? "Aguarde alguns minutos antes de pedir um novo link de recuperação."
+            : error.message || "Não foi possível enviar o link. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Sempre mostrar sucesso (sem revelar se o e-mail existe)
       setSent(true);
       toast({
         title: "Verifique seu e-mail",
