@@ -16,6 +16,8 @@ const TracedRoutes = SentryRoutes(Routes);
 const Index = lazy(() => import("./pages/Index"));
 const Feed = lazy(() => import("./pages/Feed"));
 const Auth = lazy(() => import("./pages/Auth"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Recognition = lazy(() => import("./pages/Recognition"));
 const Objectives = lazy(() => import("./pages/Objectives"));
 const ObjectiveDetail = lazy(() => import("./pages/ObjectiveDetail"));
