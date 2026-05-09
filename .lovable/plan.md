@@ -1,40 +1,31 @@
-## Objetivo
-Implementar o fluxo completo de "Esqueci minha senha" que hoje está quebrado.
+## Problema
+A página `/reset-password` mostra "Link inválido ou expirado" mesmo com link válido vindo do e-mail.
 
-## Problema atual
-- Link em `Auth.tsx` aponta para `/auth/reset` — rota inexistente (404).
-- `AuthContext.resetPassword` existe mas não é usado em lugar nenhum.
-- Falta a página `/reset-password` que trata o link de recuperação enviado por e-mail.
+## Causa
+O link de recuperação do Supabase chega como `?code=XXX` (fluxo PKCE), e não como `#access_token=...&type=recovery` (fluxo implícito antigo). Hoje o `ResetPassword.tsx`:
+- Só espera o evento `PASSWORD_RECOVERY` ou uma sessão já existente.
+- **Não chama `exchangeCodeForSession(code)`**, então a sessão de recovery nunca é criada → cai no "link inválido".
 
-## O que vou criar
+Adicionalmente, com PKCE o evento emitido após troca é `SIGNED_IN` (com `type=recovery` na URL), não `PASSWORD_RECOVERY`.
 
-### 1. Página `src/pages/ForgotPassword.tsx` (rota `/auth/reset`)
-- Formulário com um único campo (e-mail) usando RHF + Zod.
-- Ao enviar: `supabase.auth.resetPasswordForEmail(email, { redirectTo: ${window.location.origin}/reset-password })`.
-- Mostra toast de sucesso ("Se este e-mail existir, enviamos um link…") **independente do retorno**, para não permitir enumeração de usuários.
-- Layout reaproveitando o split-screen com o branding "Oxy People" usado em `Auth.tsx` (mesmo Card/estilos).
-- Link "Voltar ao login".
+## Correção
+Reescrever a lógica de inicialização de `src/pages/ResetPassword.tsx`:
 
-### 2. Página `src/pages/ResetPassword.tsx` (rota `/reset-password`, pública)
-- Detecta o tipo de fluxo (Supabase entrega via hash `#access_token=…&type=recovery` — o SDK já abre a sessão de recovery automaticamente via `onAuthStateChange` com event `PASSWORD_RECOVERY`).
-- Usa `useEffect` + `supabase.auth.onAuthStateChange` para reagir a `PASSWORD_RECOVERY` e habilitar o form.
-- Form com nova senha + confirmação (Zod, mínimo 8, igual confirmação).
-- Submit: `supabase.auth.updateUser({ password })` → toast → `signOut` → redireciona para `/auth`.
-- Trata caso de link expirado/ inválido (mostra mensagem e botão "Pedir novo link").
+1. Ao montar:
+   - Ler `code` de `searchParams` (fluxo PKCE) **e** `type` do hash (fluxo antigo).
+   - Se houver `code`: `await supabase.auth.exchangeCodeForSession(code)`. Se sucesso → `setReady(true)` e limpar a query string. Se erro → `setLinkInvalid(true)`.
+   - Se houver hash `#type=recovery&access_token=...`: deixar o SDK processar (já é automático) e aguardar evento `PASSWORD_RECOVERY`/sessão.
+   - Se já houver sessão ativa: `setReady(true)`.
+   - Se nenhum dos casos: `setLinkInvalid(true)`.
 
-### 3. Roteamento em `src/App.tsx`
-- Adicionar rotas **públicas** (fora do `ProtectedRoute`):
-  - `/auth/reset` → `ForgotPassword`
-  - `/reset-password` → `ResetPassword`
+2. Manter o `onAuthStateChange` reagindo a `PASSWORD_RECOVERY` **e** `SIGNED_IN` para liberar o form.
 
-### 4. Garantia no `AuthContext`
-- Verificar se o `onAuthStateChange` global não força redirect para `/` quando o evento é `PASSWORD_RECOVERY` (senão atrapalha o fluxo). Ajustar para ignorar esse evento na hora de navegar.
+3. Após `updateUser({ password })` com sucesso → `signOut` + redirect para `/auth` (já existe).
 
 ## Observações
-- E-mail de recuperação: o projeto já usa o template padrão do Lovable Cloud, então o link sai automaticamente. Não precisa configurar template custom para isso funcionar.
-- Não vou mexer em backend/RLS/migrations — é só frontend + um ajuste no contexto.
-- Sem mudança de design system; mantém a identidade visual atual.
+- Garantir que `https://oxypeople.lovable.app/reset-password` e `https://oxy-people.o2inc.com.br/reset-password` estejam nas Redirect URLs do Supabase (Auth → URL Configuration). Se não estiverem, o usuário cai num link de erro genérico antes mesmo de chegar à página — menciono no fim do plano para o usuário verificar.
+- Sem mudanças em backend/migrations — só frontend.
 
 ## Fora de escopo
-- Customizar o template do e-mail (pode ser feito depois em "Cloud → Emails" se quiser).
-- Forçar política de senha forte além do mínimo (8 caracteres + confirmação).
+- Customizar template do e-mail.
+- Endurecer política de senha.
