@@ -199,7 +199,9 @@ const ResetPassword = () => {
               <CardTitle className="text-2xl font-heading">Nova senha</CardTitle>
               <CardDescription>
                 {linkInvalid
-                  ? "Link inválido ou expirado. Solicite um novo link de recuperação."
+                  ? invalidReason === "expired"
+                    ? "Este link expirou ou já foi usado. Solicite um novo link de recuperação."
+                    : "Link inválido. Abra o link mais recente do seu e-mail ou solicite um novo."
                   : "Escolha uma nova senha de pelo menos 8 caracteres."}
               </CardDescription>
             </CardHeader>
