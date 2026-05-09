@@ -60,6 +60,8 @@ const App = () => (
               <Suspense fallback={<RouteFallback />}>
                 <TracedRoutes>
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/auth/reset" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                   <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
                   <Route path="/recognition" element={<ProtectedRoute><Recognition /></ProtectedRoute>} />
